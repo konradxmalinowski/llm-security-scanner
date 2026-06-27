@@ -103,3 +103,23 @@ def test_loader_combined_filters(payload_dir: Path) -> None:
     results = loader.load(categories=["LLM01"], severity=Severity.HIGH)
     assert len(results) > 0
     assert all(p.category == "LLM01" and p.severity == Severity.HIGH for p in results)
+
+
+def test_yaml_schema_fields(payload_dir: Path) -> None:
+    loader = YamlPayloadLoader(payload_dir)
+    payloads = loader.load()
+    for p in payloads:
+        assert p.id, f"id is empty for {p}"
+        assert p.name, f"name is empty for {p.id}"
+        assert p.category, f"category is empty for {p.id}"
+        assert p.severity is not None, f"severity is None for {p.id}"
+        assert p.payload, f"payload is empty for {p.id}"
+        assert p.judge_criteria, f"judge_criteria is empty for {p.id}"
+
+
+def test_payload_count_per_category(payload_dir: Path) -> None:
+    categories = ["LLM01", "LLM02", "LLM03", "LLM04", "LLM05", "LLM06", "LLM07", "LLM08", "LLM09", "LLM10"]
+    for cat in categories:
+        loader = YamlPayloadLoader(payload_dir)
+        result = loader.load(categories=[cat])
+        assert len(result) >= 4, f"Category {cat} has {len(result)} payloads, expected >=4"
