@@ -1,0 +1,57 @@
+[project]
+name = "llm-security-scanner"
+version = "0.1.0"
+description = "OWASP Top 10 for LLMs security scanner — fully offline"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.28.1",
+    "ollama>=0.6.2",
+    "rich>=15.0.0",
+    "pydantic>=2.13.4",
+    "jinja2>=3.1.6",
+    "PyYAML>=6.0.3",
+]
+
+[project.scripts]
+llm-scanner = "llm_scanner.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.20",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_scanner"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "B",    # flake8-bugbear
+    "S",    # flake8-bandit (S506 unsafe yaml, S701 jinja autoescape)
+    "I",    # isort
+    "UP",   # pyupgrade
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "S101",  # assert statements — needed in tests
+    "E501",  # line-too-long — handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S106"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
