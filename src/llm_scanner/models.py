@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json as _json
 from datetime import datetime
 from enum import StrEnum
 
@@ -72,3 +73,20 @@ class ScanReport(BaseModel):
     @property
     def successful_attacks(self) -> int:
         return sum(1 for f in self.findings if f.success)
+
+    # Computed fields appear in model_dump_json() output but are rejected
+    # as extra inputs by extra="forbid" on the way back in.  Override
+    # model_validate_json() to strip them before re-validation so callers
+    # can round-trip JSON without a manual pop() workaround.
+    _COMPUTED_FIELDS: frozenset[str] = frozenset({"total_attacks", "successful_attacks"})
+
+    @classmethod
+    def model_validate_json(  # type: ignore[override]
+        cls,
+        json_data: str | bytes,
+        **kwargs: object,
+    ) -> "ScanReport":
+        data = _json.loads(json_data)
+        for k in cls._COMPUTED_FIELDS:
+            data.pop(k, None)
+        return cls.model_validate(data, **kwargs)
