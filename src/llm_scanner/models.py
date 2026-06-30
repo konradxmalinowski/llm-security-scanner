@@ -42,6 +42,15 @@ class Payload(BaseModel):
     judge_criteria: str
 
 
+class JudgeResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    success: bool
+    reasoning: str
+    error: str | None = None  # set on parse/timeout/unavailability failure
+    raw_response: str = ""    # always preserved; empty string on connection failure
+
+
 class AttackResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -56,7 +65,7 @@ class AttackResult(BaseModel):
     recommendation: str = ""
 
     @model_validator(mode="after")
-    def _populate_recommendation(self) -> "AttackResult":
+    def _populate_recommendation(self) -> AttackResult:
         """Populate recommendation from OWASP_RECOMMENDATIONS if not set explicitly."""
         if not self.recommendation:
             self.recommendation = OWASP_RECOMMENDATIONS.get(self.owasp_category, "")
@@ -92,7 +101,7 @@ class ScanReport(BaseModel):
         cls,
         json_data: str | bytes,
         **kwargs: object,
-    ) -> "ScanReport":
+    ) -> ScanReport:
         data = _json.loads(json_data)
         for k in cls._COMPUTED_FIELDS:
             data.pop(k, None)
