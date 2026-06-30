@@ -42,6 +42,15 @@ class Payload(BaseModel):
     judge_criteria: str
 
 
+class JudgeResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    success: bool
+    reasoning: str
+    error: str | None = None  # set on parse/timeout/unavailability failure
+    raw_response: str = ""    # always preserved; empty string on connection failure
+
+
 class AttackResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
