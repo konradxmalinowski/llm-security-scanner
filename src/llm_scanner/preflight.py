@@ -62,7 +62,7 @@ def check_http_target_reachable(url: str, api_key: str | None = None) -> None:
     """
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     try:
-        resp = httpx.head(url, headers=headers, timeout=httpx.Timeout(connect=5.0, read=10.0))
+        resp = httpx.head(url, headers=headers, timeout=httpx.Timeout(10.0, connect=5.0))
         if resp.status_code >= 500:
             print(
                 f"[ERROR] HTTP target at {url} returned server error {resp.status_code}.",
@@ -91,13 +91,13 @@ def check_judge_differs_from_target(
         sys.exit(1)
 
 
-async def warm_up_judge(judge: "OllamaJudge") -> None:
+async def warm_up_judge(judge: OllamaJudge) -> None:
     """Force Ollama to load the judge model into VRAM before the scan starts.
 
     Creates a dummy payload and calls evaluate() once. The result is discarded.
     This prevents a cold-start timeout on the first real attack evaluation.
     """
-    from llm_scanner.models import Payload, Severity  # noqa: PLC0415
+    from llm_scanner.models import Payload, Severity
 
     dummy = Payload(
         id="WARMUP",
