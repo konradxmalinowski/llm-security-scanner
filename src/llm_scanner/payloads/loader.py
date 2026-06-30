@@ -24,27 +24,46 @@ class YamlPayloadLoader:
         """
         results: list[Payload] = []
         for path in sorted(self._dir.glob("*.yaml")):
-            with path.open(encoding="utf-8") as f:
-                file_data = yaml.safe_load(f)
+            try:
+                with path.open(encoding="utf-8") as f:
+                    file_data = yaml.safe_load(f)
+            except (yaml.YAMLError, UnicodeDecodeError) as exc:
+                raise ValueError(f"Failed to parse payload file {path}: {exc}") from exc
 
-            file_category: str = file_data["category"]
-            file_severity: Severity = Severity(file_data["severity"])
+            if not isinstance(file_data, dict):
+                raise ValueError(
+                    f"Payload file {path} must be a YAML mapping; "
+                    f"got {type(file_data).__name__!r}"
+                )
+
+            try:
+                file_category: str = file_data["category"]
+                file_severity: Severity = Severity(file_data["severity"])
+            except KeyError as exc:
+                raise ValueError(f"Missing required top-level key {exc} in {path}") from exc
+            except ValueError as exc:
+                raise ValueError(f"Invalid severity value in {path}: {exc}") from exc
 
             if categories is not None and file_category not in categories:
                 continue
             if severity is not None and file_severity != severity:
                 continue
 
-            for entry in file_data.get("payloads", []):
-                results.append(
-                    Payload(
-                        id=entry["id"],
-                        name=entry["name"],
-                        category=file_category,
-                        severity=file_severity,
-                        payload=entry["payload"],
-                        judge_criteria=entry["judge_criteria"],
+            for i, entry in enumerate(file_data.get("payloads") or []):
+                try:
+                    results.append(
+                        Payload(
+                            id=entry["id"],
+                            name=entry["name"],
+                            category=file_category,
+                            severity=file_severity,
+                            payload=entry["payload"],
+                            judge_criteria=entry["judge_criteria"],
+                        )
                     )
-                )
+                except KeyError as exc:
+                    raise ValueError(
+                        f"Payload entry #{i} in {path} is missing required field: {exc}"
+                    ) from exc
 
         return results
