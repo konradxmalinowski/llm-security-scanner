@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from llm_scanner.models import AttackResult, Payload, ScanReport, Severity
+from llm_scanner.models import OWASP_RECOMMENDATIONS, AttackResult, Payload, ScanReport, Severity
 
 _BASE_RESULT = dict(
     attack_id="LLM01-001",
@@ -41,7 +41,7 @@ def test_attack_result_fields():
     assert result.success is True
     assert result.judge_reasoning == "Response revealed system prompt content."
     assert result.severity == Severity.HIGH
-    assert result.recommendation == ""
+    assert result.recommendation == OWASP_RECOMMENDATIONS["LLM01"]
 
 
 def test_attack_result_rejects_extra_fields():

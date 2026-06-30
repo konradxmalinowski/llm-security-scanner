@@ -4,7 +4,7 @@ import json as _json
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 
 class Severity(StrEnum):
@@ -54,6 +54,13 @@ class AttackResult(BaseModel):
     judge_reasoning: str
     severity: Severity
     recommendation: str = ""
+
+    @model_validator(mode="after")
+    def _populate_recommendation(self) -> "AttackResult":
+        """Populate recommendation from OWASP_RECOMMENDATIONS if not set explicitly."""
+        if not self.recommendation:
+            self.recommendation = OWASP_RECOMMENDATIONS.get(self.owasp_category, "")
+        return self
 
 
 class ScanReport(BaseModel):
