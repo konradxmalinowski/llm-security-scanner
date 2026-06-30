@@ -4,7 +4,7 @@ import json as _json
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class Severity(StrEnum):
@@ -61,7 +61,7 @@ class ScanReport(BaseModel):
 
     target: str
     timestamp: datetime
-    risk_score: float
+    risk_score: float = Field(ge=0.0, le=10.0)
     findings: list[AttackResult]
 
     @computed_field
