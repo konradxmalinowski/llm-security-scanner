@@ -22,6 +22,11 @@ class YamlPayloadLoader:
             categories: If set, only include payloads whose category is in this list.
             severity: If set, only include payloads with this severity level.
         """
+        # Normalize category names so callers are not forced to use exact case
+        # (all YAML files store categories as uppercase, e.g. "LLM01").
+        if categories is not None:
+            categories = [c.upper() for c in categories]
+
         results: list[Payload] = []
         for path in sorted(self._dir.glob("*.yaml")):
             try:
