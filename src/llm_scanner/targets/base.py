@@ -25,5 +25,5 @@ class AbstractTarget(ABC):
     async def __aexit__(self, *args: object) -> None:
         await self.close()
 
-    async def close(self) -> None:
+    async def close(self) -> None:  # noqa: B027 — intentional concrete no-op; subclasses override
         """Release any underlying connections. Override in subclasses."""

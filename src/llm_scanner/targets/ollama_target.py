@@ -41,6 +41,6 @@ class OllamaTarget(AbstractTarget):
         except ConnectionError as exc:
             # Ollama SDK wraps httpx.ConnectError → Python built-in ConnectionError
             raise TargetError("Ollama is not running or not reachable") from exc
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # BLE001 not enabled in ruff config; broad catch needed for httpx timeout
             # httpx.TimeoutException propagates uncaught through the ollama SDK
             raise TargetError(f"Unexpected target error: {exc}") from exc
