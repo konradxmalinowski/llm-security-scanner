@@ -5,6 +5,11 @@ from pathlib import Path
 from llm_scanner.models import ScanReport
 
 
+def _sanitize_cell(value: str) -> str:
+    """Escape Markdown table metacharacters in a cell value."""
+    return value.replace("\n", " ").replace("|", "\\|")
+
+
 class MarkdownReporter:
     """Save scan results as a Markdown file (REPORT-02)."""
 
@@ -31,7 +36,8 @@ class MarkdownReporter:
         for f in report.findings:
             result = "VULNERABLE" if f.success else "Safe"
             lines.append(
-                f"| {f.attack_id} | {f.owasp_category} | {f.name} "
-                f"| {f.severity} | {result} | {f.recommendation} |"
+                f"| {_sanitize_cell(f.attack_id)} | {_sanitize_cell(f.owasp_category)} "
+                f"| {_sanitize_cell(f.name)} | {f.severity} "
+                f"| {result} | {_sanitize_cell(f.recommendation)} |"
             )
         return "\n".join(lines) + "\n"
