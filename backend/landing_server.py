@@ -9,11 +9,12 @@ from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlparse
 
-from flask import Flask, Response, request, send_from_directory, stream_with_context
+from flask import Flask, Response, abort, request, send_file, send_from_directory, stream_with_context
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 PROJECT_ROOT = Path(__file__).parent.parent
 SCANNER_BIN = PROJECT_ROOT / ".venv" / "bin" / "llm-scanner"
+REPORTS_DIR = PROJECT_ROOT / "reports"
 DEFAULT_JUDGE_MODEL = os.environ.get("LLM_SCANNER_JUDGE_MODEL", "llama3.2:3b")
 SCAN_TIMEOUT_SECONDS = int(os.environ.get("LLM_SCANNER_TIMEOUT_SECONDS", "300"))
 
@@ -28,6 +29,26 @@ def index():
 @app.route("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.route("/reports/<scan_id>/<filename>")
+def report_file(scan_id: str, filename: str):
+    scan_dir = (REPORTS_DIR / scan_id).resolve()
+    try:
+        scan_dir.relative_to(REPORTS_DIR.resolve())
+    except ValueError:
+        abort(404)
+
+    path = (scan_dir / filename).resolve()
+    try:
+        path.relative_to(scan_dir)
+    except ValueError:
+        abort(404)
+    if not path.is_file():
+        abort(404)
+
+    as_attachment = path.suffix.lower() != ".html"
+    return send_file(path, as_attachment=as_attachment)
 
 
 def _scanner_bin() -> str | None:
@@ -87,15 +108,45 @@ def _is_public_http_url(value: str) -> bool:
     )
 
 
+def _normalize_target_url(value: str) -> str:
+    """Accept bare host:port inputs from the form and default them to http://."""
+    raw = value.strip()
+    if "://" not in raw and raw:
+        return f"http://{raw}"
+    return raw
+
+
+def _build_report_links(scan_dir: Path) -> dict[str, str]:
+    filenames = {
+        "html": "report.html",
+        "json": "report.json",
+        "markdown": "report.md",
+        "text": "report.txt",
+    }
+    links: dict[str, str] = {}
+    for key, filename in filenames.items():
+        if (scan_dir / filename).is_file():
+            links[key] = f"/reports/{scan_dir.name}/{filename}"
+    return links
+
+
 @app.route("/api/scan", methods=["POST"])
 def scan():
     body = request.get_json(silent=True) or {}
 
-    target = body.get("target", "").strip()
+    target = _normalize_target_url(body.get("target", ""))
     judge_model = body.get("judge_model", "").strip() or DEFAULT_JUDGE_MODEL
 
     if not target:
         return {"error": "target is required"}, 400
+    parsed_target = urlparse(target)
+    if parsed_target.scheme not in {"http", "https"} or not parsed_target.hostname:
+        return {
+            "error": (
+                "target must be a valid http/https URL, for example "
+                "'http://localhost:5001/chat' or 'https://chat.example.com/api/chat'."
+            )
+        }, 400
     if not _is_public_http_url(target):
         return {
             "error": (
@@ -120,7 +171,7 @@ def scan():
         "--target", target,
         "--target-type", "url",
         "--judge-model", judge_model,
-        "--format", "json,html",
+        "--format", "md,json,html,txt",
         "--output-dir", "reports",
     ]
 
@@ -155,7 +206,13 @@ def scan():
             for line in proc.stdout:
                 yield f"data: {json.dumps({'line': line.rstrip()})}\n\n"
             proc.wait(timeout=SCAN_TIMEOUT_SECONDS)
-            yield f"data: {json.dumps({'done': True, 'returncode': proc.returncode})}\n\n"
+            report_dirs = [p for p in REPORTS_DIR.iterdir() if p.is_dir()] if REPORTS_DIR.exists() else []
+            payload = {"done": True, "returncode": proc.returncode}
+            if report_dirs:
+                latest_scan = max(report_dirs, key=lambda p: p.stat().st_mtime)
+                payload["scan_id"] = latest_scan.name
+                payload["reports"] = _build_report_links(latest_scan)
+            yield f"data: {json.dumps(payload)}\n\n"
         except subprocess.TimeoutExpired:
             if proc is not None:
                 proc.kill()

@@ -480,6 +480,13 @@
     .tag-api     { background: #fbbf2422; color: var(--warn); border: 1px solid #fbbf2433; }
 
     .scenario-body { padding: 1.25rem; }
+    .scenario-split-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      align-items: start;
+    }
+    .scenario-split-grid > * { min-width: 0; }
 
     /* ── Code blocks ─────────────────────────────────────── */
     .code-block {
@@ -804,6 +811,55 @@
       overflow: auto;
       white-space: pre-wrap;
     }
+    .scan-report-panel {
+      margin-top: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: none;
+    }
+    .scan-report-panel.active { display: block; }
+    .scan-report-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.85rem;
+    }
+    .scan-report-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .scan-report-links {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .scan-link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0.5rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-hover);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: transparent;
+      cursor: pointer;
+    }
+    .scan-link-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .scan-report-frame {
+      width: 100%;
+      min-height: 720px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+    }
     .scan-error { color: var(--vuln); }
     .scan-done { color: var(--safe); }
     .term-status-dot {
@@ -823,6 +879,7 @@
       .security-grid { grid-template-columns: repeat(2, 1fr); }
       .patterns-grid { grid-template-columns: 1fr; }
       .hosted-scan { grid-template-columns: 1fr; }
+      .scenario-split-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
@@ -986,6 +1043,17 @@
       <div class="term-line"><span class="term-out">Waiting for a public URL...</span></div>
     </div>
   </div>
+
+  <div class="scan-report-panel" id="scan-report-panel">
+    <div class="scan-report-head">
+      <div>
+        <div class="scan-report-title">Generated report</div>
+        <div class="scan-help" id="scan-report-meta">Open the HTML report below or download another format.</div>
+      </div>
+      <div class="scan-report-links" id="scan-report-links"></div>
+    </div>
+    <iframe id="scan-report-frame" class="scan-report-frame" title="Scan report preview"></iframe>
+  </div>
 </section>
 
 <!-- ── USE CASES ─────────────────────────────────────────────── -->
@@ -1009,7 +1077,7 @@
         <span class="scenario-tag tag-offline">GitHub Actions</span>
         <span class="scenario-tag tag-offline" style="margin-left:0.25rem;">GitLab CI</span>
       </div>
-      <div class="scenario-body" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+      <div class="scenario-body scenario-split-grid">
         <div>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitHub Actions</p>
           <div class="code-block">
@@ -1100,7 +1168,7 @@
         <span class="scenario-tag tag-api">Any HTTP endpoint</span>
       </div>
       <div class="scenario-body">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+        <div class="scenario-split-grid">
           <div>
             <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.6rem;">Your endpoint must accept:</p>
             <div class="code-block" style="margin-bottom:0.75rem;">
@@ -1146,7 +1214,7 @@ Content-Type: application/json
         <span class="scenario-tag tag-offline">Fully offline</span>
       </div>
       <div class="scenario-body">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+        <div class="scenario-split-grid">
           <div>
             <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">Option 1 &mdash; Vulnerable chatbot (no API key)</p>
             <div class="code-block">
@@ -1602,6 +1670,10 @@ OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
   const scanForm = document.getElementById('scan-form');
   const scanOutput = document.getElementById('scan-output');
   const scanSubmit = document.getElementById('scan-submit');
+  const scanReportPanel = document.getElementById('scan-report-panel');
+  const scanReportLinks = document.getElementById('scan-report-links');
+  const scanReportFrame = document.getElementById('scan-report-frame');
+  const scanReportMeta = document.getElementById('scan-report-meta');
 
   function appendScanLine(text, className = '') {
     const line = document.createElement('div');
@@ -1615,16 +1687,69 @@ OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
     scanOutput.innerHTML = '<div class="terminal-dots"><span></span><span></span><span></span></div>';
   }
 
+  function resetReportPanel() {
+    scanReportPanel.classList.remove('active');
+    scanReportLinks.innerHTML = '';
+    scanReportFrame.removeAttribute('src');
+    scanReportMeta.textContent = 'Open the HTML report below or download another format.';
+  }
+
+  function reportLabel(key) {
+    if (key === 'html') return 'View HTML';
+    if (key === 'json') return 'Download JSON';
+    if (key === 'markdown') return 'Download Markdown';
+    if (key === 'text') return 'Download Text';
+    return key;
+  }
+
+  function showReports(scanId, reports) {
+    const entries = Object.entries(reports || {});
+    if (!entries.length) return;
+
+    scanReportLinks.innerHTML = '';
+    scanReportMeta.textContent = `Scan folder: ${scanId}`;
+
+    for (const [key, href] of entries) {
+      const link = document.createElement('a');
+      link.className = 'scan-link-btn';
+      link.href = href;
+      link.textContent = reportLabel(key);
+      if (key === 'html') {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.addEventListener('click', () => {
+          scanReportFrame.src = href;
+        });
+      } else {
+        link.setAttribute('download', '');
+      }
+      scanReportLinks.appendChild(link);
+    }
+
+    if (reports.html) {
+      scanReportFrame.src = reports.html;
+    }
+
+    scanReportPanel.classList.add('active');
+  }
+
+  function normalizeTargetInput(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return raw;
+    return raw.includes('://') ? raw : `http://${raw}`;
+  }
+
   async function runHostedScan(event) {
     event.preventDefault();
     resetScanOutput();
+    resetReportPanel();
     scanSubmit.disabled = true;
     scanSubmit.textContent = 'Scanning...';
     appendScanLine('Starting hosted scan...');
 
     const formData = new FormData(scanForm);
     const payload = {
-      target: String(formData.get('target') || '').trim(),
+      target: normalizeTargetInput(formData.get('target')),
       api_key: String(formData.get('api_key') || '').trim(),
       categories: String(formData.get('categories') || '').trim(),
       severity: String(formData.get('severity') || '').trim(),
@@ -1692,6 +1817,9 @@ OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
               ? `Scan finished successfully with exit code ${data.returncode}.`
               : `Scan finished with exit code ${data.returncode}. Check the log lines above for the exact failure reason.`;
             appendScanLine(summary, data.returncode === 0 ? 'scan-done' : 'scan-error');
+            if (data.returncode === 0 && data.reports) {
+              showReports(data.scan_id || 'latest', data.reports);
+            }
           }
         }
       }
