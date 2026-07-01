@@ -39,8 +39,9 @@ A CLI (`llm-scanner`) that fires a battery of OWASP Top 10 for LLMs (2025) attac
 
 ## CI/CD integration
 
-- `.github/workflows/llm-scan.yml` + `.github/actions/llm-scan/action.yml` — GitHub Actions integration.
-- `examples/gitlab/*.yml` — GitLab CI integration.
+- `.github/workflows/llm-scan.yml` + `.github/actions/llm-scan/action.yml` — GitHub Actions integration (this repo's own CI, installs from local checkout).
+- `.github/workflows/release.yml` — tag-triggered PyPI publish (trusted publishing/OIDC).
+- `examples/github/*.yml`, `examples/gitlab/*.yml` — copy-paste CI/CD templates for consumers scanning *their own* app; Docker variants build a minimal `pip install llm-security-scanner` image rather than cloning this repo.
 - `examples/docker/`, `Dockerfile` — containerized scanning (local Docker Compose target or CI runner).
 - `examples/config/*.yml` — sample scan configs (`--config`) for local URL, public URL, Ollama target, and CI.
 
@@ -62,7 +63,7 @@ The landing page and hosted web-scan service moved to the private `llm-security-
 ## Decisions (2026-07-01)
 
 - **License**: MIT (`LICENSE`, `pyproject.toml` `license = "MIT"`).
-- **Versioning/releases**: tagged GitHub releases + `CHANGELOG.md`, no PyPI publishing — install via `pip install git+https://github.com/konradxmalinowski/llm-security-scanner`.
+- **Versioning/releases**: tagged GitHub releases + `CHANGELOG.md`. `.github/workflows/release.yml` publishes to PyPI via trusted publishing (OIDC, no long-lived API token) whenever a `vX.Y.Z` tag is pushed and it matches `pyproject.toml`'s version. **One-time manual step required** before the first release: register a "pending publisher" for this project on PyPI (pypi.org → Publishing → Add a pending publisher), pointing at this repo/workflow — the package doesn't exist on PyPI yet, so this has to be done by a human with a PyPI account before `release.yml` can publish anything. Until that first release ships, downstream consumers (including `llm-security-scanner-saas`) still install via `pip install git+https://github.com/konradxmalinowski/llm-security-scanner`.
 - **Contribution model**: `CONTRIBUTING.md` + issue/PR templates added now, ahead of any external contributors.
 - **DoS/LLM10 defaults**: stays opt-in (`--include-dos-tests`) — confirmed as the safe default.
 - **Roadmap**: no concrete plans beyond the current scope yet, except:
