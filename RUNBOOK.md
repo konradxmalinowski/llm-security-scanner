@@ -98,16 +98,17 @@ What happens:
 
 ---
 
-## 5. Scenario B — Run the hosted web UI
+## 5. Scenario B — Run the local web UI
 
 Use this when you want the browser-based scan form.
 
 Important constraints:
-- The hosted UI must be served by `backend/landing_server.py`
-- It only accepts public `http/https` target URLs
-- `localhost`, private IPs, VPN-only hosts, and internal staging environments are rejected by design
+- The local UI must be served by `backend/landing_server.py`
+- It only accepts loopback `http/https` target URLs
+- `localhost`, `127.0.0.1`, `::1`, and `.localhost` names are allowed
+- Docker service names, VPN-only hosts, and internal staging environments must be scanned from CLI or CI/CD
 
-**Step 1 — Start the hosted UI backend**
+**Step 1 — Start the local UI backend**
 
 ```bash
 cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
@@ -135,10 +136,10 @@ that means the page is not being served by `backend/landing_server.py`.
 **Step 4 — Use the right target type**
 
 Examples:
-- Valid hosted target: `https://chat.example.com/api/chat`
-- Invalid hosted target: `http://localhost:5001/chat`
+- Valid local target: `http://localhost:5001/chat`
+- Invalid local target: `https://chat.example.com/api/chat`
 
-For localhost targets, use the CLI directly:
+For non-loopback targets, use the CLI directly:
 
 ```bash
 llm-scanner \

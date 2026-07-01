@@ -144,14 +144,14 @@ def scan():
         return {
             "error": (
                 "target must be a valid http/https URL, for example "
-                "'http://localhost:5001/chat' or 'https://chat.example.com/api/chat'."
+                "'https://chat.example.com/api/chat' or 'https://app.yourcompany.com/chat'."
             )
         }, 400
     if not _is_public_http_url(target):
         return {
             "error": (
                 "Hosted scans only accept public http/https URLs. "
-                "Use the CI/CD runner for localhost, private networks, VPNs, and staging apps."
+                "Use CLI or CI/CD for localhost, Docker, VPN, and other internal targets."
             )
         }, 400
     if not judge_model:

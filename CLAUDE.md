@@ -6,7 +6,7 @@
 
 A Python CLI tool that tests LLM-based applications against the full OWASP Top 10 for LLMs vulnerability framework. It accepts either an HTTP endpoint or a local Ollama model as a target, runs a battery of ~50 automated attacks, and uses a second Ollama model as an AI Judge to evaluate each result — producing reports in terminal, Markdown, JSON, and HTML formats.
 
-**Core Value:** Give security engineers a fully offline, one-command tool to test any LLM endpoint or local model against all 10 OWASP LLM attack categories — no cloud dependencies, no manual analysis.
+**Core Value:** Give security engineers a fully offline, one-command tool to test local LLM endpoints and local models against all 10 OWASP LLM attack categories — no cloud dependencies, no manual analysis.
 
 ### Constraints
 

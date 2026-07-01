@@ -1,6 +1,6 @@
 # LLM Security Scanner
 
-A security scanner for LLM-backed applications. It tests public endpoints from the hosted web UI, and runs inside the user's own CI/CD for localhost, staging, VPN, and private-network applications. The scan engine fires 46+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
+A security scanner for LLM-backed applications. The web UI is for local `localhost` / loopback targets, and the same scan engine runs from CLI or CI/CD for Docker, staging, and other runner-reachable applications. It fires 46+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
 
 ---
 
@@ -69,21 +69,21 @@ uv pip install -e ".[dev]"
 
 ## Quick start
 
-### Hosted vs CI/CD scans
+### Local web UI vs CLI/CD scans
 
-Use the hosted web scanner only for public internet-reachable HTTP endpoints. The hosted server rejects localhost, private IPs, link-local addresses, and internal hosts to avoid SSRF and to keep private infrastructure private.
+Use the web UI only for local loopback HTTP endpoints. The backend accepts `localhost`, `127.0.0.1`, `::1`, and `.localhost` names, and rejects everything else.
 
-Use CI/CD for anything that only exists inside the user's environment:
+Use the CLI or CI/CD for anything that is not a loopback target in the same machine/browser session:
 
-- local apps on `localhost`
 - Docker Compose services
+- local apps exposed on non-loopback hosts
 - GitHub/GitLab review apps
 - staging behind VPN or private VPC
 - authenticated internal services
 
-### Hosted web UI
+### Local web UI
 
-Start the hosted UI through the Flask backend, not by opening `frontend/index.html` directly:
+Start the local UI through the Flask backend, not by opening `frontend/index.html` directly:
 
 ```bash
 flask --app backend/landing_server.py run --port 8080
@@ -97,7 +97,7 @@ http://localhost:8080
 
 The page calls `POST /api/scan` on the same host. If you open the HTML file directly or serve it from another static server, the form will fail with `HTTP 404` because `/api/scan` does not exist there.
 
-The hosted form is for public URLs only. A target like `http://localhost:5001/chat` must be scanned from the local CLI or CI/CD, not from the hosted page.
+The browser form is for loopback URLs only. A target like `http://app:5000/chat` or `https://chat.example.com/api/chat` must be scanned from the CLI or CI/CD, not from the page.
 
 ### 1 — Scan a local Ollama model
 
@@ -110,9 +110,9 @@ llm-scanner \
   --judge-model llama3.2:3b
 ```
 
-### 2 — Scan an HTTP endpoint
+### 2 — Scan a local HTTP endpoint
 
-Test any LLM-backed HTTP service that accepts `POST` with a JSON body.
+Test a local LLM-backed HTTP service that accepts `POST` with a JSON body.
 
 ```bash
 llm-scanner \
@@ -125,7 +125,6 @@ llm-scanner \
 
 Start from one of the scenario-based examples in `examples/config/`:
 - `examples/config/local-url.yml`
-- `examples/config/public-url.yml`
 - `examples/config/ollama-target.yml`
 - `examples/config/ci-url.yml`
 
@@ -179,7 +178,7 @@ Default assumptions in that file:
 - `LLM_ENDPOINT=http://host.docker.internal:5000/chat`
 - reports are written to `./reports`
 
-Change `LLM_ENDPOINT` if your target is another Docker service or a public URL.
+Change `LLM_ENDPOINT` if your target is another Docker service or a different runner-reachable URL.
 
 #### Direct `docker run`
 
@@ -260,11 +259,11 @@ llm-scanner \
   --include-dos-tests
 ```
 
-### 7 — Authenticated endpoint
+### 7 — Authenticated local endpoint
 
 ```bash
 llm-scanner \
-  --target https://api.example.com/v1/chat \
+  --target http://localhost:5001/chat \
   --target-type url \
   --judge-model llama3.2:3b \
   --api-key "sk-your-token-here"
@@ -509,9 +508,9 @@ llm-security-scanner/
 ├── backend/
 │   ├── vulnerable_app.py      # Offline vulnerable chatbot — no API key needed (port 5000)
 │   ├── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
-│   └── landing_server.py      # Hosted web UI + /api/scan backend (port 8080)
+│   └── landing_server.py      # Local web UI + /api/scan backend (port 8080)
 ├── frontend/
-│   └── index.html             # Hosted scan UI and CI/CD documentation
+│   └── index.html             # Local scan UI and CLI/CI documentation
 ├── tests/               # pytest suite (unit + integration)
 └── pyproject.toml
 ```

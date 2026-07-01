@@ -801,9 +801,38 @@
     }
     .hosted-scan {
       display: grid;
-      grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
-      gap: 1.25rem;
-      align-items: stretch;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 1.1rem;
+      align-items: start;
+    }
+    .scan-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin: 1.15rem 0 1rem;
+    }
+    .scan-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff07 0%, #ffffff03 100%);
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1;
+    }
+    .scan-chip strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .scan-chip-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
     }
     .scan-form-panel {
       background: var(--bg-card);
@@ -811,14 +840,15 @@
       border-radius: var(--radius);
       padding: 0;
       overflow: hidden;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.18);
     }
     .scan-panel-head {
-      padding: 1rem 1.1rem;
+      padding: 1.15rem 1.2rem 1rem;
       border-bottom: 1px solid var(--border);
       background: linear-gradient(180deg, #ffffff05 0%, transparent 100%);
     }
     .scan-panel-title {
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 700;
       margin-bottom: 0.25rem;
     }
@@ -829,8 +859,8 @@
     }
     .scan-form-grid {
       display: grid;
-      gap: 0.9rem;
-      padding: 1.1rem;
+      gap: 0.8rem;
+      padding: 1rem 1.1rem 1.1rem;
     }
     .scan-rules {
       display: flex;
@@ -858,7 +888,7 @@
       flex-shrink: 0;
     }
     .scan-section {
-      padding: 0.95rem;
+      padding: 0.9rem;
       border: 1px solid var(--border);
       border-radius: 8px;
       background: #ffffff03;
@@ -881,13 +911,14 @@
     }
     .scan-primary-row {
       display: flex;
-      align-items: center;
-      gap: 0.85rem;
+      align-items: flex-start;
+      gap: 0.9rem;
       flex-wrap: wrap;
-      margin-top: 0.2rem;
+      margin-top: 0.35rem;
     }
     .scan-primary-row .btn {
-      min-height: 42px;
+      min-height: 46px;
+      padding-inline: 1.2rem;
     }
     .scan-footnote {
       flex: 1 1 260px;
@@ -929,10 +960,60 @@
       margin-top: 0.15rem;
     }
     .scan-output {
-      min-height: 390px;
-      max-height: 520px;
+      min-height: 250px;
+      max-height: 460px;
       overflow: auto;
       white-space: pre-wrap;
+    }
+    .scan-preview-panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.14);
+    }
+    .scan-preview-head {
+      padding: 1rem 1.1rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .scan-preview-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      margin-bottom: 0.28rem;
+    }
+    .scan-preview-sub {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .scan-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem 0.9rem;
+      padding: 0.85rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .scan-preview-item {
+      min-width: 0;
+    }
+    .scan-preview-label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.28rem;
+    }
+    .scan-preview-value {
+      font-size: 0.82rem;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .scan-terminal-wrap {
+      padding: 0.75rem;
     }
     .scan-report-panel {
       margin-top: 1rem;
@@ -1002,6 +1083,7 @@
       .security-grid { grid-template-columns: repeat(2, 1fr); }
       .patterns-grid { grid-template-columns: 1fr; }
       .hosted-scan { grid-template-columns: 1fr; }
+      .scan-preview-grid { grid-template-columns: 1fr; }
       .scenario-split-grid { grid-template-columns: 1fr; }
       .scan-two-col { grid-template-columns: 1fr; }
     }
@@ -1034,11 +1116,11 @@
   </a>
   <ul class="nav-links">
     <li><a href="#use-cases">Use cases</a></li>
-    <li><a href="#hosted-scan">Scan URL</a></li>
+    <li><a href="#hosted-scan">Free Scan</a></li>
     <li><a href="#how-it-works">How it works</a></li>
     <li><a href="#coverage">OWASP Coverage</a></li>
     <li><a href="#cli">CLI Reference</a></li>
-    <li><a href="#hosted-scan" class="nav-cta">Scan public URL</a></li>
+    <li><a href="#hosted-scan" class="nav-cta">Run free scan</a></li>
   </ul>
 </nav>
 
@@ -1047,13 +1129,16 @@
   <div class="hero-badge">
     OWASP Top 10 for LLMs 2025 — Full Coverage
   </div>
-  <h1 class="hero-title">Hosted URL scans.<br>CI/CD for private apps.</h1>
+  <h1 class="hero-title">Scan your public LLM.<br>Test localhost and local CI/CD too.</h1>
   <p class="hero-sub">
-    Scan a public LLM endpoint from this server, or run the same scanner inside GitHub Actions and GitLab CI for localhost, staging, and private networks.
+    Public scan from the page. Local app on <code>localhost</code> and local CI/CD environments use the same scanner from your machine or runner.
+  </p>
+  <p class="hero-sub" style="font-size:0.95rem; opacity:0.82; margin-top:0.9rem;">
+    1 public scan free. For <code>localhost</code>, Docker, staging, and CI/CD, run the scanner inside your own environment.
   </p>
   <div class="hero-actions">
-    <a href="#hosted-scan" class="btn btn-primary">Scan public URL</a>
-    <a href="#use-cases" class="btn btn-ghost">CI/CD setup &rarr;</a>
+    <a href="#hosted-scan" class="btn btn-primary">Start scanning</a>
+    <a href="#use-cases" class="btn btn-ghost">Local CLI / CI setup &rarr;</a>
   </div>
 
   <div class="hero-terminal">
@@ -1112,28 +1197,34 @@
 
 <!-- ── HOSTED SCAN ──────────────────────────────────────────── -->
 <section id="hosted-scan">
-  <div class="section-label">Hosted scanner</div>
-  <h2 class="section-title">Scan a public LLM endpoint from this server</h2>
-  <p class="section-sub">Use this only for internet-reachable URLs. Localhost, VPN-only, private VPC, and staging targets should be scanned from your own CLI or CI/CD runner.</p>
+  <div class="section-label">Public scanner</div>
+  <h2 class="section-title">Scan a public LLM URL</h2>
+  <p class="section-sub">One free hosted scan for a public endpoint. Everything local stays in your own CLI or CI/CD runner.</p>
+
+  <div class="scan-strip">
+    <span class="scan-chip"><span class="scan-chip-dot"></span><strong>1 public scan</strong> free</span>
+    <span class="scan-chip"><span class="scan-chip-dot"></span><strong>Hosted</strong> for public URLs</span>
+    <span class="scan-chip"><span class="scan-chip-dot"></span><strong>CLI / CI</strong> for localhost and private apps</span>
+  </div>
 
   <div class="hosted-scan">
     <form id="scan-form" class="scan-form-panel">
       <div class="scan-panel-head">
-        <div class="scan-panel-title">Hosted scan request</div>
-        <div class="scan-panel-sub">Use this form when your endpoint is reachable from this server. For localhost, private VPC, or VPN-only targets, run the scanner from CLI or CI/CD.</div>
+        <div class="scan-panel-title">Free public scan</div>
+        <div class="scan-panel-sub">Paste the URL, set scope if needed, run the check.</div>
         <div class="scan-rules">
           <span class="scan-rule"><span class="scan-rule-dot"></span>Public URL only</span>
           <span class="scan-rule"><span class="scan-rule-dot"></span>POST {"prompt":"..."}</span>
-          <span class="scan-rule"><span class="scan-rule-dot"></span>Response {"response":"..."}</span>
+          <span class="scan-rule"><span class="scan-rule-dot"></span>Bearer auth optional</span>
         </div>
       </div>
       <div class="scan-form-grid">
         <div class="scan-section">
-          <div class="scan-section-title">Target</div>
+          <div class="scan-section-title">Public target</div>
           <div class="scan-field">
-            <label class="scan-label" for="scan-target">Public endpoint URL</label>
+            <label class="scan-label" for="scan-target">Endpoint URL</label>
             <input id="scan-target" class="scan-input" name="target" type="url" placeholder="https://your-app.com/chat" required>
-            <p class="scan-help">The endpoint must accept POST JSON: <code>{"prompt":"..."}</code> and return <code>{"response":"..."}</code> or <code>{"message":"..."}</code>. <code>localhost</code> and private addresses are intentionally rejected in hosted mode.</p>
+            <p class="scan-help">Must accept POST JSON with <code>{"prompt":"..."}</code> and return <code>{"response":"..."}</code> or <code>{"message":"..."}</code>.</p>
           </div>
         </div>
 
@@ -1143,7 +1234,7 @@
             <div class="scan-field">
               <label class="scan-label" for="scan-categories">Categories</label>
               <input id="scan-categories" class="scan-input" name="categories" placeholder="Leave empty for all standard categories">
-              <p class="scan-help">Leave this empty to scan all standard categories: <code>LLM01-LLM09</code>. Use a comma-separated list only if you want to limit the scan, for example <code>LLM01,LLM07</code>.</p>
+              <p class="scan-help">Leave empty for the default OWASP set, or narrow to specific categories like <code>LLM01,LLM07</code>.</p>
             </div>
 
             <div class="scan-field">
@@ -1161,34 +1252,62 @@
         </div>
 
         <div class="scan-section">
-          <div class="scan-section-title">Authentication and safeguards</div>
+          <div class="scan-section-title">Auth and safeguards</div>
           <div class="scan-two-col">
             <div class="scan-field">
               <label class="scan-label" for="scan-api-key">Bearer token</label>
               <input id="scan-api-key" class="scan-input" name="api_key" type="password" autocomplete="off" placeholder="optional">
-              <p class="scan-help">Sent only as an Authorization header for this scan.</p>
+              <p class="scan-help">Sent only as an Authorization header for this run.</p>
             </div>
 
             <label class="scan-checkbox" for="scan-include-dos">
               <input id="scan-include-dos" name="include_dos_tests" type="checkbox">
               <div>
                 <strong>Include LLM10 DoS tests</strong>
-                <span>Off by default. Enable this only for targets you own, because LLM10 probes can stress the application.</span>
+                <span>Off by default. Enable only on systems you own.</span>
               </div>
             </label>
           </div>
         </div>
 
         <div class="scan-primary-row">
-          <button id="scan-submit" class="btn btn-primary" type="submit">Run hosted scan</button>
-          <div class="scan-footnote">If you see <code>HTTP 404</code> for <code>/api/scan</code>, open this page through <code>flask --app backend/landing_server.py run --port 8080</code> and use <code>http://localhost:8080</code>.</div>
+          <button id="scan-submit" class="btn btn-primary" type="submit">Run free scan</button>
+          <div class="scan-footnote">For <code>localhost</code>, Docker services, VPN targets, and CI/CD jobs, use the local CLI or runner integration.</div>
         </div>
       </div>
     </form>
 
-    <div class="hero-terminal scan-output" id="scan-output">
-      <div class="terminal-dots"><span></span><span></span><span></span></div>
-      <div class="term-line"><span class="term-out">Waiting for a public URL...</span></div>
+    <div class="scan-preview-panel">
+      <div class="scan-preview-head">
+        <div class="scan-preview-title">What this hosted scan expects</div>
+        <div class="scan-preview-sub">Keep the hosted path dead simple. If the target is not public, run locally instead.</div>
+      </div>
+      <div class="scan-preview-grid">
+        <div class="scan-preview-item">
+          <span class="scan-preview-label">Target</span>
+          <div class="scan-preview-value"><code>https://your-app.com/chat</code></div>
+        </div>
+        <div class="scan-preview-item">
+          <span class="scan-preview-label">Input</span>
+          <div class="scan-preview-value"><code>{"prompt":"..."}</code></div>
+        </div>
+        <div class="scan-preview-item">
+          <span class="scan-preview-label">Output</span>
+          <div class="scan-preview-value"><code>{"response":"..."}</code> or <code>{"message":"..."}</code></div>
+        </div>
+        <div class="scan-preview-item">
+          <span class="scan-preview-label">Use CLI / CI for</span>
+          <div class="scan-preview-value"><code>localhost</code>, Docker service names, private VPN, internal staging</div>
+        </div>
+      </div>
+      <div class="scan-terminal-wrap">
+        <div class="hero-terminal scan-output" id="scan-output">
+          <div class="terminal-dots"><span></span><span></span><span></span></div>
+          <div class="term-line"><span class="term-out">Waiting for a public URL...</span></div>
+          <div class="term-line"><span class="term-out">Hosted mode: 1 free scan</span></div>
+          <div class="term-line"><span class="term-out">Local mode: CLI or CI/CD</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1207,8 +1326,8 @@
 <!-- ── USE CASES ─────────────────────────────────────────────── -->
 <section id="use-cases">
   <div class="section-label">Use cases</div>
-  <h2 class="section-title">Hosted scan for public URLs, CI/CD for private apps</h2>
-  <p class="section-sub">The website scans only public endpoints. GitHub Actions, GitLab CI, and the local CLI run the same scanner inside the user's network, so localhost and private staging targets work correctly.</p>
+  <h2 class="section-title">Local CLI and CI/CD for repeat or private scans</h2>
+  <p class="section-sub">Use the hosted page for a single public URL. Use CLI or CI/CD for localhost, Docker, staging, VPN targets, and repeat scans inside your own environment.</p>
 
   <div style="display:grid; grid-template-columns:1fr; gap:1.5rem;">
 
@@ -1412,17 +1531,17 @@
     </div>
     </div>
 
-    <!-- Scan a live URL -->
+    <!-- Scan a local URL -->
     <div class="scenario-card">
       <div class="scenario-header">
         <div class="sec-icon-box" style="margin-bottom:0; flex-shrink:0;">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         </div>
         <div>
-          <div class="scenario-name">Scan any live LLM endpoint &mdash; point and shoot</div>
-          <div class="scenario-desc">Have a public chatbot or LLM-backed API? Provide its internet-reachable URL and an optional Bearer token. Localhost and private hosts belong in CLI or CI/CD mode.</div>
+          <div class="scenario-name">Scan a local LLM endpoint on localhost</div>
+          <div class="scenario-desc">Point the scanner at your local chatbot or LLM-backed API on <code>localhost</code> or another loopback address. The browser UI intentionally rejects non-local hosts.</div>
         </div>
-        <span class="scenario-tag tag-api">Any HTTP endpoint</span>
+        <span class="scenario-tag tag-api">Local HTTP endpoint</span>
       </div>
       <div class="scenario-body">
         <div class="scenario-split-grid">
@@ -1431,7 +1550,7 @@
             <div class="code-block" style="margin-bottom:0.75rem;">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
               <pre><span class="cmt"># Expected request format</span>
-POST /your-chat-endpoint
+POST /chat
 Content-Type: application/json
 
 {<span class="str">"prompt"</span>: <span class="str">"&lt;payload text&gt;"</span>}
@@ -1445,7 +1564,7 @@ Content-Type: application/json
             <div class="code-block">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
               <pre><span class="cmd">llm-scanner</span> \
-  <span class="kw">--target</span>      <span class="url">https://your-app.com/chat</span> \
+  <span class="kw">--target</span>      <span class="url">http://localhost:5000/chat</span> \
   <span class="kw">--target-type</span> <span class="str">url</span> \
   <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
   <span class="kw">--api-key</span>     <span class="str">"sk-your-token"</span> \
@@ -1453,62 +1572,6 @@ Content-Type: application/json
   <span class="kw">--format</span>      <span class="str">html</span> \
   <span class="kw">--output-dir</span>  <span class="str">./reports</span></pre>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Local testing -->
-    <div class="scenario-card">
-      <div class="scenario-header">
-        <div class="sec-icon-box" style="margin-bottom:0; flex-shrink:0;">
-          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        </div>
-        <div>
-          <div class="scenario-name">Local testing with demo apps + Ollama &mdash; fully offline</div>
-          <div class="scenario-desc">Two built-in Flask apps let you test the scanner end-to-end without any cloud dependencies or API keys.</div>
-        </div>
-        <span class="scenario-tag tag-offline">Fully offline</span>
-      </div>
-      <div class="scenario-body">
-        <div class="scenario-split-grid">
-          <div>
-            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">Option 1 &mdash; Vulnerable chatbot (no API key)</p>
-            <div class="code-block">
-              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              <pre><span class="cmt"># Terminal 1</span>
-<span class="cmd">flask</span> <span class="kw">--app</span> <span class="str">backend/vulnerable_app.py</span> \
-  run <span class="kw">--port</span> <span class="str">5000</span>
-
-<span class="cmt"># Terminal 2</span>
-<span class="cmd">llm-scanner</span> \
-  <span class="kw">--target</span>      <span class="url">http://localhost:5000/chat</span> \
-  <span class="kw">--target-type</span> <span class="str">url</span> \
-  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
-  <span class="kw">--format</span>      <span class="str">html</span></pre>
-            </div>
-            <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem;">Deliberately vulnerable &mdash; leaks system prompt on trigger words. Expect Risk Score <strong style="color:var(--vuln)">&ge; 7.0</strong>.</p>
-          </div>
-          <div>
-            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">Option 2 &mdash; OpenAI chatbot (requires API key)</p>
-            <div class="code-block">
-              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              <pre><span class="cmt"># .env file</span>
-OPENAI_API_KEY=<span class="str">sk-...</span>
-OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
-
-<span class="cmt"># Terminal 1</span>
-<span class="cmd">flask</span> <span class="kw">--app</span> <span class="str">backend/chatbot_openai_app.py</span> \
-  run <span class="kw">--port</span> <span class="str">5001</span>
-
-<span class="cmt"># Terminal 2</span>
-<span class="cmd">llm-scanner</span> \
-  <span class="kw">--target</span>      <span class="url">http://localhost:5001/chat</span> \
-  <span class="kw">--target-type</span> <span class="str">url</span> \
-  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
-  <span class="kw">--format</span>      <span class="str">html</span></pre>
-            </div>
-            <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem;">Real OpenAI responses &mdash; gives the judge realistic LLM behaviour to evaluate.</p>
           </div>
         </div>
       </div>
@@ -2018,7 +2081,7 @@ OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
     resetReportPanel();
     scanSubmit.disabled = true;
     scanSubmit.textContent = 'Scanning...';
-    appendScanLine('Starting hosted scan...');
+    appendScanLine('Starting public scan...');
 
     const formData = new FormData(scanForm);
     const payload = {
@@ -2100,7 +2163,7 @@ OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
       appendScanLine(error.message || 'Unexpected scan error.', 'scan-error');
     } finally {
       scanSubmit.disabled = false;
-      scanSubmit.textContent = 'Run hosted scan';
+      scanSubmit.textContent = 'Run free scan';
     }
   }
 
