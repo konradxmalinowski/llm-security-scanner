@@ -1,6 +1,6 @@
 # LLM Security Scanner
 
-A fully offline, one-command CLI tool that tests any LLM-based application against the complete [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework. Fires 46+ automated attacks across all 10 vulnerability categories and uses a local Ollama model as an AI judge to evaluate each result — no cloud dependencies, no manual analysis.
+A security scanner for LLM-backed applications. It tests public endpoints from the hosted web UI, and runs inside the user's own CI/CD for localhost, staging, VPN, and private-network applications. The scan engine fires 46+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
 
 ---
 
@@ -69,6 +69,18 @@ uv pip install -e ".[dev]"
 
 ## Quick start
 
+### Hosted vs CI/CD scans
+
+Use the hosted web scanner only for public internet-reachable HTTP endpoints. The hosted server rejects localhost, private IPs, link-local addresses, and internal hosts to avoid SSRF and to keep private infrastructure private.
+
+Use CI/CD for anything that only exists inside the user's environment:
+
+- local apps on `localhost`
+- Docker Compose services
+- GitHub/GitLab review apps
+- staging behind VPN or private VPC
+- authenticated internal services
+
 ### 1 — Scan a local Ollama model
 
 Test one local model using another as the judge. The target and judge **must** be different models.
@@ -91,7 +103,44 @@ llm-scanner \
   --judge-model llama3.2:3b
 ```
 
-### 3 — Focused scan with saved reports
+### 3 — Scan from YAML config
+
+Create `llm-scan.yml`:
+
+```yaml
+target: ${LLM_ENDPOINT}
+target_type: url
+judge_model: llama3.2:3b
+categories: [LLM01, LLM07]
+severity: medium
+formats: [json, html, sarif]
+output_dir: ./reports
+fail_on_score: 7.0
+```
+
+Then run:
+
+```bash
+LLM_ENDPOINT=http://localhost:5000/chat llm-scanner --config llm-scan.yml
+```
+
+CLI flags override config values, so CI can keep shared defaults in YAML and override the target per environment.
+
+### 4 — Docker for CI/CD
+
+```bash
+docker build -t llm-security-scanner .
+
+docker run --rm \
+  --network host \
+  -e LLM_ENDPOINT=http://localhost:5000/chat \
+  -v "$PWD/reports:/reports" \
+  llm-security-scanner \
+  --config examples/llm-scan.yml \
+  --output-dir /reports
+```
+
+### 5 — Focused scan with saved reports
 
 Restrict to two high-risk categories, filter to high+ severity, and save all report formats.
 
@@ -106,7 +155,7 @@ llm-scanner \
   --output-dir ./reports
 ```
 
-### 4 — Include DoS probes (opt-in)
+### 6 — Include DoS probes (opt-in)
 
 LLM10 (Unbounded Consumption) probes are gated behind an explicit flag because they can stress the target.
 
@@ -118,7 +167,7 @@ llm-scanner \
   --include-dos-tests
 ```
 
-### 5 — Authenticated endpoint
+### 7 — Authenticated endpoint
 
 ```bash
 llm-scanner \
@@ -144,7 +193,7 @@ An intentionally vulnerable Flask chatbot that simulates common LLM weaknesses w
 
 ```bash
 # Terminal 1 — start the demo app
-flask --app demo/vulnerable_app.py run --port 5000
+flask --app backend/vulnerable_app.py run --port 5000
 
 # Terminal 2 — scan it
 llm-scanner \
@@ -178,7 +227,7 @@ echo "OPENAI_LLM_MODEL=gpt-4o-mini" >> .env
 
 ```bash
 # Terminal 1 — start the OpenAI demo app
-flask --app demo/chatbot_openai_app.py run --port 5001
+flask --app backend/chatbot_openai_app.py run --port 5001
 
 # Terminal 2 — scan it
 llm-scanner \
@@ -195,6 +244,46 @@ The app:
 - Reads `OPENAI_API_KEY` and `OPENAI_LLM_MODEL` from `.env` at startup
 
 This gives more realistic scan results than the offline mock — the judge evaluates actual LLM behaviour.
+
+---
+
+## CI/CD integration
+
+### GitHub Actions
+
+For this repository, see `.github/workflows/llm-scan.yml`. For another repository, use the composite action once this repo is published or vendored:
+
+```yaml
+name: LLM Security Scan
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: your-org/llm-security-scanner/.github/actions/llm-scan@v1
+        with:
+          target: http://localhost:5000/chat
+          target-type: url
+          judge-model: llama3.2:3b
+          fail-on-score: '7.0'
+```
+
+Start your app earlier in the job if the target is `localhost`. Keep API keys in GitHub Secrets and pass them through the `api-key` input.
+
+### GitLab CI
+
+Use `examples/gitlab/llm-security.gitlab-ci.yml` as a template. The Docker image should run in the same network as the application under test, then call:
+
+```bash
+llm-scanner --config examples/llm-scan.yml
+```
+
+Reports are saved under `reports/` and should be uploaded as job artifacts.
 
 ---
 
@@ -232,15 +321,19 @@ Risk score bands: **0–3.9** (Low), **4–6.9** (Medium), **7–10** (High, sho
 
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|
-| `--target` | Yes | — | URL or Ollama model name |
-| `--target-type` | Yes | — | `url` or `ollama` |
-| `--judge-model` | Yes | — | Ollama model used as AI evaluator |
+| `--config` | No | None | YAML scan config file, useful in CI/CD |
+| `--target` | Yes* | — | URL or Ollama model name |
+| `--target-type` | Yes* | — | `url` or `ollama` |
+| `--judge-model` | Yes* | — | Ollama model used as AI evaluator |
 | `--categories` | No | LLM01–LLM09 | Comma-separated categories to test |
 | `--severity` | No | all | Minimum severity: `critical` `high` `medium` `low` `info` |
 | `--api-key` | No | None | Bearer token sent in `Authorization` header (never logged) |
 | `--output-dir` | No | `./reports` | Directory for saved report files |
-| `--format` | No | None | `md`, `json`, `html` — comma-separated; terminal output always shown |
+| `--format` | No | `md,json,html,txt` | `md`, `json`, `html`, `txt`, `sarif` — comma-separated; terminal output always shown |
 | `--include-dos-tests` | No | off | Include LLM10 Unbounded Consumption probes |
+| `--fail-on-score` | No | None | Exit non-zero if risk score is at or above this threshold |
+
+`*` Required at runtime unless supplied by `--config`.
 
 ---
 
@@ -300,9 +393,12 @@ llm-security-scanner/
 │   └── templates/       # report.html.j2
 ├── payloads/            # YAML attack library (LLM01–LLM10)
 │   └── extended/        # Extended payload sets
-├── demo/
+├── backend/
 │   ├── vulnerable_app.py      # Offline vulnerable chatbot — no API key needed (port 5000)
-│   └── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
+│   ├── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
+│   └── landing_server.py      # Marketing landing page server (port 8080)
+├── frontend/
+│   └── index.html             # Landing page
 ├── tests/               # pytest suite (unit + integration)
 └── pyproject.toml
 ```
