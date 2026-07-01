@@ -442,6 +442,12 @@
       display: flex;
       align-items: flex-start;
       gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .scenario-header > div:nth-child(2) {
+      flex: 1 1 18rem;
+      min-width: 0;
     }
 
     .scenario-letter {
@@ -487,6 +493,43 @@
       align-items: start;
     }
     .scenario-split-grid > * { min-width: 0; }
+
+    .scenario-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #101010;
+    }
+
+    .scenario-switcher button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      font-family: inherit;
+    }
+
+    .scenario-switcher button:hover {
+      color: var(--text);
+      background: #1b1b1b;
+    }
+
+    .scenario-switcher button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .scenario-panel { display: none; }
+    .scenario-panel.active { display: block; }
 
     /* ── Code blocks ─────────────────────────────────────── */
     .code-block {
@@ -766,11 +809,91 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem;
+      padding: 0;
+      overflow: hidden;
+    }
+    .scan-panel-head {
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff05 0%, transparent 100%);
+    }
+    .scan-panel-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .scan-panel-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.45;
     }
     .scan-form-grid {
       display: grid;
       gap: 0.9rem;
+      padding: 1.1rem;
+    }
+    .scan-rules {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .scan-rule {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff04;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1;
+    }
+    .scan-rule-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .scan-section {
+      padding: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff03;
+    }
+    .scan-section-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+    }
+    .scan-two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+    .scan-field {
+      min-width: 0;
+    }
+    .scan-primary-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      margin-top: 0.2rem;
+    }
+    .scan-primary-row .btn {
+      min-height: 42px;
+    }
+    .scan-footnote {
+      flex: 1 1 260px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.45;
     }
     .scan-help {
       color: var(--muted);
@@ -880,6 +1003,7 @@
       .patterns-grid { grid-template-columns: 1fr; }
       .hosted-scan { grid-template-columns: 1fr; }
       .scenario-split-grid { grid-template-columns: 1fr; }
+      .scan-two-col { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
@@ -994,47 +1118,71 @@
 
   <div class="hosted-scan">
     <form id="scan-form" class="scan-form-panel">
+      <div class="scan-panel-head">
+        <div class="scan-panel-title">Hosted scan request</div>
+        <div class="scan-panel-sub">Use this form when your endpoint is reachable from this server. For localhost, private VPC, or VPN-only targets, run the scanner from CLI or CI/CD.</div>
+        <div class="scan-rules">
+          <span class="scan-rule"><span class="scan-rule-dot"></span>Public URL only</span>
+          <span class="scan-rule"><span class="scan-rule-dot"></span>POST {"prompt":"..."}</span>
+          <span class="scan-rule"><span class="scan-rule-dot"></span>Response {"response":"..."}</span>
+        </div>
+      </div>
       <div class="scan-form-grid">
-        <div>
-          <label class="scan-label" for="scan-target">Public endpoint URL</label>
-          <input id="scan-target" class="scan-input" name="target" type="url" placeholder="https://your-app.com/chat" required>
-          <p class="scan-help">The endpoint must accept POST JSON: <code>{"prompt":"..."}</code> and return <code>{"response":"..."}</code> or <code>{"message":"..."}</code>. <code>localhost</code> and private addresses are intentionally rejected in hosted mode.</p>
-        </div>
-
-        <div>
-          <label class="scan-label" for="scan-api-key">Bearer token</label>
-          <input id="scan-api-key" class="scan-input" name="api_key" type="password" autocomplete="off" placeholder="optional">
-          <p class="scan-help">Sent only as an Authorization header for this scan.</p>
-        </div>
-
-        <div>
-          <label class="scan-label" for="scan-categories">Categories</label>
-          <input id="scan-categories" class="scan-input" name="categories" placeholder="Leave empty for all standard categories">
-          <p class="scan-help">Leave this empty to scan all standard categories: <code>LLM01-LLM09</code>. Use a comma-separated list only if you want to limit the scan, for example <code>LLM01,LLM07</code>.</p>
-        </div>
-
-        <div>
-          <label class="scan-label" for="scan-severity">Minimum severity</label>
-          <select id="scan-severity" class="scan-select" name="severity">
-            <option value="">All severities</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="info">Info</option>
-          </select>
-        </div>
-
-        <label class="scan-checkbox" for="scan-include-dos">
-          <input id="scan-include-dos" name="include_dos_tests" type="checkbox">
-          <div>
-            <strong>Include LLM10 DoS tests</strong>
-            <span>Off by default. Enable this only for targets you own, because LLM10 probes can stress the application.</span>
+        <div class="scan-section">
+          <div class="scan-section-title">Target</div>
+          <div class="scan-field">
+            <label class="scan-label" for="scan-target">Public endpoint URL</label>
+            <input id="scan-target" class="scan-input" name="target" type="url" placeholder="https://your-app.com/chat" required>
+            <p class="scan-help">The endpoint must accept POST JSON: <code>{"prompt":"..."}</code> and return <code>{"response":"..."}</code> or <code>{"message":"..."}</code>. <code>localhost</code> and private addresses are intentionally rejected in hosted mode.</p>
           </div>
-        </label>
+        </div>
 
-        <button id="scan-submit" class="btn btn-primary" type="submit">Run hosted scan</button>
-        <p class="scan-help">If you see <code>HTTP 404</code> for <code>/api/scan</code>, open this page through <code>flask --app backend/landing_server.py run --port 8080</code> and use <code>http://localhost:8080</code>.</p>
+        <div class="scan-section">
+          <div class="scan-section-title">Scope</div>
+          <div class="scan-two-col">
+            <div class="scan-field">
+              <label class="scan-label" for="scan-categories">Categories</label>
+              <input id="scan-categories" class="scan-input" name="categories" placeholder="Leave empty for all standard categories">
+              <p class="scan-help">Leave this empty to scan all standard categories: <code>LLM01-LLM09</code>. Use a comma-separated list only if you want to limit the scan, for example <code>LLM01,LLM07</code>.</p>
+            </div>
+
+            <div class="scan-field">
+              <label class="scan-label" for="scan-severity">Minimum severity</label>
+              <select id="scan-severity" class="scan-select" name="severity">
+                <option value="">All severities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="info">Info</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="scan-section">
+          <div class="scan-section-title">Authentication and safeguards</div>
+          <div class="scan-two-col">
+            <div class="scan-field">
+              <label class="scan-label" for="scan-api-key">Bearer token</label>
+              <input id="scan-api-key" class="scan-input" name="api_key" type="password" autocomplete="off" placeholder="optional">
+              <p class="scan-help">Sent only as an Authorization header for this scan.</p>
+            </div>
+
+            <label class="scan-checkbox" for="scan-include-dos">
+              <input id="scan-include-dos" name="include_dos_tests" type="checkbox">
+              <div>
+                <strong>Include LLM10 DoS tests</strong>
+                <span>Off by default. Enable this only for targets you own, because LLM10 probes can stress the application.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="scan-primary-row">
+          <button id="scan-submit" class="btn btn-primary" type="submit">Run hosted scan</button>
+          <div class="scan-footnote">If you see <code>HTTP 404</code> for <code>/api/scan</code>, open this page through <code>flask --app backend/landing_server.py run --port 8080</code> and use <code>http://localhost:8080</code>.</div>
+        </div>
       </div>
     </form>
 
@@ -1078,27 +1226,33 @@
         <span class="scenario-tag tag-offline" style="margin-left:0.25rem;">GitLab CI</span>
       </div>
       <div class="scenario-body scenario-split-grid">
-        <div>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitHub Actions</p>
-          <div class="code-block">
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><span class="cmt"># llm-scan.yml</span>
-<span class="kw">target</span>: <span class="str">${LLM_ENDPOINT}</span>
-<span class="kw">target_type</span>: <span class="str">url</span>
-<span class="kw">judge_model</span>: <span class="str">llama3.2:3b</span>
-<span class="kw">categories</span>: [<span class="str">LLM01</span>, <span class="str">LLM07</span>]
-<span class="kw">severity</span>: <span class="str">medium</span>
-<span class="kw">formats</span>: [<span class="str">json</span>, <span class="str">html</span>, <span class="str">sarif</span>]
-<span class="kw">output_dir</span>: <span class="str">./reports</span>
-<span class="kw">fail_on_score</span>: <span class="str">7.0</span>
+        <div style="grid-column:1 / -1;">
+          <div class="scenario-switcher" data-scenario-switcher>
+            <button type="button" class="active" data-scenario-target="native">No Docker</button>
+            <button type="button" data-scenario-target="docker">Docker</button>
+          </div>
+        </div>
 
-<span class="cmt"># .github/workflows/llm-security.yml</span>
+        <div class="scenario-panel active" data-scenario-panel="native" style="grid-column:1 / -1;">
+          <div class="scenario-split-grid">
+            <div>
+              <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitHub Actions</p>
+              <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><span class="cmt"># .github/workflows/llm-security.yml</span>
 <span class="kw">name</span>: <span class="str">LLM Security Scan</span>
 <span class="kw">on</span>: [pull_request, workflow_dispatch]
 
 <span class="kw">jobs</span>:
   <span class="kw">scan</span>:
     <span class="kw">runs-on</span>: <span class="str">ubuntu-latest</span>
+    <span class="kw">env</span>:
+      <span class="kw">LLM_ENDPOINT</span>: <span class="str">${{ vars.LLM_ENDPOINT }}</span>      <span class="cmt"># URL reachable from this job</span>
+      <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}</span>
+      <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">${{ vars.LLM_FAIL_ON_SCORE || '7.0' }}</span>
+      <span class="kw">LLM_SEVERITY</span>: <span class="str">${{ vars.LLM_SEVERITY }}</span>
+      <span class="kw">LLM_CATEGORIES</span>: <span class="str">${{ vars.LLM_CATEGORIES }}</span>
+      <span class="kw">LLM_INCLUDE_DOS_TESTS</span>: <span class="str">${{ vars.LLM_INCLUDE_DOS_TESTS || 'false' }}</span>
     <span class="kw">steps</span>:
       - <span class="kw">uses</span>: <span class="str">actions/checkout@v4</span>
       - <span class="kw">name</span>: <span class="str">Start Ollama</span>
@@ -1106,53 +1260,156 @@
           curl -fsSL https://ollama.com/install.sh | sh
           ollama serve &amp;
           sleep 5
-          ollama pull llama3.2:3b</span>
-      - <span class="kw">uses</span>: <span class="str">your-org/llm-security-scanner/.github/actions/llm-scan@v1</span>
-        <span class="kw">env</span>:
-          <span class="kw">LLM_ENDPOINT</span>: <span class="str">http://localhost:5000/chat</span>
+          ollama pull "$LLM_JUDGE_MODEL"</span>
+      - <span class="kw">name</span>: <span class="str">Validate configuration</span>
+        <span class="kw">run</span>: <span class="str">test -n "$LLM_ENDPOINT"</span>
+      - <span class="kw">uses</span>: <span class="str">konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@main</span>
         <span class="kw">with</span>:
-          <span class="kw">config</span>: <span class="str">llm-scan.yml</span>
+          <span class="kw">target</span>: <span class="str">${{ env.LLM_ENDPOINT }}</span>
+          <span class="kw">target-type</span>: <span class="str">url</span>
+          <span class="kw">judge-model</span>: <span class="str">${{ env.LLM_JUDGE_MODEL }}</span>
+          <span class="kw">severity</span>: <span class="str">${{ env.LLM_SEVERITY }}</span>
+          <span class="kw">categories</span>: <span class="str">${{ env.LLM_CATEGORIES }}</span>
+          <span class="kw">include-dos-tests</span>: <span class="str">${{ env.LLM_INCLUDE_DOS_TESTS }}</span>
+          <span class="kw">fail-on-score</span>: <span class="str">${{ env.LLM_FAIL_ON_SCORE }}</span>
+          <span class="kw">output-dir</span>: <span class="str">./reports</span>
+      <span class="cmt"># Add api-key: ${{ secrets.LLM_API_KEY }} only if the target requires bearer auth</span>
       - <span class="kw">uses</span>: <span class="str">actions/upload-artifact@v4</span>
         <span class="kw">with</span>:
           <span class="kw">name</span>: <span class="str">llm-security-reports</span>
           <span class="kw">path</span>: <span class="str">reports/</span></pre>
-          </div>
-        </div>
-        <div>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitLab CI</p>
-          <div class="code-block">
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><span class="cmt"># llm-scan.yml</span>
-<span class="kw">target</span>: <span class="str">${LLM_ENDPOINT}</span>
-<span class="kw">target_type</span>: <span class="str">url</span>
-<span class="kw">judge_model</span>: <span class="str">llama3.2:3b</span>
-<span class="kw">severity</span>: <span class="str">medium</span>
-<span class="kw">formats</span>: [<span class="str">json</span>, <span class="str">html</span>, <span class="str">sarif</span>]
-<span class="kw">output_dir</span>: <span class="str">./reports</span>
-<span class="kw">fail_on_score</span>: <span class="str">7.0</span>
-
-<span class="cmt"># .gitlab-ci.yml</span>
+              </div>
+            </div>
+            <div>
+              <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitLab CI</p>
+              <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><span class="cmt"># .gitlab-ci.yml</span>
 <span class="kw">llm-security-scan</span>:
-  <span class="kw">image</span>: <span class="str">ghcr.io/your-org/llm-security-scanner:latest</span>
+  <span class="kw">image</span>: <span class="str">python:3.11-slim</span>
   <span class="kw">stage</span>: <span class="str">test</span>
   <span class="kw">services</span>:
     - <span class="kw">name</span>: <span class="str">ollama/ollama:latest</span>
       <span class="kw">alias</span>: <span class="str">ollama</span>
   <span class="kw">variables</span>:
     <span class="kw">OLLAMA_HOST</span>: <span class="str">http://ollama:11434</span>
-    <span class="kw">LLM_ENDPOINT</span>: <span class="str">http://app:5000/chat</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">http://app:5000/chat</span>  <span class="cmt"># replace with URL reachable from this job</span>
+    <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">llama3.2:3b</span>
+    <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">"7.0"</span>
+    <span class="kw">LLM_SEVERITY</span>: <span class="str">""</span>
+    <span class="kw">LLM_CATEGORIES</span>: <span class="str">""</span>
+    <span class="kw">LLM_INCLUDE_DOS_TESTS</span>: <span class="str">"false"</span>
   <span class="kw">before_script</span>:
+    - <span class="str">pip install uv</span>
+    - <span class="str">uv pip install --system "git+https://github.com/konradxmalinowski/llm-security-scanner.git@main"</span>
     - <span class="str">curl -fsS "$OLLAMA_HOST/api/version"</span>
-    - <span class="str">curl -fsS "$OLLAMA_HOST/api/pull" -d '{"name":"llama3.2:3b"}'</span>
+    - <span class="str">curl -fsS "$OLLAMA_HOST/api/pull" -d "{\"name\":\"$LLM_JUDGE_MODEL\"}"</span>
   <span class="kw">script</span>:
-    - <span class="str">llm-scanner --config llm-scan.yml</span>
+    - <span class="str">|
+        test -n "$LLM_ENDPOINT"
+        ARGS="--target $LLM_ENDPOINT --target-type url --judge-model $LLM_JUDGE_MODEL --format json,html,sarif --output-dir ./reports --fail-on-score $LLM_FAIL_ON_SCORE"
+        [ -n "${LLM_API_KEY:-}" ] &amp;&amp; ARGS="$ARGS --api-key ${LLM_API_KEY}"
+        [ -n "$LLM_SEVERITY" ] &amp;&amp; ARGS="$ARGS --severity $LLM_SEVERITY"
+        [ -n "$LLM_CATEGORIES" ] &amp;&amp; ARGS="$ARGS --categories $LLM_CATEGORIES"
+        [ "$LLM_INCLUDE_DOS_TESTS" = "true" ] &amp;&amp; ARGS="$ARGS --include-dos-tests"
+        sh -c "llm-scanner $ARGS"</span>
+      <span class="cmt"># Add LLM_API_KEY only if the target requires bearer auth</span>
   <span class="kw">artifacts</span>:
     <span class="kw">when</span>: <span class="str">always</span>
     <span class="kw">paths</span>:
       - <span class="str">reports/</span></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scenario-panel" data-scenario-panel="docker" style="grid-column:1 / -1;">
+          <div class="scenario-split-grid">
+            <div>
+              <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitHub Actions</p>
+              <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><span class="cmt"># .github/workflows/llm-security.yml</span>
+<span class="kw">name</span>: <span class="str">LLM Security Scan</span>
+<span class="kw">on</span>: [pull_request, workflow_dispatch]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: <span class="str">ubuntu-latest</span>
+    <span class="kw">env</span>:
+      <span class="kw">LLM_ENDPOINT</span>: <span class="str">${{ vars.LLM_ENDPOINT }}</span>
+      <span class="kw">OLLAMA_HOST</span>: <span class="str">${{ vars.OLLAMA_HOST || 'http://host.docker.internal:11434' }}</span>
+      <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}</span>
+      <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">${{ vars.LLM_FAIL_ON_SCORE || '7.0' }}</span>
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: <span class="str">actions/checkout@v4</span>
+      - <span class="kw">name</span>: <span class="str">Build scanner image</span>
+        <span class="kw">run</span>: <span class="str">docker build -t llm-security-scanner .</span>
+      - <span class="kw">name</span>: <span class="str">Run scan in Docker</span>
+        <span class="kw">run</span>: <span class="str">|
+          mkdir -p reports
+          docker run --rm \
+            --add-host host.docker.internal:host-gateway \
+            -e OLLAMA_HOST="$OLLAMA_HOST" \
+            -v "$PWD/reports:/reports" \
+            llm-security-scanner \
+            --target "$LLM_ENDPOINT" \
+            --target-type url \
+            --judge-model "$LLM_JUDGE_MODEL" \
+            --format json,html,sarif \
+            --output-dir /reports \
+            --fail-on-score "$LLM_FAIL_ON_SCORE"</span>
+      <span class="cmt"># Add --api-key "${{ secrets.LLM_API_KEY }}" only if the target requires bearer auth</span>
+      - <span class="kw">uses</span>: <span class="str">actions/upload-artifact@v4</span>
+        <span class="kw">if</span>: <span class="str">always()</span>
+        <span class="kw">with</span>:
+          <span class="kw">name</span>: <span class="str">llm-security-reports</span>
+          <span class="kw">path</span>: <span class="str">reports/</span></pre>
+              </div>
+            </div>
+            <div>
+              <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitLab CI</p>
+              <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><span class="cmt"># .gitlab-ci.yml</span>
+<span class="kw">llm-security-scan</span>:
+  <span class="kw">stage</span>: <span class="str">test</span>
+  <span class="kw">image</span>: <span class="str">docker:27</span>
+  <span class="kw">services</span>:
+    - <span class="kw">name</span>: <span class="str">docker:27-dind</span>
+  <span class="kw">variables</span>:
+    <span class="kw">DOCKER_HOST</span>: <span class="str">tcp://docker:2375</span>
+    <span class="kw">DOCKER_TLS_CERTDIR</span>: <span class="str">""</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">http://app:5000/chat</span>
+    <span class="kw">OLLAMA_HOST</span>: <span class="str">http://your-ollama-host:11434</span>
+    <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">llama3.2:3b</span>
+    <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">"7.0"</span>
+  <span class="kw">before_script</span>:
+    - <span class="str">docker build -t llm-security-scanner .</span>
+  <span class="kw">script</span>:
+    - <span class="str">|
+        mkdir -p reports
+        docker run --rm \
+          -e OLLAMA_HOST="$OLLAMA_HOST" \
+          -v "$CI_PROJECT_DIR/reports:/reports" \
+          llm-security-scanner \
+          --target "$LLM_ENDPOINT" \
+          --target-type url \
+          --judge-model "$LLM_JUDGE_MODEL" \
+          --format json,html,sarif \
+          --output-dir /reports \
+          --fail-on-score "$LLM_FAIL_ON_SCORE"</span>
+      <span class="cmt"># Add -e LLM_API_KEY="$LLM_API_KEY" and --api-key "$LLM_API_KEY" only if needed</span>
+  <span class="kw">artifacts</span>:
+    <span class="kw">when</span>: <span class="str">always</span>
+    <span class="kw">paths</span>:
+      - <span class="str">reports/</span></pre>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Scan a live URL -->
@@ -1666,6 +1923,22 @@ OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
       sel.addRange(range);
     });
   }
+
+  document.querySelectorAll('[data-scenario-switcher]').forEach((switcher) => {
+    const buttons = Array.from(switcher.querySelectorAll('button[data-scenario-target]'));
+    const card = switcher.closest('.scenario-card');
+    const panels = Array.from(card.querySelectorAll('[data-scenario-panel]'));
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = button.dataset.scenarioTarget;
+        buttons.forEach((item) => item.classList.toggle('active', item === button));
+        panels.forEach((panel) => {
+          panel.classList.toggle('active', panel.dataset.scenarioPanel === target);
+        });
+      });
+    });
+  });
 
   const scanForm = document.getElementById('scan-form');
   const scanOutput = document.getElementById('scan-output');
