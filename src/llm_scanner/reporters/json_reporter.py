@@ -10,7 +10,6 @@ class JsonReporter:
 
     def save(self, report: ScanReport, output_dir: Path) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
-        ts = report.timestamp.strftime("%Y%m%dT%H%M%S")
-        path = output_dir / f"scan_{ts}.json"
+        path = output_dir / "report.json"
         path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
         return path

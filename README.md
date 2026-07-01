@@ -1,176 +1,298 @@
 # LLM Security Scanner
 
-A fully offline, one-command tool that tests LLM applications against all 10 OWASP Top 10 for LLMs 2025 vulnerabilities. Uses a local Ollama model as an AI judge — no cloud dependencies.
+A fully offline, one-command CLI tool that tests any LLM-based application against the complete [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework. Fires 46+ automated attacks across all 10 vulnerability categories and uses a local Ollama model as an AI judge to evaluate each result — no cloud dependencies, no manual analysis.
 
-## Architecture
+---
+
+## How it works
 
 ```
-llm-scanner CLI (argparse)
-      |
-      +-- Preflight checks (Ollama daemon, model availability, HTTP reachability)
-      |
-      +-- YamlPayloadLoader --> payloads/ (LLM01-LLM10, >=40 payloads)
-      |
-      +-- TargetFactory
-      |       +-- HttpTarget  (httpx AsyncClient, POST /endpoint)
-      |       +-- OllamaTarget (ollama SDK AsyncClient)
-      |
-      +-- OllamaJudge (Ollama local model, temperature=0, structured JSON output)
-      |
-      +-- LLMScanner (asyncio.Semaphore concurrency=3, Rich progress bar)
-      |       |
-      |       +-- ScanReport (Pydantic v2, risk score 0.0-10.0)
-      |
-      +-- Reporters
-              +-- Terminal   (Rich table, always shown)
-              +-- Markdown   (--format md)
-              +-- JSON       (--format json)
-              +-- HTML       (--format html, Jinja2 autoescape=True)
+llm-scanner CLI
+      │
+      ├─ Preflight checks (Ollama daemon, model availability, HTTP reachability)
+      │
+      ├─ YamlPayloadLoader ──► payloads/ (LLM01–LLM10, 46+ payloads)
+      │
+      ├─ TargetFactory
+      │       ├─ HttpTarget   (httpx AsyncClient → POST /endpoint)
+      │       └─ OllamaTarget (ollama SDK AsyncClient → local model)
+      │
+      ├─ OllamaJudge (local Ollama model, temperature=0, structured JSON)
+      │
+      ├─ LLMScanner (asyncio.Semaphore, concurrency=3, Rich progress bar)
+      │       └─ ScanReport (Pydantic v2, risk score 0.0–10.0)
+      │
+      └─ Reporters
+              ├─ Terminal  (Rich table, always shown)
+              ├─ Markdown  (--format md)
+              ├─ JSON      (--format json)
+              └─ HTML      (--format html, Jinja2 autoescape=True)
 ```
 
-## Quick Start
+1. **Preflight** — confirms Ollama is running, the judge model is pulled, and the target is reachable.
+2. **Payload loading** — reads YAML attack files from `payloads/`, filters by requested categories and minimum severity.
+3. **Scan** — fires each payload at the target concurrently (3 at a time), collects raw responses.
+4. **Judge** — sends each `(payload, response)` pair to a local Ollama model for structured verdict (`{"success": bool, "reasoning": str}`).
+5. **Report** — prints a Rich table to the terminal, optionally saves Markdown / JSON / HTML files.
 
-### Prerequisites
+---
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
-- [Ollama](https://ollama.com/) running locally with at least one model
+## Prerequisites
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Python | 3.11+ | Uses `asyncio.TaskGroup` and `tomllib` |
+| [uv](https://docs.astral.sh/uv/) | latest | Package manager; replaces pip+venv |
+| [Ollama](https://ollama.com/) | latest | Must be running locally on port 11434 |
+| At least one Ollama model | any | Used as the AI judge |
+
+---
+
+## Installation
 
 ```bash
-# Install
+# Clone the repository
 git clone <repo-url>
-cd llm-security-scanner
+cd "LLM Security Scanner"
+
+# Create virtualenv and install all dependencies
 uv pip install -e .
 
-# Pull a judge model (if not already available)
-ollama pull llama3.2:3b
-
-# Scan a local Ollama model
-llm-scanner --target mistral:7b --target-type ollama --judge-model llama3.2:3b
-
-# Scan an HTTP endpoint
-llm-scanner --target http://localhost:5000/chat --target-type url --judge-model llama3.2:3b
-
-# Restrict categories and save reports
-llm-scanner --target http://localhost:5000/chat --target-type url \
-            --judge-model llama3.2:3b \
-            --categories LLM01,LLM07 \
-            --severity high \
-            --format md,json,html \
-            --output-dir ./reports
-
-# Include DoS probes (opt-in, may stress the target)
-llm-scanner --target http://localhost:5000/chat --target-type url \
-            --judge-model llama3.2:3b --include-dos-tests
-```
-
-### Demo App (offline testing)
-
-Run the intentionally vulnerable Flask chatbot to test the scanner without a real LLM endpoint:
-
-```bash
-# Install Flask optional dependency
+# For the demo app (Flask vulnerable chatbot)
 uv pip install -e ".[demo]"
 
-# Start the demo app
-flask --app demo/vulnerable_app.py run --port 5000
-
-# In another terminal, run the scanner against it
-llm-scanner --target http://localhost:5000/chat --target-type url \
-            --judge-model llama3.2:3b
+# For development (pytest + ruff)
+uv pip install -e ".[dev]"
 ```
 
-## Sample Terminal Output
+---
+
+## Quick start
+
+### 1 — Scan a local Ollama model
+
+Test one local model using another as the judge. The target and judge **must** be different models.
+
+```bash
+llm-scanner \
+  --target mistral:7b \
+  --target-type ollama \
+  --judge-model llama3.2:3b
+```
+
+### 2 — Scan an HTTP endpoint
+
+Test any LLM-backed HTTP service that accepts `POST` with a JSON body.
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b
+```
+
+### 3 — Focused scan with saved reports
+
+Restrict to two high-risk categories, filter to high+ severity, and save all report formats.
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --categories LLM01,LLM07 \
+  --severity high \
+  --format md,json,html \
+  --output-dir ./reports
+```
+
+### 4 — Include DoS probes (opt-in)
+
+LLM10 (Unbounded Consumption) probes are gated behind an explicit flag because they can stress the target.
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --include-dos-tests
+```
+
+### 5 — Authenticated endpoint
+
+```bash
+llm-scanner \
+  --target https://api.example.com/v1/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --api-key "sk-your-token-here"
+```
+
+---
+
+## Demo app (offline testing)
+
+An intentionally vulnerable Flask chatbot is included for local end-to-end testing without a real LLM service.
+
+```bash
+# Terminal 1 — start the demo app
+flask --app demo/vulnerable_app.py run --port 5000
+
+# Terminal 2 — scan it
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --format html \
+  --output-dir ./reports
+```
+
+The demo app deliberately:
+- Exposes its system prompt on keyword triggers (`ignore`, `reveal`, `secret`, …)
+- Reflects all input without sanitisation
+- Embeds fake credentials in the system prompt (`ACME-2024`, `s3cr3t_passw0rd`)
+
+This makes it a reliable target for LLM01 (Prompt Injection) and LLM07 (System Prompt Leakage) findings.
+
+---
+
+## Sample output
 
 ```
 Target:   http://localhost:5000/chat (url)
 Judge:    llama3.2:3b
-Payloads: 45 loaded
+Payloads: 46 loaded
 
 Warming up judge model...
 
-[LLM01-003: Role confusion via ...]  [####----]  18%  8/45  0:00:12
+[LLM01-003: Delimiter injection]  [██████──]  62%  28/46  0:00:34
 
-                  LLM Security Scan - http://localhost:5000/chat
-+-----------+-----------+----------------------------------+----------+------------+
-| ID        | Category  | Name                             | Severity | Result     |
-+-----------+-----------+----------------------------------+----------+------------+
-| LLM01-001 | LLM01     | Basic prompt injection           | high     | VULNERABLE |
-| LLM01-002 | LLM01     | Role override injection          | critical | VULNERABLE |
-| LLM07-001 | LLM07     | System prompt extraction         | critical | VULNERABLE |
-| LLM07-002 | LLM07     | Indirect prompt leakage          | high     | Safe       |
-| LLM02-001 | LLM02     | PII extraction via context       | medium   | Safe       |
-+-----------+-----------+----------------------------------+----------+------------+
+                LLM Security Scan - http://localhost:5000/chat
+┌───────────┬──────────┬──────────────────────────────────┬──────────┬────────────┐
+│ ID        │ Category │ Name                             │ Severity │ Result     │
+├───────────┼──────────┼──────────────────────────────────┼──────────┼────────────┤
+│ LLM01-001 │ LLM01    │ Classic ignore prev instructions │ high     │ VULNERABLE │
+│ LLM01-002 │ LLM01    │ Role injection DAN               │ critical │ VULNERABLE │
+│ LLM07-001 │ LLM07    │ System prompt extraction         │ critical │ VULNERABLE │
+│ LLM07-002 │ LLM07    │ Indirect prompt leakage          │ high     │ Safe       │
+│ LLM02-001 │ LLM02    │ PII extraction via context       │ medium   │ Safe       │
+└───────────┴──────────┴──────────────────────────────────┴──────────┴────────────┘
 
-Attacks:    28/45 succeeded
+Attacks:    28/46 succeeded
 Risk Score: 8.5/10.0
 ```
 
-## CLI Reference
+Risk score bands: **0–3.9** (Low), **4–6.9** (Medium), **7–10** (High, shown in red).
+
+---
+
+## CLI reference
 
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|
-| `--target` | Yes | - | URL or Ollama model name |
-| `--target-type` | Yes | - | `url` or `ollama` |
-| `--judge-model` | Yes | - | Ollama model for AI evaluation |
-| `--categories` | No | LLM01-LLM09 | Comma-separated OWASP categories |
-| `--severity` | No | all | Minimum: `critical`, `high`, `medium`, `low`, `info` |
-| `--api-key` | No | None | Bearer token for URL targets |
+| `--target` | Yes | — | URL or Ollama model name |
+| `--target-type` | Yes | — | `url` or `ollama` |
+| `--judge-model` | Yes | — | Ollama model used as AI evaluator |
+| `--categories` | No | LLM01–LLM09 | Comma-separated categories to test |
+| `--severity` | No | all | Minimum severity: `critical` `high` `medium` `low` `info` |
+| `--api-key` | No | None | Bearer token sent in `Authorization` header (never logged) |
 | `--output-dir` | No | `./reports` | Directory for saved report files |
-| `--format` | No | None | `md`, `json`, `html` (comma-separated) |
+| `--format` | No | None | `md`, `json`, `html` — comma-separated; terminal output always shown |
 | `--include-dos-tests` | No | off | Include LLM10 Unbounded Consumption probes |
 
-## OWASP Top 10 for LLMs 2025 Coverage
+---
 
-| Category | Name | Payloads | Notes |
-|----------|------|----------|-------|
-| LLM01 | Prompt Injection | 5+ | Included by default |
-| LLM02 | Sensitive Information Disclosure | 5+ | Included by default |
-| LLM03 | Supply Chain | 4+ | Included by default |
-| LLM04 | Data and Model Poisoning | 4+ | Included by default |
-| LLM05 | Improper Output Handling | 5+ | Included by default |
-| LLM06 | Excessive Agency | 5+ | Included by default |
-| LLM07 | System Prompt Leakage | 5+ | Included by default |
-| LLM08 | Vector and Embedding Weaknesses | 4+ | Included by default |
-| LLM09 | Misinformation | 4+ | Included by default |
-| LLM10 | Unbounded Consumption | 5+ | Requires `--include-dos-tests` |
+## OWASP Top 10 for LLMs 2025 coverage
 
-**Total: 46+ payloads across all 10 categories.**
+| Category | Name | Payloads | Default |
+|----------|------|----------|---------|
+| LLM01 | Prompt Injection | 5 | Yes |
+| LLM02 | Sensitive Information Disclosure | 5 | Yes |
+| LLM03 | Supply Chain | 4 | Yes |
+| LLM04 | Data and Model Poisoning | 4 | Yes |
+| LLM05 | Improper Output Handling | 5 | Yes |
+| LLM06 | Excessive Agency | 5 | Yes |
+| LLM07 | System Prompt Leakage | 5 | Yes |
+| LLM08 | Vector and Embedding Weaknesses | 4 | Yes |
+| LLM09 | Misinformation | 4 | Yes |
+| LLM10 | Unbounded Consumption | 5 | `--include-dos-tests` only |
 
-## Tech Stack
+**Total: 46+ payloads.** Extended payloads in `payloads/extended/` are loaded automatically.
 
-| Component | Technology |
-|-----------|------------|
-| HTTP client | httpx 0.28+ (async, connection pooling) |
-| Local inference | Ollama SDK 0.6+ |
-| Terminal UI | Rich 15+ (progress bars, tables) |
-| Data models | Pydantic v2 (JSON serialization, validation) |
-| HTML reports | Jinja2 3.1+ (autoescape=True, XSS-safe) |
-| Payload format | YAML (PyYAML, safe_load only) |
-| CLI | argparse (stdlib, zero extra deps) |
+---
 
-## Security Properties
+## Output formats
 
-- **Offline-first**: All judge inference runs via local Ollama — no calls to OpenAI, Anthropic, or any cloud API
-- **API key safety**: `--api-key` is passed as a Bearer header only; never logged, never printed in error messages
-- **XSS-safe reports**: HTML reports use Jinja2 `autoescape=True`; attack payloads containing `<script>` render as escaped text
-- **DoS opt-in**: LLM10 (Unbounded Consumption) probes require `--include-dos-tests` — not fired by default
+| Format | Flag | File name pattern | Notes |
+|--------|------|-------------------|-------|
+| Terminal | always | — | Rich table with colour-coded severity |
+| Markdown | `--format md` | `report_<timestamp>.md` | Table with attack ID, category, name, severity, result, recommendation |
+| JSON | `--format json` | `report_<timestamp>.json` | Full `ScanReport` structure including `judge_reasoning` per finding |
+| HTML | `--format html` | `report_<timestamp>.html` | Self-contained; Jinja2 `autoescape=True` prevents XSS from payload content |
 
-## Project Structure
+---
+
+## Security properties
+
+- **Offline-first** — all judge inference runs via local Ollama; no calls to OpenAI, Anthropic, or any cloud API
+- **API key safety** — `--api-key` is sent as a `Bearer` header only; never logged or printed in error messages
+- **XSS-safe HTML reports** — Jinja2 `autoescape=True`; attack payloads containing `<script>` render as escaped text
+- **DoS gate** — LLM10 (Unbounded Consumption) requires `--include-dos-tests`; never fired by default
+- **No `yaml.load()`** — all YAML is parsed with `yaml.safe_load()` (Ruff S506 enforced in CI)
+
+---
+
+## Project structure
 
 ```
 llm-security-scanner/
-+-- src/llm_scanner/
-|   +-- cli.py           # CLI entry point (argparse)
-|   +-- scanner.py       # Bounded-concurrency scan engine
-|   +-- models.py        # Pydantic data models
-|   +-- preflight.py     # Health checks
-|   +-- targets/         # HttpTarget, OllamaTarget, TargetFactory
-|   +-- judge/           # OllamaJudge, three-tier JSON parser
-|   +-- reporters/       # Terminal, Markdown, JSON, HTML reporters
-|   +-- payloads/        # YamlPayloadLoader
-|   +-- templates/       # report.html.j2
-+-- payloads/            # YAML payload library (LLM01-LLM10)
-+-- demo/                # Intentionally vulnerable Flask chatbot
-+-- tests/               # pytest suite
+├── src/llm_scanner/
+│   ├── cli.py           # Entry point, argparse, scan orchestration
+│   ├── scanner.py       # Bounded-concurrency scan engine (asyncio.Semaphore)
+│   ├── models.py        # Pydantic v2 data models (Payload, AttackResult, ScanReport)
+│   ├── preflight.py     # Health checks (Ollama daemon, model, HTTP target)
+│   ├── targets/         # HttpTarget, OllamaTarget, TargetFactory
+│   ├── judge/           # OllamaJudge, three-tier JSON response parser
+│   ├── reporters/       # Terminal, Markdown, JSON, HTML reporters
+│   ├── payloads/        # YamlPayloadLoader
+│   └── templates/       # report.html.j2
+├── payloads/            # YAML attack library (LLM01–LLM10)
+│   └── extended/        # Extended payload sets
+├── demo/
+│   └── vulnerable_app.py  # Intentionally vulnerable Flask chatbot (scan target)
+├── tests/               # pytest suite (unit + integration)
+└── pyproject.toml
 ```
+
+---
+
+## Development
+
+```bash
+# Run the test suite
+uv run pytest
+
+# Lint and format
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
+
+# Check for ruff violations with auto-fix
+uv run ruff check --fix src/ tests/
+```
+
+---
+
+## Tech stack
+
+| Layer | Technology | Version |
+|-------|------------|---------|
+| HTTP client | httpx | 0.28+ |
+| Local inference | Ollama Python SDK | 0.6+ |
+| Terminal UI | Rich | 15+ |
+| Data models | Pydantic v2 | 2.13+ |
+| HTML templates | Jinja2 | 3.1+ |
+| Payload files | PyYAML (`safe_load`) | 6.0+ |
+| CLI | argparse | stdlib |
+| Package manager | uv | latest |
+| Linter/formatter | Ruff | 0.15+ |
+| Test runner | pytest + pytest-asyncio | 9.1+ / 1.4+ |

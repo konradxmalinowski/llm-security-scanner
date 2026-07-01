@@ -26,8 +26,7 @@ class HtmlReporter:
 
     def save(self, report: ScanReport, output_dir: Path) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
-        ts = report.timestamp.strftime("%Y%m%dT%H%M%S")
-        path = output_dir / f"scan_{ts}.html"
+        path = output_dir / "report.html"
         template = self._env.get_template("report.html.j2")
         html = template.render(report=report)
         path.write_text(html, encoding="utf-8")

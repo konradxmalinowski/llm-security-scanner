@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import re
 import sys
 from pathlib import Path
 
@@ -105,13 +106,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default=Path("./reports"),
         type=Path,
-        help="Directory for saved report files (default: ./reports)",
+        help="Parent directory for scan reports (default: ./reports). Each scan creates a timestamped subfolder.",
     )
     parser.add_argument(
         "--format",
-        default=None,
+        default="md,json,html,txt",
         dest="formats",
-        help="Comma-separated output formats: md,json,html (terminal output always shown)",
+        help="Comma-separated output formats: md,json,html,txt (default: all four). Terminal output always shown.",
     )
 
     # DoS opt-in (CLI-08)
@@ -259,17 +260,25 @@ async def _run(args: argparse.Namespace) -> None:
     # 8. Display results
     _print_results(report)
 
-    # 9. Save file reports if requested (REPORT-02, REPORT-03, REPORT-04)
-    if args.formats:
-        for fmt in (f.strip() for f in args.formats.split(",")):
-            try:
-                reporter = get_file_reporter(fmt)
-                saved = reporter.save(report, args.output_dir)
-                console.print(f"[dim]Saved {fmt.upper()} report:[/dim] {saved}")
-            except ValueError as exc:
-                print(f"Warning: {exc}", file=sys.stderr)
-            except OSError as exc:
-                print(f"Warning: Could not save {fmt.upper()} report: {exc}", file=sys.stderr)
+    # 9. Save file reports (REPORT-02, REPORT-03, REPORT-04, REPORT-05)
+    # Each scan gets its own subfolder: <output_dir>/<YYYYMMDD_HHMMSS>_<target_slug>/
+    ts = report.timestamp.strftime("%Y%m%dT%H%M%S")
+    target_slug = re.sub(r"[^a-zA-Z0-9]+", "_", report.target).strip("_")[:40]
+    scan_dir = args.output_dir / f"{ts}_{target_slug}"
+
+    saved_paths: list[str] = []
+    for fmt in (f.strip() for f in args.formats.split(",") if f.strip()):
+        try:
+            reporter = get_file_reporter(fmt)
+            saved = reporter.save(report, scan_dir)
+            saved_paths.append(str(saved))
+        except ValueError as exc:
+            print(f"Warning: {exc}", file=sys.stderr)
+        except OSError as exc:
+            print(f"Warning: Could not save {fmt.upper()} report: {exc}", file=sys.stderr)
+
+    if saved_paths:
+        console.print(f"[dim]Reports saved to:[/dim] {scan_dir}/")
 
 
 def main() -> None:

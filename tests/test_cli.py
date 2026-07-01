@@ -67,7 +67,7 @@ def test_parser_full_required_args() -> None:
     assert args.api_key is None
     assert args.output_dir == Path("./reports")
     assert args.severity is None
-    assert args.formats is None
+    assert args.formats == "md,json,html,txt"
     assert args.categories is None
 
 

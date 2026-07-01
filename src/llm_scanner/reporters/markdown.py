@@ -15,8 +15,7 @@ class MarkdownReporter:
 
     def save(self, report: ScanReport, output_dir: Path) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
-        ts = report.timestamp.strftime("%Y%m%dT%H%M%S")
-        path = output_dir / f"scan_{ts}.md"
+        path = output_dir / "report.md"
         path.write_text(self._render(report), encoding="utf-8")
         return path
 

@@ -55,10 +55,10 @@ def test_markdown_creates_file(tmp_path: Path, sample_report: ScanReport) -> Non
     assert path.suffix == ".md"
 
 
-def test_markdown_filename_has_timestamp(tmp_path: Path, sample_report: ScanReport) -> None:
+def test_markdown_filename_is_report(tmp_path: Path, sample_report: ScanReport) -> None:
     reporter = MarkdownReporter()
     path = reporter.save(sample_report, tmp_path)
-    assert "20250101T120000" in path.name
+    assert path.name == "report.md"
 
 
 def test_markdown_contains_target(tmp_path: Path, sample_report: ScanReport) -> None:
