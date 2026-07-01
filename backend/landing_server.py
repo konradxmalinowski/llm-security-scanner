@@ -136,6 +136,9 @@ def scan():
     if categories:
         cmd += ["--categories", categories]
 
+    if body.get("include_dos_tests") is True:
+        cmd.append("--include-dos-tests")
+
     def generate():
         proc = None
         try:
