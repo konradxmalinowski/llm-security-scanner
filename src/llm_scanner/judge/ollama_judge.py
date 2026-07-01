@@ -2,12 +2,32 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 
 import ollama
 from pydantic import BaseModel, ConfigDict
 
 from llm_scanner.models import JudgeResult, Payload
+
+
+def _find_first_json_object(text: str) -> str | None:
+    """Return the first balanced JSON object from *text*, or None if not found.
+
+    Uses brace-depth counting so that reasoning values containing ``{`` or ``}``
+    are handled correctly — the character-class regex ``r"\\{[^{}]*\\}"`` would
+    match an inner fragment instead of the full outer object.
+    """
+    depth = 0
+    start = None
+    for i, ch in enumerate(text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                return text[start : i + 1]
+    return None
 
 
 class _JudgeOutputSchema(BaseModel):
@@ -135,11 +155,14 @@ class OllamaJudge:
         except (json.JSONDecodeError, KeyError, TypeError):
             pass
 
-        # Tier 2: extract first JSON object (handles ```json ... ``` wrapping)
-        match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
-        if match:
+        # Tier 2: extract first JSON object using brace-depth counting so that
+        # reasoning values containing nested braces are handled correctly.
+        # The character-class regex r"\{[^{}]*\}" fails when reasoning contains
+        # "{" or "}" — it matches the inner fragment rather than the outer object.
+        match_str = _find_first_json_object(raw)
+        if match_str:
             try:
-                data = json.loads(match.group())
+                data = json.loads(match_str)
                 success_val = data.get("success") or data.get("vulnerable") or False
                 reasoning_val = data.get("reasoning") or data.get("explanation") or ""
                 return JudgeResult(
