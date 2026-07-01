@@ -43,6 +43,14 @@ _OLLAMA_HOST = "http://localhost:11434"
 console = Console()
 
 
+class _ScanAbort(Exception):
+    """Raised inside _run() to signal a structured early exit without a traceback.
+
+    Caught in main() to call sys.exit(1) cleanly, avoiding sys.exit() inside
+    an async coroutine which can be fragile under some Python implementations.
+    """
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argparse CLI parser."""
     parser = argparse.ArgumentParser(
@@ -197,7 +205,7 @@ async def _run(args: argparse.Namespace) -> None:
     categories = _resolve_categories(args)
     if not categories:
         console.print("[red]Error: No categories selected after filtering.[/red]")
-        sys.exit(1)
+        raise _ScanAbort()
 
     # 2. Preflight health checks (Phase 2: preflight.py)
     check_ollama_running(_OLLAMA_HOST)
@@ -219,7 +227,7 @@ async def _run(args: argparse.Namespace) -> None:
 
     if not payloads:
         console.print("[red]Error: No payloads matched the specified filters.[/red]")
-        sys.exit(1)
+        raise _ScanAbort()
 
     # 4. Print scan header
     console.print(f"\n[bold]Target:[/bold]   {args.target} ({args.target_type})")
@@ -270,6 +278,8 @@ def main() -> None:
     args = parser.parse_args()
     try:
         asyncio.run(_run(args))
+    except _ScanAbort:
+        sys.exit(1)
     except KeyboardInterrupt:
         console.print("\n[yellow]Scan interrupted by user.[/yellow]")
         sys.exit(130)
