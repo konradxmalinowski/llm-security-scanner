@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Security Scanner - Scan History</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; color: #333; }
+    h1 { color: #c0392b; }
+    .meta { margin-bottom: 1.5em; color: #555; }
+    .chart-container { margin-bottom: 2em; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9em; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; font-weight: bold; }
+    .score-high { color: #c0392b; font-weight: bold; }
+    .score-medium { color: #e67e22; }
+    .score-low { color: #27ae60; }
+  </style>
+</head>
+<body>
+  <h1>Risk Score History</h1>
+  <p class="meta">{{ scan_count }} scan(s) recorded.</p>
+
+  <div class="chart-container">
+    <canvas id="trendChart" width="800" height="300"></canvas>
+  </div>
+
+  {# Chart.js loaded via CDN — requires internet access in the browser to render the chart.
+     For air-gapped environments, Chart.js (~200KB) can be embedded inline as a future enhancement. #}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script>
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: {{ chart_data.labels | tojson }},
+        datasets: [{
+          label: 'Risk Score',
+          data: {{ chart_data.scores | tojson }},
+          borderColor: 'rgb(239, 68, 68)',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            min: 0,
+            max: 10,
+            title: { display: true, text: 'Risk Score' }
+          },
+          x: {
+            title: { display: true, text: 'Scan Timestamp' }
+          }
+        },
+        plugins: {
+          legend: { display: true },
+          title: { display: true, text: 'LLM Security Risk Score Over Time' }
+        }
+      }
+    });
+  </script>
+
+  {% if scan_count > 0 %}
+  <h2>Scan History</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Timestamp</th>
+        <th>Target</th>
+        <th>Risk Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in range(scan_count) %}
+      <tr>
+        <td>{{ i + 1 }}</td>
+        <td>{{ chart_data.labels[i] }}</td>
+        <td>{{ chart_data.targets[i] }}</td>
+        <td class="{% if chart_data.scores[i] >= 7.0 %}score-high{% elif chart_data.scores[i] >= 4.0 %}score-medium{% else %}score-low{% endif %}">
+          {{ chart_data.scores[i] }}/10
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No scans recorded yet. Run a scan to populate this dashboard.</p>
+  {% endif %}
+</body>
+</html>
