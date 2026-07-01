@@ -142,7 +142,15 @@ A Python CLI tool that tests LLM-based applications against the full OWASP Top 1
 
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+### Releasing to PyPI
+
+`.github/workflows/release.yml` only publishes on a pushed `vX.Y.Z` git tag — it never runs on ordinary commits/merges to `main`. To ship a new PyPI release:
+
+1. Bump `version` in `pyproject.toml` (e.g. `0.1.0` → `0.2.0`), commit and push to `main` as normal — this step alone does **not** publish anything.
+2. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
+3. The workflow checks the tag matches `pyproject.toml`'s version before publishing (mismatch = hard fail, no partial publish).
+
+Uses PyPI trusted publishing (OIDC) — no token to rotate. The one-time PyPI "pending publisher" registration and the GitHub `pypi` environment are already configured (see `docs/FUNCTIONALITY.md`).
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
