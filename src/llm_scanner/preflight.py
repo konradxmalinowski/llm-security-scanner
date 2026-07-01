@@ -63,6 +63,13 @@ def check_http_target_reachable(url: str, api_key: str | None = None) -> None:
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     try:
         resp = httpx.head(url, headers=headers, timeout=httpx.Timeout(10.0, connect=5.0))
+        if resp.status_code == 404:
+            print(
+                f"[ERROR] HTTP target at {url} returned 404 Not Found.\n"
+                "Verify the endpoint path is correct.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         if resp.status_code >= 500:
             print(
                 f"[ERROR] HTTP target at {url} returned server error {resp.status_code}.",
