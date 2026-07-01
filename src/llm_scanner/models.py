@@ -103,7 +103,14 @@ class ScanReport(BaseModel):
         json_data: str | bytes,
         **kwargs: object,
     ) -> ScanReport:
-        data = _json.loads(json_data)
+        try:
+            data = _json.loads(json_data)
+        except _json.JSONDecodeError as exc:
+            # Re-raise as ValueError so callers catching ValidationError see a
+            # consistent error type (Pydantic wraps ValueError in ValidationError).
+            raise ValueError(f"Invalid JSON: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected a JSON object, got {type(data).__name__}")
         for k in cls._COMPUTED_FIELDS:
             data.pop(k, None)
         return cls.model_validate(data, **kwargs)
