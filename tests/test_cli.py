@@ -10,6 +10,7 @@ import yaml
 from llm_scanner.cli import (
     _SAFE_CATEGORIES,
     _SEVERITY_RANK,
+    _apply_config_file,
     _apply_suppressions,
     _build_parser,
     _resolve_categories,
@@ -60,10 +61,10 @@ def test_parser_requires_target_type() -> None:
         _build_parser().parse_args(["--target", "http://x.com", "--target-type", "grpc", "--judge-model", "llama3.2:3b"])
 
 
-def test_parser_requires_judge_model() -> None:
-    """--judge-model is required."""
-    with pytest.raises(SystemExit):
-        _build_parser().parse_args(["--target", "http://x.com", "--target-type", "url"])
+def test_parser_allows_judge_model_from_config() -> None:
+    """--judge-model is optional at parse time because --config may supply it."""
+    args = _build_parser().parse_args(["--target", "http://x.com", "--target-type", "url"])
+    assert args.judge_model is None
 
 
 def test_parser_full_required_args() -> None:
@@ -124,6 +125,77 @@ def test_parser_format_arg() -> None:
     """--format is stored as args.formats (CLI-07)."""
     args = _parse("--format", "md,json,html")
     assert args.formats == "md,json,html"
+
+
+def test_parser_config_arg() -> None:
+    """--config is parsed as a Path."""
+    args = _build_parser().parse_args(["--config", "llm-scan.yml"])
+    assert args.config_file == Path("llm-scan.yml")
+
+
+def test_apply_config_file_populates_missing_values(tmp_path: Path) -> None:
+    """YAML config can provide all scan settings for CI/CD runs."""
+    config = tmp_path / "llm-scan.yml"
+    config.write_text(
+        "\n".join(
+            [
+                "target: https://example.com/chat",
+                "target_type: url",
+                "judge_model: llama3.2:3b",
+                "categories:",
+                "  - LLM01",
+                "  - LLM07",
+                "severity: high",
+                "formats:",
+                "  - json",
+                "  - sarif",
+                "output_dir: ./ci-reports",
+                "fail_on_score: 7.0",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    args = _build_parser().parse_args(["--config", str(config)])
+    result = _apply_config_file(args)
+
+    assert result.target == "https://example.com/chat"
+    assert result.target_type == "url"
+    assert result.judge_model == "llama3.2:3b"
+    assert result.categories == "LLM01,LLM07"
+    assert result.severity == "high"
+    assert result.formats == "json,sarif"
+    assert result.output_dir == Path("./ci-reports")
+    assert result.fail_on_score == 7.0
+
+
+def test_apply_config_file_keeps_cli_overrides(tmp_path: Path) -> None:
+    """Explicit CLI values win over llm-scan.yml defaults."""
+    config = tmp_path / "llm-scan.yml"
+    config.write_text(
+        "target: https://config.example/chat\n"
+        "target_type: url\n"
+        "judge_model: llama3.2:3b\n"
+        "severity: medium\n",
+        encoding="utf-8",
+    )
+
+    args = _build_parser().parse_args(
+        [
+            "--config",
+            str(config),
+            "--target",
+            "https://cli.example/chat",
+            "--severity",
+            "high",
+        ]
+    )
+    result = _apply_config_file(args)
+
+    assert result.target == "https://cli.example/chat"
+    assert result.severity == "high"
+    assert result.target_type == "url"
+    assert result.judge_model == "llama3.2:3b"
 
 
 def test_parser_ollama_target_type() -> None:

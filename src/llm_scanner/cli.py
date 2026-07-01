@@ -29,9 +29,9 @@ from llm_scanner.scanner import LLMScanner
 from llm_scanner.suppressions import SuppressionLoader
 from llm_scanner.targets import TargetFactory
 
-# Payloads live at project_root/payloads/ -- three levels up from this file
-# (src/llm_scanner/cli.py -> src/llm_scanner/ -> src/ -> project_root)
-_PAYLOAD_DIR = Path(__file__).parent.parent.parent / "payloads"
+_PACKAGE_PAYLOAD_DIR = Path(__file__).parent / "payload_library"
+_REPO_PAYLOAD_DIR = Path(__file__).parent.parent.parent / "payloads"
+_PAYLOAD_DIR = _PACKAGE_PAYLOAD_DIR if _PACKAGE_PAYLOAD_DIR.exists() else _REPO_PAYLOAD_DIR
 
 # LLM01-LLM09 are always safe to test; LLM10 requires explicit opt-in (CLI-08)
 _SAFE_CATEGORIES: list[str] = [f"LLM{i:02d}" for i in range(1, 10)]
@@ -73,6 +73,24 @@ class TargetConfig(BaseModel):
     api_key: str | None = None
 
 
+class ScanConfig(BaseModel):
+    """Optional scan configuration loaded from llm-scan.yml."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    target: str | None = None
+    target_type: str | None = None
+    judge_model: str | None = None
+    api_key: str | None = None
+    categories: str | list[str] | None = None
+    severity: str | None = None
+    output_dir: str | Path | None = None
+    formats: str | list[str] | None = None
+    include_dos_tests: bool | None = None
+    fail_on_score: float | None = None
+    suppressions_file: str | Path | None = None
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argparse CLI parser."""
     parser = argparse.ArgumentParser(
@@ -97,8 +115,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--judge-model",
-        required=True,
+        required=False,
         help="Ollama model name to use as AI judge (must differ from target model)",
+    )
+    parser.add_argument(
+        "--config",
+        dest="config_file",
+        type=Path,
+        default=None,
+        help="YAML scan config file (for CI/CD, e.g. llm-scan.yml)",
     )
 
     # Optional filter arguments (CLI-03, CLI-04)
@@ -196,6 +221,60 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.set_defaults(command="scan")
 
     return parser
+
+
+def _coerce_csv(value: str | list[str] | None) -> str | None:
+    """Return a comma-separated string for config values that support lists."""
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return ",".join(str(item).strip() for item in value if str(item).strip())
+    return str(value)
+
+
+def _apply_config_file(args: argparse.Namespace) -> argparse.Namespace:
+    """Merge --config YAML into parsed args.
+
+    CLI flags still win when they provide a non-default value. This keeps the
+    config file useful for CI while preserving the existing command-line UX.
+    """
+    config_file = getattr(args, "config_file", None)
+    if config_file is None:
+        return args
+
+    raw = yaml.safe_load(config_file.read_text(encoding="utf-8"))
+    if raw is None:
+        raw = {}
+    if not isinstance(raw, dict):
+        console.print("[red]Error: config YAML must be a mapping.[/red]")
+        raise _ScanAbort()
+
+    cfg = ScanConfig(**raw)
+
+    if args.target is None and cfg.target is not None:
+        args.target = _resolve_env_vars(cfg.target)
+    if args.target_type is None and cfg.target_type is not None:
+        args.target_type = cfg.target_type
+    if args.judge_model is None and cfg.judge_model is not None:
+        args.judge_model = cfg.judge_model
+    if args.api_key is None and cfg.api_key is not None:
+        args.api_key = _resolve_env_vars(cfg.api_key)
+    if args.categories is None and cfg.categories is not None:
+        args.categories = _coerce_csv(cfg.categories)
+    if args.severity is None and cfg.severity is not None:
+        args.severity = cfg.severity
+    if args.output_dir == Path("./reports") and cfg.output_dir is not None:
+        args.output_dir = Path(cfg.output_dir)
+    if args.formats == "md,json,html,txt" and cfg.formats is not None:
+        args.formats = _coerce_csv(cfg.formats) or args.formats
+    if not args.include_dos_tests and cfg.include_dos_tests is not None:
+        args.include_dos_tests = bool(cfg.include_dos_tests)
+    if args.fail_on_score is None and cfg.fail_on_score is not None:
+        args.fail_on_score = cfg.fail_on_score
+    if args.suppressions_file is None and cfg.suppressions_file is not None:
+        args.suppressions_file = Path(cfg.suppressions_file)
+
+    return args
 
 
 def _resolve_categories(args: argparse.Namespace) -> list[str]:
@@ -303,6 +382,12 @@ async def _run(args: argparse.Namespace) -> None:
     # Guard: --target is required in scan mode
     if not getattr(args, "target", None):
         console.print("[red]Error: --target is required for scan mode.[/red]")
+        raise _ScanAbort()
+    if not getattr(args, "target_type", None):
+        console.print("[red]Error: --target-type is required for scan mode.[/red]")
+        raise _ScanAbort()
+    if not getattr(args, "judge_model", None):
+        console.print("[red]Error: --judge-model is required for scan mode.[/red]")
         raise _ScanAbort()
 
     # 1. Resolve categories (CLI-03, CLI-08)
@@ -540,6 +625,7 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
     try:
+        args = _apply_config_file(args)
         if getattr(args, "targets_file", None) is not None:
             asyncio.run(_run_multi_target(args))
         elif args.command in (None, "scan"):
