@@ -12,11 +12,7 @@
 name: LLM Security Scan
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '0 9 * * 1'  # Weekly: Monday 9 AM UTC
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only — no live target configured
 
 jobs:
   llm-security-scan:
