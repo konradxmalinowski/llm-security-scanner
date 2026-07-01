@@ -18,6 +18,7 @@ from llm_scanner.preflight import (
     check_ollama_running,
     warm_up_judge,
 )
+from llm_scanner.reporters import get_file_reporter
 from llm_scanner.scanner import LLMScanner
 from llm_scanner.targets import TargetFactory
 
@@ -249,6 +250,16 @@ async def _run(args: argparse.Namespace) -> None:
 
     # 8. Display results
     _print_results(report)
+
+    # 9. Save file reports if requested (REPORT-02, REPORT-03, REPORT-04)
+    if args.formats:
+        for fmt in (f.strip() for f in args.formats.split(",")):
+            try:
+                reporter = get_file_reporter(fmt)
+                saved = reporter.save(report, args.output_dir)
+                console.print(f"[dim]Saved {fmt.upper()} report:[/dim] {saved}")
+            except ValueError as exc:
+                print(f"Warning: {exc}", file=sys.stderr)
 
 
 def main() -> None:

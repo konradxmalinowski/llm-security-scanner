@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Security Scan - {{ report.target }}</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; color: #333; }
+    h1 { color: #c0392b; }
+    .meta { margin-bottom: 1em; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9em; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; font-weight: bold; }
+    tr.critical { background: #ffdddd; }
+    tr.high { background: #ffe8cc; }
+    tr.medium { background: #fffacc; }
+    .vulnerable { color: #c0392b; font-weight: bold; }
+    .safe { color: #27ae60; }
+    .payload { font-family: monospace; font-size: 0.85em; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>LLM Security Scan</h1>
+  <div class="meta">
+    <p><strong>Target:</strong> {{ report.target }}</p>
+    <p><strong>Timestamp:</strong> {{ report.timestamp.isoformat() }}</p>
+    <p><strong>Risk Score:</strong> {{ "%.1f"|format(report.risk_score) }}/10.0</p>
+    <p><strong>Attacks:</strong> {{ report.successful_attacks }}/{{ report.total_attacks }} succeeded</p>
+  </div>
+  <h2>Findings</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Category</th><th>Name</th><th>Severity</th>
+        <th>Result</th><th>Payload</th><th>Recommendation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for finding in report.findings %}
+      <tr class="{{ finding.severity }}">
+        <td>{{ finding.attack_id }}</td>
+        <td>{{ finding.owasp_category }}</td>
+        <td>{{ finding.name }}</td>
+        <td>{{ finding.severity }}</td>
+        <td class="{% if finding.success %}vulnerable{% else %}safe{% endif %}">
+          {% if finding.success %}VULNERABLE{% else %}Safe{% endif %}
+        </td>
+        <td class="payload">{{ finding.payload }}</td>
+        <td>{{ finding.recommendation }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
