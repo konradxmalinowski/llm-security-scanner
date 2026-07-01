@@ -4,53 +4,72 @@ stages:
 llm-security-scan:
   stage: test
   image: docker:27
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
   services:
     - name: docker:27-dind
       alias: docker
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
-    LLM_ENDPOINT: "http://app:5000/chat"
-    OLLAMA_HOST: "http://your-ollama-host:11434"
+    # LLM_ENDPOINT and OLLAMA_HOST have no defaults on purpose — set them as
+    # CI/CD variables (Settings > CI/CD > Variables):
+    #   LLM_ENDPOINT: URL reachable from this job, e.g. http://app:5000/chat
+    #   OLLAMA_HOST:  URL of an Ollama server reachable from this job
+    LLM_ENDPOINT: ""
+    OLLAMA_HOST: ""
     LLM_JUDGE_MODEL: "llama3.2:3b"
     LLM_FAIL_ON_SCORE: "7.0"
     LLM_SEVERITY: ""
     LLM_CATEGORIES: ""
     LLM_INCLUDE_DOS_TESTS: "false"
+    # Empty = latest release from PyPI. Pin for reproducible scans, e.g. "0.3.1".
+    LLM_SCANNER_VERSION: ""
   before_script:
-    - docker build -t llm-security-scanner .
+    - test -n "$LLM_ENDPOINT" || {
+        echo "Set the LLM_ENDPOINT CI/CD variable to the URL reachable from this job, for example http://app:5000/chat or http://localhost:5000/chat" >&2;
+        exit 1;
+      }
+    - test -n "$OLLAMA_HOST" || {
+        echo "Set the OLLAMA_HOST CI/CD variable to the URL of an Ollama server reachable from this job" >&2;
+        exit 1;
+      }
+    - |
+      cat <<'EOF' > Dockerfile.llm-scanner
+      FROM python:3.11-slim
+      ARG SCANNER_VERSION=
+      RUN pip install --no-cache-dir "llm-security-scanner${SCANNER_VERSION:+==$SCANNER_VERSION}"
+      ENTRYPOINT ["llm-scanner"]
+      EOF
+      docker build --build-arg SCANNER_VERSION="$LLM_SCANNER_VERSION" -f Dockerfile.llm-scanner -t llm-security-scanner .
   script:
     - |
       set -eu
-      test -n "$LLM_ENDPOINT" || {
-        echo "Set LLM_ENDPOINT to the URL reachable from this job, for example http://app:5000/chat or http://localhost:5000/chat" >&2
-        exit 1
-      }
 
-      ARGS="
-        --target $LLM_ENDPOINT
-        --target-type url
-        --judge-model $LLM_JUDGE_MODEL
-        --format json,html,sarif
-        --output-dir /reports
-        --fail-on-score $LLM_FAIL_ON_SCORE
-      "
+      set -- \
+        --target "$LLM_ENDPOINT" \
+        --target-type url \
+        --judge-model "$LLM_JUDGE_MODEL" \
+        --format json,html,sarif \
+        --output-dir /reports \
+        --fail-on-score "$LLM_FAIL_ON_SCORE"
 
       if [ -n "${LLM_API_KEY:-}" ]; then
-        ARGS="$ARGS --api-key ${LLM_API_KEY}"
+        set -- "$@" --api-key "$LLM_API_KEY"
       fi
       if [ -n "$LLM_SEVERITY" ]; then
-        ARGS="$ARGS --severity $LLM_SEVERITY"
+        set -- "$@" --severity "$LLM_SEVERITY"
       fi
       if [ -n "$LLM_CATEGORIES" ]; then
-        ARGS="$ARGS --categories $LLM_CATEGORIES"
+        set -- "$@" --categories "$LLM_CATEGORIES"
       fi
       if [ "$LLM_INCLUDE_DOS_TESTS" = "true" ]; then
-        ARGS="$ARGS --include-dos-tests"
+        set -- "$@" --include-dos-tests
       fi
 
       mkdir -p reports
-      sh -c "docker run --rm -e OLLAMA_HOST=\"$OLLAMA_HOST\" -v \"$CI_PROJECT_DIR/reports:/reports\" llm-security-scanner $ARGS"
+      docker run --rm -e OLLAMA_HOST="$OLLAMA_HOST" -v "$CI_PROJECT_DIR/reports:/reports" llm-security-scanner "$@"
   artifacts:
     when: always
     paths:

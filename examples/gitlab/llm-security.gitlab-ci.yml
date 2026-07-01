@@ -4,18 +4,29 @@ stages:
 llm-security-scan:
   stage: test
   image: python:3.11-slim
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
   services:
-    - name: ollama/ollama:latest
+    - name: $OLLAMA_IMAGE
       alias: ollama
   variables:
+    OLLAMA_IMAGE: "ollama/ollama:latest"
     OLLAMA_HOST: http://ollama:11434
-    LLM_ENDPOINT: "http://app:5000/chat"
+    # LLM_ENDPOINT has no default on purpose — set it as a CI/CD variable
+    # (Settings > CI/CD > Variables) to the URL reachable from this job,
+    # for example http://app:5000/chat or http://localhost:5000/chat.
+    LLM_ENDPOINT: ""
     LLM_JUDGE_MODEL: "llama3.2:3b"
     LLM_FAIL_ON_SCORE: "7.0"
     LLM_SEVERITY: ""
     LLM_CATEGORIES: ""
     LLM_INCLUDE_DOS_TESTS: "false"
   before_script:
+    - test -n "$LLM_ENDPOINT" || {
+        echo "Set the LLM_ENDPOINT CI/CD variable to the URL reachable from this job, for example http://app:5000/chat or http://localhost:5000/chat" >&2;
+        exit 1;
+      }
     - pip install uv
     - uv pip install --system "git+https://github.com/konradxmalinowski/llm-security-scanner.git@main"
     - curl -fsS "$OLLAMA_HOST/api/version"
@@ -23,31 +34,26 @@ llm-security-scan:
   script:
     - |
       set -eu
-      test -n "$LLM_ENDPOINT" || {
-        echo "Set LLM_ENDPOINT to the URL reachable from this job, for example http://app:5000/chat or http://localhost:5000/chat" >&2
-        exit 1
-      }
-      ARGS="
-        --target $LLM_ENDPOINT
-        --target-type url
-        --judge-model $LLM_JUDGE_MODEL
-        --format json,html,sarif
-        --output-dir ./reports
-        --fail-on-score $LLM_FAIL_ON_SCORE
-      "
+      set -- \
+        --target "$LLM_ENDPOINT" \
+        --target-type url \
+        --judge-model "$LLM_JUDGE_MODEL" \
+        --format json,html,sarif \
+        --output-dir ./reports \
+        --fail-on-score "$LLM_FAIL_ON_SCORE"
       if [ -n "${LLM_API_KEY:-}" ]; then
-        ARGS="$ARGS --api-key ${LLM_API_KEY}"
+        set -- "$@" --api-key "$LLM_API_KEY"
       fi
       if [ -n "$LLM_SEVERITY" ]; then
-        ARGS="$ARGS --severity $LLM_SEVERITY"
+        set -- "$@" --severity "$LLM_SEVERITY"
       fi
       if [ -n "$LLM_CATEGORIES" ]; then
-        ARGS="$ARGS --categories $LLM_CATEGORIES"
+        set -- "$@" --categories "$LLM_CATEGORIES"
       fi
       if [ "$LLM_INCLUDE_DOS_TESTS" = "true" ]; then
-        ARGS="$ARGS --include-dos-tests"
+        set -- "$@" --include-dos-tests
       fi
-      sh -c "llm-scanner $ARGS"
+      llm-scanner "$@"
   artifacts:
     when: always
     paths:
