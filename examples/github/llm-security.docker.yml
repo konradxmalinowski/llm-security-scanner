@@ -16,10 +16,11 @@ jobs:
       LLM_SEVERITY: ${{ vars.LLM_SEVERITY }}
       LLM_CATEGORIES: ${{ vars.LLM_CATEGORIES }}
       LLM_INCLUDE_DOS_TESTS: ${{ vars.LLM_INCLUDE_DOS_TESTS || 'false' }}
+      # Empty = latest release from PyPI. Pin for reproducible scans, e.g. "0.3.1".
+      LLM_SCANNER_VERSION: ${{ vars.LLM_SCANNER_VERSION }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Validate workflow variables
         run: |
           test -n "$LLM_ENDPOINT" || {
@@ -28,7 +29,14 @@ jobs:
           }
 
       - name: Build scanner image
-        run: docker build -t llm-security-scanner .
+        run: |
+          cat <<'EOF' > Dockerfile.llm-scanner
+          FROM python:3.11-slim
+          ARG SCANNER_VERSION=
+          RUN pip install --no-cache-dir "llm-security-scanner${SCANNER_VERSION:+==$SCANNER_VERSION}"
+          ENTRYPOINT ["llm-scanner"]
+          EOF
+          docker build --build-arg SCANNER_VERSION="$LLM_SCANNER_VERSION" -f Dockerfile.llm-scanner -t llm-security-scanner .
 
       - name: Run security scan in Docker
         run: |
@@ -46,7 +54,7 @@ jobs:
           [ -n "$LLM_SEVERITY" ] && ARGS+=(--severity "$LLM_SEVERITY")
           [ -n "$LLM_CATEGORIES" ] && ARGS+=(--categories "$LLM_CATEGORIES")
           [ "$LLM_INCLUDE_DOS_TESTS" = "true" ] && ARGS+=(--include-dos-tests)
-          [ -n "${{ secrets.LLM_API_KEY }}" ] && ARGS+=(--api-key "${{ secrets.LLM_API_KEY }}")
+          [ -n "$LLM_API_KEY" ] && ARGS+=(--api-key "$LLM_API_KEY")
 
           docker run --rm \
             --add-host host.docker.internal:host-gateway \

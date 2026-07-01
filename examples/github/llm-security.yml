@@ -19,6 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate workflow variables
+        run: |
+          test -n "$LLM_ENDPOINT" || {
+            echo "Set repository variable LLM_ENDPOINT to the URL reachable from this job, for example http://localhost:5000/chat" >&2
+            exit 1
+          }
+
       - name: Start Ollama
         run: |
           curl -fsSL https://ollama.com/install.sh | bash
@@ -30,13 +37,6 @@ jobs:
             sleep 2
           done
           ollama pull "$LLM_JUDGE_MODEL"
-
-      - name: Validate workflow variables
-        run: |
-          test -n "$LLM_ENDPOINT" || {
-            echo "Set repository variable LLM_ENDPOINT to the URL reachable from this job, for example http://localhost:5000/chat" >&2
-            exit 1
-          }
 
       - name: Run security scan
         uses: konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@main
