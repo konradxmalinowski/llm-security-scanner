@@ -7,7 +7,7 @@ Use the example that matches where your target runs and how you want to execute 
 - `config/local-url.yml`
   Scan a local HTTP endpoint such as `http://localhost:5000/chat`.
 - `config/public-url.yml`
-  Generic URL-target example for CLI or CI runners. Not used by the localhost-only web UI.
+  Generic URL-target example for CLI or CI runners.
 - `config/ollama-target.yml`
   Scan an Ollama model directly instead of an HTTP app.
 - `config/ci-url.yml`

@@ -1,6 +1,6 @@
 # LLM Security Scanner
 
-A security scanner for LLM-backed applications. The web UI is for local `localhost` / loopback targets, and the same scan engine runs from CLI or CI/CD for Docker, staging, and other runner-reachable applications. It fires 46+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
+A CLI security scanner for LLM-backed applications, runnable locally or from CI/CD against Docker, staging, and other runner-reachable applications. It fires 46+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
 
 ---
 
@@ -68,36 +68,6 @@ uv pip install -e ".[dev]"
 ---
 
 ## Quick start
-
-### Local web UI vs CLI/CD scans
-
-Use the web UI only for local loopback HTTP endpoints. The backend accepts `localhost`, `127.0.0.1`, `::1`, and `.localhost` names, and rejects everything else.
-
-Use the CLI or CI/CD for anything that is not a loopback target in the same machine/browser session:
-
-- Docker Compose services
-- local apps exposed on non-loopback hosts
-- GitHub/GitLab review apps
-- staging behind VPN or private VPC
-- authenticated internal services
-
-### Local web UI
-
-Start the local UI through the Flask backend, not by opening `frontend/index.html` directly:
-
-```bash
-flask --app backend/landing_server.py run --port 8080
-```
-
-Then open:
-
-```text
-http://localhost:8080
-```
-
-The page calls `POST /api/scan` on the same host. If you open the HTML file directly or serve it from another static server, the form will fail with `HTTP 404` because `/api/scan` does not exist there.
-
-The browser form is for loopback URLs only. A target like `http://app:5000/chat` or `https://chat.example.com/api/chat` must be scanned from the CLI or CI/CD, not from the page.
 
 ### 1 — Scan a local Ollama model
 
@@ -285,7 +255,7 @@ An intentionally vulnerable Flask chatbot that simulates common LLM weaknesses w
 
 ```bash
 # Terminal 1 — start the demo app
-flask --app backend/vulnerable_app.py run --port 5000
+flask --app demo/vulnerable_app.py run --port 5000
 
 # Terminal 2 — scan it
 llm-scanner \
@@ -319,7 +289,7 @@ echo "OPENAI_LLM_MODEL=gpt-4o-mini" >> .env
 
 ```bash
 # Terminal 1 — start the OpenAI demo app
-flask --app backend/chatbot_openai_app.py run --port 5001
+flask --app demo/chatbot_openai_app.py run --port 5001
 
 # Terminal 2 — scan it
 llm-scanner \
@@ -505,12 +475,9 @@ llm-security-scanner/
 │   └── templates/       # report.html.j2
 ├── payloads/            # YAML attack library (LLM01–LLM10)
 │   └── extended/        # Extended payload sets
-├── backend/
+├── demo/
 │   ├── vulnerable_app.py      # Offline vulnerable chatbot — no API key needed (port 5000)
-│   ├── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
-│   └── landing_server.py      # Local web UI + /api/scan backend (port 8080)
-├── frontend/
-│   └── index.html             # Local scan UI and CLI/CI documentation
+│   └── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
 ├── tests/               # pytest suite (unit + integration)
 └── pyproject.toml
 ```
