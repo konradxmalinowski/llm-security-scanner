@@ -6,7 +6,7 @@ import httpx
 import ollama
 import pytest
 
-from llm_scanner.models import JudgeResult, Severity
+from llm_scanner.models import JudgeResult
 from llm_scanner.preflight import (
     check_http_target_reachable,
     check_judge_differs_from_target,
@@ -14,7 +14,6 @@ from llm_scanner.preflight import (
     check_ollama_running,
     warm_up_judge,
 )
-
 
 # ---------------------------------------------------------------------------
 # check_ollama_running
