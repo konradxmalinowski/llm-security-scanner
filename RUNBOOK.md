@@ -112,7 +112,7 @@ Open a dedicated terminal for this:
 
 ```bash
 cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
-flask --app demo/vulnerable_app.py run --port 5000
+flask --app backend/vulnerable_app.py run --port 5000
 ```
 
 Expected:
@@ -178,7 +178,7 @@ Open a dedicated terminal:
 
 ```bash
 cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
-flask --app demo/chatbot_openai_app.py run --port 5001
+flask --app backend/chatbot_openai_app.py run --port 5001
 ```
 
 Expected:

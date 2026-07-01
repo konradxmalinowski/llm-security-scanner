@@ -69,7 +69,7 @@ def chat() -> tuple[object, int]:
         ]
         reply = _llm.invoke(messages)
         return jsonify({"response": reply.content}), 200
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
 
