@@ -13,6 +13,7 @@ class TargetFactory:
         target_type: str,
         target: str,
         api_key: str | None = None,
+        ollama_host: str = "http://localhost:11434",
         timeout: float = 30.0,
     ) -> AbstractTarget:
         """Instantiate the correct target implementation.
@@ -33,7 +34,7 @@ class TargetFactory:
             case "url":
                 return HttpTarget(url=target, api_key=api_key, timeout=timeout)
             case "ollama":
-                return OllamaTarget(model=target, timeout=timeout)
+                return OllamaTarget(model=target, host=ollama_host, timeout=timeout)
             case _:
                 raise ValueError(
                     f"Unknown target_type: {target_type!r}. Expected 'url' or 'ollama'."

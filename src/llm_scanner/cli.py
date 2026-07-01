@@ -45,7 +45,7 @@ _SEVERITY_RANK: dict[Severity, int] = {
     Severity.CRITICAL: 4,
 }
 
-_OLLAMA_HOST = "http://localhost:11434"
+_OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 
 console = Console()
 
@@ -428,8 +428,9 @@ async def _run(args: argparse.Namespace) -> None:
         target_type=args.target_type,
         target=args.target,
         api_key=getattr(args, "api_key", None),
+        ollama_host=_OLLAMA_HOST,
     )
-    judge = OllamaJudge(model=args.judge_model)
+    judge = OllamaJudge(model=args.judge_model, host=_OLLAMA_HOST)
 
     # 6. Warm up judge model (load into VRAM before first attack)
     console.print("[dim]Warming up judge model...[/dim]")

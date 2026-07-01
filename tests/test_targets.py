@@ -150,8 +150,22 @@ def test_factory_creates_http_target() -> None:
 
 
 def test_factory_creates_ollama_target() -> None:
-    result = TargetFactory.from_config("ollama", "llama3.2:3b")
+    result = TargetFactory.from_config(
+        "ollama",
+        "llama3.2:3b",
+        ollama_host="http://ollama:11434",
+    )
     assert isinstance(result, OllamaTarget)
+
+
+def test_factory_passes_ollama_host() -> None:
+    with patch("llm_scanner.targets.ollama_target.ollama.AsyncClient") as mock_client:
+        TargetFactory.from_config(
+            "ollama",
+            "llama3.2:3b",
+            ollama_host="http://ollama:11434",
+        )
+    mock_client.assert_called_once_with(host="http://ollama:11434", timeout=30.0)
 
 
 def test_factory_raises_on_unknown_type() -> None:
