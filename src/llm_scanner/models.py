@@ -64,6 +64,8 @@ class AttackResult(BaseModel):
     judge_reasoning: str
     severity: Severity
     recommendation: str = ""
+    suppressed: bool = False
+    suppression_reason: str = ""
 
     @model_validator(mode="after")
     def _populate_recommendation(self) -> AttackResult:
