@@ -3,6 +3,7 @@ from __future__ import annotations
 import json as _json
 from datetime import datetime
 from enum import StrEnum
+from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
@@ -94,7 +95,7 @@ class ScanReport(BaseModel):
     # as extra inputs by extra="forbid" on the way back in.  Override
     # model_validate_json() to strip them before re-validation so callers
     # can round-trip JSON without a manual pop() workaround.
-    _COMPUTED_FIELDS: frozenset[str] = frozenset({"total_attacks", "successful_attacks"})
+    _COMPUTED_FIELDS: ClassVar[frozenset[str]] = frozenset({"total_attacks", "successful_attacks"})
 
     @classmethod
     def model_validate_json(  # type: ignore[override]
