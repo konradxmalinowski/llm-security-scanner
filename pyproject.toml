@@ -18,6 +18,9 @@ llm-scanner = "llm_scanner.cli:main"
 [project.optional-dependencies]
 demo = [
     "flask>=3.0",
+    "langchain-openai>=0.3.27",
+    "openai>=1.91.0",
+    "python-dotenv>=1.2.2",
 ]
 dev = [
     "pytest>=9.1.1",
