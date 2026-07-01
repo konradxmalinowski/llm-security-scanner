@@ -130,9 +130,17 @@ llm-scanner \
 
 ---
 
-## Demo app (offline testing)
+## Demo apps
 
-An intentionally vulnerable Flask chatbot is included for local end-to-end testing without a real LLM service.
+Two demo apps are included for end-to-end testing. Install the demo extras first:
+
+```bash
+uv pip install -e ".[demo]"
+```
+
+### Option A — Offline vulnerable chatbot (no API key needed)
+
+An intentionally vulnerable Flask chatbot that simulates common LLM weaknesses without calling any real model. Ideal for fully offline testing.
 
 ```bash
 # Terminal 1 — start the demo app
@@ -147,12 +155,46 @@ llm-scanner \
   --output-dir ./reports
 ```
 
-The demo app deliberately:
+The app deliberately:
 - Exposes its system prompt on keyword triggers (`ignore`, `reveal`, `secret`, …)
 - Reflects all input without sanitisation
 - Embeds fake credentials in the system prompt (`ACME-2024`, `s3cr3t_passw0rd`)
 
-This makes it a reliable target for LLM01 (Prompt Injection) and LLM07 (System Prompt Leakage) findings.
+Best for testing: **LLM01** (Prompt Injection), **LLM07** (System Prompt Leakage).
+
+---
+
+### Option B — Real OpenAI chatbot (requires API key)
+
+A Flask wrapper around a genuine OpenAI model, giving the scanner realistic LLM responses to evaluate. Uses the same `/chat` + `/health` interface as the vulnerable app.
+
+**Setup:**
+
+```bash
+# Create .env in the project root
+echo "OPENAI_API_KEY=sk-..." >> .env
+echo "OPENAI_LLM_MODEL=gpt-4o-mini" >> .env
+```
+
+```bash
+# Terminal 1 — start the OpenAI demo app
+flask --app demo/chatbot_openai_app.py run --port 5001
+
+# Terminal 2 — scan it
+llm-scanner \
+  --target http://localhost:5001/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --format html \
+  --output-dir ./reports
+```
+
+The app:
+- Sends every payload to a real OpenAI model and returns its response
+- Uses a simple system prompt with basic guardrails (no intentional weaknesses)
+- Reads `OPENAI_API_KEY` and `OPENAI_LLM_MODEL` from `.env` at startup
+
+This gives more realistic scan results than the offline mock — the judge evaluates actual LLM behaviour.
 
 ---
 
@@ -259,7 +301,8 @@ llm-security-scanner/
 ├── payloads/            # YAML attack library (LLM01–LLM10)
 │   └── extended/        # Extended payload sets
 ├── demo/
-│   └── vulnerable_app.py  # Intentionally vulnerable Flask chatbot (scan target)
+│   ├── vulnerable_app.py      # Offline vulnerable chatbot — no API key needed (port 5000)
+│   └── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
 ├── tests/               # pytest suite (unit + integration)
 └── pyproject.toml
 ```
