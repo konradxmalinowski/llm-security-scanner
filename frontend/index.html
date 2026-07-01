@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Security Scanner — OWASP LLM Top 10 Testing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0c0c0c;
+      --bg-card:     #161616;
+      --bg-code:     #0d1117;
+      --border:      #252525;
+      --border-hover:#3a3a3a;
+      --text:        #f4f4f4;
+      --muted:       #8a8a8a;
+      --accent:      #a78bfa;
+      --accent-dim:  #7c3aed22;
+      --safe:        #34d399;
+      --vuln:        #f87171;
+      --warn:        #fbbf24;
+      --nav-h:       64px;
+      --radius:      10px;
+      --radius-lg:   16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Nav ─────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: rgba(12,12,12,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-logo-icon {
+      width: 30px; height: 30px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-icon svg { width: 16px; height: 16px; fill: #fff; }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 0.45rem 1.1rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .nav-cta:hover { background: #7c3aed !important; }
+
+    /* ── Sections ────────────────────────────────────────── */
+    section {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+    }
+
+    section + section { padding-top: 0; }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── Hero ────────────────────────────────────────────── */
+    #hero {
+      padding-top: calc(var(--nav-h) + 5rem);
+      padding-bottom: 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #hero::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 900px; height: 600px;
+      background: radial-gradient(ellipse at center, #a78bfa18 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-dim);
+      border: 1px solid #a78bfa44;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 0.3rem 0.8rem;
+      border-radius: 99px;
+      margin-bottom: 1.75rem;
+    }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #f4f4f4 30%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.65rem 1.4rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #7c3aed; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border-hover);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .hero-terminal {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 2rem;
+      text-align: left;
+      max-width: 700px;
+      margin: 0 auto;
+      position: relative;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      font-size: 0.875rem;
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .terminal-dots span {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+    }
+
+    .terminal-dots span:nth-child(1) { background: #ff5f57; }
+    .terminal-dots span:nth-child(2) { background: #febc2e; }
+    .terminal-dots span:nth-child(3) { background: #28c840; }
+
+    .term-line { display: flex; gap: 0.5rem; margin-bottom: 0.3rem; }
+    .term-prompt { color: #34d399; user-select: none; }
+    .term-cmd    { color: #f4f4f4; }
+    .term-flag   { color: #a78bfa; }
+    .term-val    { color: #fbbf24; }
+    .term-out    { color: #8a8a8a; padding-left: 1rem; }
+    .term-vuln   { color: #f87171; font-weight: 600; }
+    .term-safe   { color: #34d399; }
+    .term-score  { color: #f87171; font-weight: 700; }
+
+    /* ── Stats ───────────────────────────────────────────── */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+      padding: 2.5rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin: 0 2rem;
+    }
+
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      display: block;
+    }
+    .stat-label { font-size: 0.82rem; color: var(--muted); }
+
+    /* ── How it works ────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px; left: 10%; right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 1rem;
+      position: relative;
+    }
+
+    .step-num {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      color: var(--text);
+    }
+
+    .step-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* ── Cards grid ──────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: var(--border-hover); }
+
+    .card-icon-box {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--accent-dim);
+      border: 1px solid #a78bfa33;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.8rem;
+    }
+
+    .card-icon-box svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .card-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── OWASP grid ──────────────────────────────────────── */
+    .owasp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 1rem;
+    }
+
+    .owasp-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .owasp-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .owasp-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid #a78bfa33;
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 0.65rem;
+    }
+
+    .owasp-title {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    .owasp-desc {
+      font-size: 0.775rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .owasp-payloads {
+      margin-top: 0.6rem;
+      font-size: 0.72rem;
+      color: var(--safe);
+      font-family: monospace;
+    }
+
+    /* ── Scenarios ───────────────────────────────────────── */
+    .scenario-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .scenario-card:hover { border-color: var(--border-hover); }
+
+    .scenario-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .scenario-letter {
+      width: 38px; height: 38px;
+      min-width: 38px;
+      border-radius: 8px;
+      background: var(--accent-dim);
+      border: 1px solid #a78bfa33;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .scenario-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .scenario-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .scenario-tag {
+      margin-left: auto;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .tag-offline { background: #34d39922; color: var(--safe); border: 1px solid #34d39933; }
+    .tag-api     { background: #fbbf2422; color: var(--warn); border: 1px solid #fbbf2433; }
+
+    .scenario-body { padding: 1.25rem; }
+
+    /* ── Code blocks ─────────────────────────────────────── */
+    .code-block {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .code-block pre { white-space: pre; }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.65rem; right: 0.65rem;
+      background: #2a2a2a;
+      border: 1px solid var(--border-hover);
+      color: var(--muted);
+      font-size: 0.72rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .copy-btn:hover { color: var(--text); background: #333; }
+    .copy-btn.copied { color: var(--safe); border-color: var(--safe); }
+
+    .kw   { color: #a78bfa; }
+    .str  { color: #fbbf24; }
+    .cmd  { color: #f4f4f4; }
+    .cmt  { color: #4b5563; }
+    .url  { color: #60a5fa; }
+
+    /* ── CLI table ───────────────────────────────────────── */
+    .cli-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .cli-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .cli-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .cli-table tr:last-child td { border-bottom: none; }
+    .cli-table tr:hover td { background: #ffffff04; }
+
+    .flag-cell {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .req-yes { color: var(--safe); font-size: 0.78rem; font-weight: 600; }
+    .req-no  { color: var(--muted); font-size: 0.78rem; }
+    .default-cell { font-family: monospace; font-size: 0.8rem; color: var(--muted); }
+
+    /* ── Output formats ──────────────────────────────────── */
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .format-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .format-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+
+    .format-label {
+      display: inline-block;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .format-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .format-flag {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 0.75rem;
+      background: var(--accent-dim);
+      color: var(--accent);
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      margin-bottom: 0.65rem;
+    }
+
+    .format-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── Security properties ─────────────────────────────── */
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .sec-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+
+    .sec-icon-box {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--accent-dim);
+      border: 1px solid #a78bfa33;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.8rem;
+    }
+
+    .sec-icon-box svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .sec-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .sec-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── Risk bar ────────────────────────────────────────── */
+    .risk-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 2rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .risk-bands { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    .risk-band {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+    }
+
+    .risk-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ── Patterns ────────────────────────────────────────── */
+    .patterns-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
+    .pattern-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .pattern-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pattern-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 0.2rem; }
+    .pattern-sub   { font-size: 0.78rem; color: var(--muted); }
+    .pattern-code  { padding: 1.25rem; }
+
+    /* ── Divider ─────────────────────────────────────────── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 2rem; }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1120px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-left { display: flex; align-items: center; gap: 0.75rem; }
+
+    .footer-stack { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .stack-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .footer-copy { color: var(--muted); font-size: 0.8rem; }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    /* ── Live scan form ─────────────────────────────────────────── */
+    .scan-input, .scan-select {
+      width: 100%;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .scan-input:focus, .scan-select:focus { border-color: var(--accent); }
+    .scan-select { appearance: none; cursor: pointer; }
+    .scan-label {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .hosted-scan {
+      display: grid;
+      grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+    .scan-form-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .scan-form-grid {
+      display: grid;
+      gap: 0.9rem;
+    }
+    .scan-help {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      margin-top: 0.35rem;
+    }
+    .scan-output {
+      min-height: 390px;
+      max-height: 520px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .scan-error { color: var(--vuln); }
+    .scan-done { color: var(--safe); }
+    .term-status-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--warn);
+      margin-right: 5px;
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    @media (max-width: 900px) {
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+      .format-grid { grid-template-columns: repeat(2, 1fr); }
+      .security-grid { grid-template-columns: repeat(2, 1fr); }
+      .patterns-grid { grid-template-columns: 1fr; }
+      .hosted-scan { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      section { padding: 4rem 1.25rem; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .owasp-grid { grid-template-columns: repeat(2, 1fr); }
+      .format-grid { grid-template-columns: 1fr; }
+      .security-grid { grid-template-columns: 1fr; }
+      .stats-bar { gap: 2rem; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav>
+  <a class="nav-logo" href="#hero">
+    <div class="nav-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    </div>
+    LLM Scanner
+  </a>
+  <ul class="nav-links">
+    <li><a href="#use-cases">Use cases</a></li>
+    <li><a href="#hosted-scan">Scan URL</a></li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#coverage">OWASP Coverage</a></li>
+    <li><a href="#cli">CLI Reference</a></li>
+    <li><a href="#hosted-scan" class="nav-cta">Scan public URL</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="hero-badge">
+    OWASP Top 10 for LLMs 2025 — Full Coverage
+  </div>
+  <h1 class="hero-title">Hosted URL scans.<br>CI/CD for private apps.</h1>
+  <p class="hero-sub">
+    Scan a public LLM endpoint from this server, or run the same scanner inside GitHub Actions and GitLab CI for localhost, staging, and private networks.
+  </p>
+  <div class="hero-actions">
+    <a href="#hosted-scan" class="btn btn-primary">Scan public URL</a>
+    <a href="#use-cases" class="btn btn-ghost">CI/CD setup &rarr;</a>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="terminal-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="term-line">
+      <span class="term-prompt">$</span>
+      <span class="term-cmd">llm-scanner</span>
+      <span class="term-flag"> --target</span>
+      <span class="term-val"> http://localhost:5000/chat</span>
+      <span class="term-flag"> --target-type</span>
+      <span class="term-val"> url</span>
+    </div>
+    <div class="term-line">
+      <span class="term-prompt">&nbsp;</span>
+      <span class="term-flag">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--judge-model</span>
+      <span class="term-val"> llama3.2:3b</span>
+      <span class="term-flag"> --format</span>
+      <span class="term-val"> html</span>
+    </div>
+    <br>
+    <div class="term-line"><span class="term-out">Payloads: 46 loaded  |  Judge: llama3.2:3b  |  Target: url</span></div>
+    <div class="term-line"><span class="term-out">Warming up judge model...</span></div>
+    <br>
+    <div class="term-line"><span class="term-out">[LLM01-003: Delimiter injection]  ######----  62%  28/46  0:00:34</span></div>
+    <br>
+    <div class="term-line"><span class="term-out">  LLM01-001  Classic ignore prev instructions  high      <span class="term-vuln">VULNERABLE</span></span></div>
+    <div class="term-line"><span class="term-out">  LLM01-002  Role injection DAN               critical  <span class="term-vuln">VULNERABLE</span></span></div>
+    <div class="term-line"><span class="term-out">  LLM07-001  System prompt extraction         critical  <span class="term-vuln">VULNERABLE</span></span></div>
+    <div class="term-line"><span class="term-out">  LLM02-001  PII extraction via context       medium    <span class="term-safe">Safe</span></span></div>
+    <br>
+    <div class="term-line"><span class="term-out">Attacks: 28/46 succeeded  |  Risk Score: <span class="term-score">8.5/10.0  HIGH</span></span></div>
+  </div>
+</section>
+
+<!-- ── STATS ────────────────────────────────────────────────── -->
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-num">46+</span>
+    <span class="stat-label">Attack payloads</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">10</span>
+    <span class="stat-label">OWASP categories</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">4</span>
+    <span class="stat-label">Report formats</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">100%</span>
+    <span class="stat-label">Private scans run in your CI</span>
+  </div>
+</div>
+
+<!-- ── HOSTED SCAN ──────────────────────────────────────────── -->
+<section id="hosted-scan">
+  <div class="section-label">Hosted scanner</div>
+  <h2 class="section-title">Scan a public LLM endpoint from this server</h2>
+  <p class="section-sub">Use this only for internet-reachable URLs. Localhost, VPN-only, private VPC, and staging targets should be scanned from your own CI/CD runner.</p>
+
+  <div class="hosted-scan">
+    <form id="scan-form" class="scan-form-panel">
+      <div class="scan-form-grid">
+        <div>
+          <label class="scan-label" for="scan-target">Public endpoint URL</label>
+          <input id="scan-target" class="scan-input" name="target" type="url" placeholder="https://your-app.com/chat" required>
+          <p class="scan-help">The endpoint must accept POST JSON: <code>{"prompt":"..."}</code> and return <code>{"response":"..."}</code> or <code>{"message":"..."}</code>.</p>
+        </div>
+
+        <div>
+          <label class="scan-label" for="scan-api-key">Bearer token</label>
+          <input id="scan-api-key" class="scan-input" name="api_key" type="password" autocomplete="off" placeholder="optional">
+          <p class="scan-help">Sent only as an Authorization header for this scan.</p>
+        </div>
+
+        <div>
+          <label class="scan-label" for="scan-categories">Categories</label>
+          <input id="scan-categories" class="scan-input" name="categories" placeholder="LLM01,LLM07">
+        </div>
+
+        <div>
+          <label class="scan-label" for="scan-severity">Minimum severity</label>
+          <select id="scan-severity" class="scan-select" name="severity">
+            <option value="">All severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </div>
+
+        <button id="scan-submit" class="btn btn-primary" type="submit">Run hosted scan</button>
+      </div>
+    </form>
+
+    <div class="hero-terminal scan-output" id="scan-output">
+      <div class="terminal-dots"><span></span><span></span><span></span></div>
+      <div class="term-line"><span class="term-out">Waiting for a public URL...</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── USE CASES ─────────────────────────────────────────────── -->
+<section id="use-cases">
+  <div class="section-label">Use cases</div>
+  <h2 class="section-title">Hosted scan for public URLs, CI/CD for private apps</h2>
+  <p class="section-sub">The website scans only public endpoints. GitHub Actions and GitLab CI run the same scanner inside the user's network, so localhost and private staging targets work correctly.</p>
+
+  <div style="display:grid; grid-template-columns:1fr; gap:1.5rem;">
+
+    <!-- CI/CD -->
+    <div class="scenario-card">
+      <div class="scenario-header">
+        <div class="sec-icon-box" style="margin-bottom:0; flex-shrink:0;">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <div>
+          <div class="scenario-name">CI/CD pipeline &mdash; catch vulnerabilities on every deploy</div>
+          <div class="scenario-desc">Run the scanner as a gate in GitHub Actions or GitLab CI. Block merges if the risk score exceeds your threshold.</div>
+        </div>
+        <span class="scenario-tag tag-offline">GitHub Actions</span>
+        <span class="scenario-tag tag-offline" style="margin-left:0.25rem;">GitLab CI</span>
+      </div>
+      <div class="scenario-body" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitHub Actions</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cmt"># llm-scan.yml</span>
+<span class="kw">target</span>: <span class="str">${LLM_ENDPOINT}</span>
+<span class="kw">target_type</span>: <span class="str">url</span>
+<span class="kw">judge_model</span>: <span class="str">llama3.2:3b</span>
+<span class="kw">categories</span>: [<span class="str">LLM01</span>, <span class="str">LLM07</span>]
+<span class="kw">severity</span>: <span class="str">medium</span>
+<span class="kw">formats</span>: [<span class="str">json</span>, <span class="str">html</span>, <span class="str">sarif</span>]
+<span class="kw">output_dir</span>: <span class="str">./reports</span>
+<span class="kw">fail_on_score</span>: <span class="str">7.0</span>
+
+<span class="cmt"># .github/workflows/llm-security.yml</span>
+<span class="kw">name</span>: <span class="str">LLM Security Scan</span>
+<span class="kw">on</span>: [pull_request, workflow_dispatch]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: <span class="str">ubuntu-latest</span>
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: <span class="str">actions/checkout@v4</span>
+      - <span class="kw">name</span>: <span class="str">Start Ollama</span>
+        <span class="kw">run</span>: <span class="str">|
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &amp;
+          sleep 5
+          ollama pull llama3.2:3b</span>
+      - <span class="kw">uses</span>: <span class="str">your-org/llm-security-scanner/.github/actions/llm-scan@v1</span>
+        <span class="kw">env</span>:
+          <span class="kw">LLM_ENDPOINT</span>: <span class="str">http://localhost:5000/chat</span>
+        <span class="kw">with</span>:
+          <span class="kw">config</span>: <span class="str">llm-scan.yml</span>
+      - <span class="kw">uses</span>: <span class="str">actions/upload-artifact@v4</span>
+        <span class="kw">with</span>:
+          <span class="kw">name</span>: <span class="str">llm-security-reports</span>
+          <span class="kw">path</span>: <span class="str">reports/</span></pre>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">GitLab CI</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cmt"># llm-scan.yml</span>
+<span class="kw">target</span>: <span class="str">${LLM_ENDPOINT}</span>
+<span class="kw">target_type</span>: <span class="str">url</span>
+<span class="kw">judge_model</span>: <span class="str">llama3.2:3b</span>
+<span class="kw">severity</span>: <span class="str">medium</span>
+<span class="kw">formats</span>: [<span class="str">json</span>, <span class="str">html</span>, <span class="str">sarif</span>]
+<span class="kw">output_dir</span>: <span class="str">./reports</span>
+<span class="kw">fail_on_score</span>: <span class="str">7.0</span>
+
+<span class="cmt"># .gitlab-ci.yml</span>
+<span class="kw">llm-security-scan</span>:
+  <span class="kw">image</span>: <span class="str">ghcr.io/your-org/llm-security-scanner:latest</span>
+  <span class="kw">stage</span>: <span class="str">test</span>
+  <span class="kw">services</span>:
+    - <span class="kw">name</span>: <span class="str">ollama/ollama:latest</span>
+      <span class="kw">alias</span>: <span class="str">ollama</span>
+  <span class="kw">variables</span>:
+    <span class="kw">OLLAMA_HOST</span>: <span class="str">http://ollama:11434</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">http://app:5000/chat</span>
+  <span class="kw">before_script</span>:
+    - <span class="str">curl -fsS "$OLLAMA_HOST/api/version"</span>
+    - <span class="str">curl -fsS "$OLLAMA_HOST/api/pull" -d '{"name":"llama3.2:3b"}'</span>
+  <span class="kw">script</span>:
+    - <span class="str">llm-scanner --config llm-scan.yml</span>
+  <span class="kw">artifacts</span>:
+    <span class="kw">when</span>: <span class="str">always</span>
+    <span class="kw">paths</span>:
+      - <span class="str">reports/</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan a live URL -->
+    <div class="scenario-card">
+      <div class="scenario-header">
+        <div class="sec-icon-box" style="margin-bottom:0; flex-shrink:0;">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div>
+          <div class="scenario-name">Scan any live LLM endpoint &mdash; point and shoot</div>
+          <div class="scenario-desc">Have a chatbot or LLM-backed API? Provide its URL and an optional Bearer token. The scanner handles the rest.</div>
+        </div>
+        <span class="scenario-tag tag-api">Any HTTP endpoint</span>
+      </div>
+      <div class="scenario-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+          <div>
+            <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.6rem;">Your endpoint must accept:</p>
+            <div class="code-block" style="margin-bottom:0.75rem;">
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              <pre><span class="cmt"># Expected request format</span>
+POST /your-chat-endpoint
+Content-Type: application/json
+
+{<span class="str">"prompt"</span>: <span class="str">"&lt;payload text&gt;"</span>}
+
+<span class="cmt"># Expected response format</span>
+{<span class="str">"response"</span>: <span class="str">"&lt;model reply&gt;"</span>}</pre>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.6rem;">Run the scan:</p>
+            <div class="code-block">
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              <pre><span class="cmd">llm-scanner</span> \
+  <span class="kw">--target</span>      <span class="url">https://your-app.com/chat</span> \
+  <span class="kw">--target-type</span> <span class="str">url</span> \
+  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
+  <span class="kw">--api-key</span>     <span class="str">"sk-your-token"</span> \
+  <span class="kw">--severity</span>    <span class="str">high</span> \
+  <span class="kw">--format</span>      <span class="str">html</span> \
+  <span class="kw">--output-dir</span>  <span class="str">./reports</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Local testing -->
+    <div class="scenario-card">
+      <div class="scenario-header">
+        <div class="sec-icon-box" style="margin-bottom:0; flex-shrink:0;">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div>
+          <div class="scenario-name">Local testing with demo apps + Ollama &mdash; fully offline</div>
+          <div class="scenario-desc">Two built-in Flask apps let you test the scanner end-to-end without any cloud dependencies or API keys.</div>
+        </div>
+        <span class="scenario-tag tag-offline">Fully offline</span>
+      </div>
+      <div class="scenario-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;">
+          <div>
+            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">Option 1 &mdash; Vulnerable chatbot (no API key)</p>
+            <div class="code-block">
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              <pre><span class="cmt"># Terminal 1</span>
+<span class="cmd">flask</span> <span class="kw">--app</span> <span class="str">backend/vulnerable_app.py</span> \
+  run <span class="kw">--port</span> <span class="str">5000</span>
+
+<span class="cmt"># Terminal 2</span>
+<span class="cmd">llm-scanner</span> \
+  <span class="kw">--target</span>      <span class="url">http://localhost:5000/chat</span> \
+  <span class="kw">--target-type</span> <span class="str">url</span> \
+  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
+  <span class="kw">--format</span>      <span class="str">html</span></pre>
+            </div>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem;">Deliberately vulnerable &mdash; leaks system prompt on trigger words. Expect Risk Score <strong style="color:var(--vuln)">&ge; 7.0</strong>.</p>
+          </div>
+          <div>
+            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">Option 2 &mdash; OpenAI chatbot (requires API key)</p>
+            <div class="code-block">
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              <pre><span class="cmt"># .env file</span>
+OPENAI_API_KEY=<span class="str">sk-...</span>
+OPENAI_LLM_MODEL=<span class="str">gpt-4o-mini</span>
+
+<span class="cmt"># Terminal 1</span>
+<span class="cmd">flask</span> <span class="kw">--app</span> <span class="str">backend/chatbot_openai_app.py</span> \
+  run <span class="kw">--port</span> <span class="str">5001</span>
+
+<span class="cmt"># Terminal 2</span>
+<span class="cmd">llm-scanner</span> \
+  <span class="kw">--target</span>      <span class="url">http://localhost:5001/chat</span> \
+  <span class="kw">--target-type</span> <span class="str">url</span> \
+  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
+  <span class="kw">--format</span>      <span class="str">html</span></pre>
+            </div>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem;">Real OpenAI responses &mdash; gives the judge realistic LLM behaviour to evaluate.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── HOW IT WORKS ─────────────────────────────────────────── -->
+<section id="how-it-works">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">From one command to a full security report</h2>
+  <p class="section-sub">The scanner handles everything — preflight, payload dispatch, AI judging, and report generation.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Preflight</div>
+      <div class="step-desc">Confirms Ollama is running, both models are pulled, and the target is reachable before firing a single payload.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">Load Payloads</div>
+      <div class="step-desc">Reads YAML attack files from <code>payloads/</code>, filters by requested categories and minimum severity.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">Fire Attacks</div>
+      <div class="step-desc">Dispatches each payload concurrently (3 at a time via <code>asyncio.Semaphore</code>), collects raw responses.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-title">AI Judge</div>
+      <div class="step-desc">Sends each <em>(payload, response)</em> pair to a local Ollama model for a structured verdict — no cloud required.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">05</div>
+      <div class="step-title">Report</div>
+      <div class="step-desc">Prints Rich table to terminal, saves Markdown / JSON / HTML with risk score and per-finding reasoning.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── OWASP COVERAGE ───────────────────────────────────────── -->
+<section id="coverage">
+  <div class="section-label">Coverage</div>
+  <h2 class="section-title">All 10 OWASP LLM categories</h2>
+  <p class="section-sub">Every vulnerability from the OWASP Top 10 for LLMs 2025 is covered with dedicated payloads, severity levels, and judge criteria.</p>
+
+  <div class="owasp-grid">
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM01</div>
+      <div class="owasp-title">Prompt Injection</div>
+      <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM02</div>
+      <div class="owasp-title">Sensitive Information Disclosure</div>
+      <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM03</div>
+      <div class="owasp-title">Supply Chain</div>
+      <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM04</div>
+      <div class="owasp-title">Data &amp; Model Poisoning</div>
+      <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM05</div>
+      <div class="owasp-title">Improper Output Handling</div>
+      <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM06</div>
+      <div class="owasp-title">Excessive Agency</div>
+      <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM07</div>
+      <div class="owasp-title">System Prompt Leakage</div>
+      <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM08</div>
+      <div class="owasp-title">Vector &amp; Embedding Weaknesses</div>
+      <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM09</div>
+      <div class="owasp-title">Misinformation</div>
+      <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card" style="border-color: #f8717133;">
+      <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
+      <div class="owasp-title">Unbounded Consumption</div>
+      <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
+      <div class="owasp-payloads" style="color: #f87171;">5 payloads &mdash; <code>--include-dos-tests</code></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── CLI REFERENCE ─────────────────────────────────────────── -->
+<section id="cli">
+  <div class="section-label">Reference</div>
+  <h2 class="section-title">CLI flags</h2>
+  <p class="section-sub">Every flag the scanner understands.</p>
+
+  <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden;">
+    <table class="cli-table">
+      <thead>
+        <tr>
+          <th>Flag</th>
+          <th>Required</th>
+          <th>Default</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="flag-cell">--target</td>
+          <td class="req-yes">Yes</td>
+          <td class="default-cell">&mdash;</td>
+          <td>URL or Ollama model name to test</td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--target-type</td>
+          <td class="req-yes">Yes</td>
+          <td class="default-cell">&mdash;</td>
+          <td><code>url</code> or <code>ollama</code></td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--judge-model</td>
+          <td class="req-yes">Yes</td>
+          <td class="default-cell">&mdash;</td>
+          <td>Local Ollama model used as the AI evaluator</td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--categories</td>
+          <td class="req-no">No</td>
+          <td class="default-cell">LLM01&ndash;LLM09</td>
+          <td>Comma-separated OWASP categories to test. Example: <code>LLM01,LLM07</code></td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--severity</td>
+          <td class="req-no">No</td>
+          <td class="default-cell">all</td>
+          <td>Minimum severity to include: <code>critical</code> <code>high</code> <code>medium</code> <code>low</code> <code>info</code></td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--api-key</td>
+          <td class="req-no">No</td>
+          <td class="default-cell">None</td>
+          <td>Bearer token for authenticated endpoints. Never logged or printed.</td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--output-dir</td>
+          <td class="req-no">No</td>
+          <td class="default-cell">./reports</td>
+          <td>Directory for saved Markdown, JSON, and HTML reports</td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--format</td>
+          <td class="req-no">No</td>
+          <td class="default-cell">terminal only</td>
+          <td>Comma-separated output formats: <code>md</code>, <code>json</code>, <code>html</code></td>
+        </tr>
+        <tr>
+          <td class="flag-cell">--include-dos-tests</td>
+          <td class="req-no">No</td>
+          <td class="default-cell">off</td>
+          <td>Include LLM10 (Unbounded Consumption) probes. Only use against targets you own.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── OUTPUT FORMATS ────────────────────────────────────────── -->
+<section id="output">
+  <div class="section-label">Output</div>
+  <h2 class="section-title">Four report formats</h2>
+  <p class="section-sub">Terminal output is always shown. Optionally save structured reports for archiving, diffing, or sharing.</p>
+
+  <div class="risk-bar">
+    <div style="font-size:0.85rem; color:var(--muted); font-weight:500; white-space:nowrap;">Risk score bands:</div>
+    <div class="risk-bands">
+      <div class="risk-band">
+        <div class="risk-dot" style="background:#34d399;"></div>
+        <span style="font-size:0.82rem;"><strong>0 &ndash; 3.9</strong> <span style="color:var(--muted)">Low</span></span>
+      </div>
+      <div class="risk-band">
+        <div class="risk-dot" style="background:#fbbf24;"></div>
+        <span style="font-size:0.82rem;"><strong>4 &ndash; 6.9</strong> <span style="color:var(--muted)">Medium</span></span>
+      </div>
+      <div class="risk-band">
+        <div class="risk-dot" style="background:#f87171;"></div>
+        <span style="font-size:0.82rem;"><strong>7 &ndash; 10</strong> <span style="color:var(--muted)">High</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="format-grid">
+    <div class="format-card">
+      <div class="format-label">$_</div>
+      <div class="format-name">Terminal</div>
+      <div class="format-flag">always on</div>
+      <div class="format-desc">Rich table with colour-coded severity rows. Risk score printed in green / yellow / red based on band. Always shown, even when other formats are requested.</div>
+    </div>
+    <div class="format-card">
+      <div class="format-label">.md</div>
+      <div class="format-name">Markdown</div>
+      <div class="format-flag">--format md</div>
+      <div class="format-desc">Clean table with attack ID, category, name, severity, result, and recommendation. Ideal for pasting into GitHub issues or Notion.</div>
+    </div>
+    <div class="format-card">
+      <div class="format-label">{}</div>
+      <div class="format-name">JSON</div>
+      <div class="format-flag">--format json</div>
+      <div class="format-desc">Full <code>ScanReport</code> structure including <code>judge_reasoning</code> per finding. Best for programmatic processing, diffing results over time, or feeding into CI pipelines.</div>
+    </div>
+    <div class="format-card">
+      <div class="format-label">.html</div>
+      <div class="format-name">HTML</div>
+      <div class="format-flag">--format html</div>
+      <div class="format-desc">Self-contained file. Rows colour-coded by severity. Jinja2 <code>autoescape=True</code> ensures attack payloads containing <code>&lt;script&gt;</code> render as escaped text &mdash; XSS-safe by design.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── SECURITY PROPERTIES ──────────────────────────────────── -->
+<section id="security">
+  <div class="section-label">Security properties</div>
+  <h2 class="section-title">Built secure by default</h2>
+  <p class="section-sub">A security tool must practice what it tests.</p>
+
+  <div class="security-grid">
+    <div class="sec-card">
+      <div class="sec-icon-box">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="sec-title">Fully offline judge</div>
+      <div class="sec-desc">All judge inference runs via local Ollama. No calls to OpenAI, Anthropic, or any cloud API. Suitable for air-gapped environments and sensitive targets.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon-box">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="sec-title">API key safety</div>
+      <div class="sec-desc"><code>--api-key</code> is sent as a <code>Bearer</code> header only. It is never stored to disk, logged to terminal, or printed in error messages.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon-box">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="sec-title">XSS-safe HTML reports</div>
+      <div class="sec-desc">Jinja2 <code>autoescape=True</code> is mandatory. Attack payloads containing <code>&lt;script&gt;</code> render as escaped text in the HTML report &mdash; never executed.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon-box">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="sec-title">DoS gate (LLM10)</div>
+      <div class="sec-desc">Unbounded Consumption probes require an explicit <code>--include-dos-tests</code> flag. They are never fired by default to protect targets from accidental stress testing.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon-box">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="sec-title">Safe YAML parsing</div>
+      <div class="sec-desc">All payload files are read with <code>yaml.safe_load()</code>. The <code>yaml.load()</code> call with arbitrary <code>Loader</code> is banned by Ruff S506 enforced in CI.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon-box">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <div class="sec-title">Judge independence</div>
+      <div class="sec-desc">The judge model must be different from the target model. Using the same model as both target and judge creates a conflict of interest &mdash; blocked at startup.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── QUICK START ───────────────────────────────────────────── -->
+<section id="quickstart">
+  <div class="section-label">Installation</div>
+  <h2 class="section-title">Up and running in 3 steps</h2>
+  <p class="section-sub">Prerequisites: Python 3.11+, <a href="https://docs.astral.sh/uv/" style="color:var(--accent); text-decoration:none;">uv</a>, and <a href="https://ollama.com/" style="color:var(--accent); text-decoration:none;">Ollama</a> running locally.</p>
+
+  <div style="display:flex; flex-direction:column; gap:1rem; max-width:720px;">
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <div class="pattern-title">1 &mdash; Install the scanner</div>
+      </div>
+      <div class="pattern-code">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          <pre><span class="cmt"># Install package (creates .venv automatically)</span>
+<span class="cmd">uv pip install -e</span> <span class="str">.</span>
+
+<span class="cmt"># For demo apps (Flask chatbots)</span>
+<span class="cmd">uv pip install -e</span> <span class="str">".[demo]"</span>
+
+<span class="cmt"># Verify CLI is available</span>
+<span class="cmd">llm-scanner</span> <span class="kw">--help</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <div class="pattern-title">2 &mdash; Pull a judge model</div>
+      </div>
+      <div class="pattern-code">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          <pre><span class="cmt"># Good balance of speed and quality</span>
+<span class="cmd">ollama pull</span> <span class="str">llama3.2:3b</span>
+
+<span class="cmt"># Or a larger, more accurate judge</span>
+<span class="cmd">ollama pull</span> <span class="str">llama3.1:8b</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <div class="pattern-title">3 &mdash; Run your first scan</div>
+      </div>
+      <div class="pattern-code">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          <pre><span class="cmd">llm-scanner</span> \
+  <span class="kw">--target</span>      <span class="url">http://localhost:5000/chat</span> \
+  <span class="kw">--target-type</span> <span class="str">url</span> \
+  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
+  <span class="kw">--format</span>      <span class="str">html</span> \
+  <span class="kw">--output-dir</span>  <span class="str">./reports</span></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-left">
+    <div class="nav-logo-icon" style="width:26px;height:26px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    </div>
+    <span style="font-weight:700; font-size:0.9rem;">LLM Security Scanner</span>
+  </div>
+
+  <div class="footer-stack">
+    <span class="stack-pill">Python 3.11+</span>
+    <span class="stack-pill">httpx</span>
+    <span class="stack-pill">Ollama SDK</span>
+    <span class="stack-pill">Rich</span>
+    <span class="stack-pill">Pydantic v2</span>
+    <span class="stack-pill">Jinja2</span>
+    <span class="stack-pill">uv</span>
+    <span class="stack-pill">Ruff</span>
+  </div>
+
+  <span class="footer-copy">OWASP Top 10 for LLMs 2025</span>
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const block = btn.closest('.code-block');
+    const pre = block.querySelector('pre');
+    const text = pre.textContent || pre.innerText;
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1800);
+    }).catch(() => {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  }
+
+  const scanForm = document.getElementById('scan-form');
+  const scanOutput = document.getElementById('scan-output');
+  const scanSubmit = document.getElementById('scan-submit');
+
+  function appendScanLine(text, className = '') {
+    const line = document.createElement('div');
+    line.className = className;
+    line.textContent = text;
+    scanOutput.appendChild(line);
+    scanOutput.scrollTop = scanOutput.scrollHeight;
+  }
+
+  function resetScanOutput() {
+    scanOutput.innerHTML = '<div class="terminal-dots"><span></span><span></span><span></span></div>';
+  }
+
+  async function runHostedScan(event) {
+    event.preventDefault();
+    resetScanOutput();
+    scanSubmit.disabled = true;
+    scanSubmit.textContent = 'Scanning...';
+    appendScanLine('Starting hosted scan...');
+
+    const formData = new FormData(scanForm);
+    const payload = {
+      target: String(formData.get('target') || '').trim(),
+      api_key: String(formData.get('api_key') || '').trim(),
+      categories: String(formData.get('categories') || '').trim(),
+      severity: String(formData.get('severity') || '').trim()
+    };
+
+    try {
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        appendScanLine(errorBody.error || 'Scan request failed.', 'scan-error');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
+
+        for (const eventText of events) {
+          const dataLine = eventText.split('\n').find(line => line.startsWith('data: '));
+          if (!dataLine) continue;
+          const data = JSON.parse(dataLine.slice(6));
+          if (data.line) appendScanLine(data.line);
+          if (data.error) appendScanLine(data.error, 'scan-error');
+          if (data.done) appendScanLine(`Scan finished with exit code ${data.returncode}.`, data.returncode === 0 ? 'scan-done' : 'scan-error');
+        }
+      }
+    } catch (error) {
+      appendScanLine(error.message || 'Unexpected scan error.', 'scan-error');
+    } finally {
+      scanSubmit.disabled = false;
+      scanSubmit.textContent = 'Run hosted scan';
+    }
+  }
+
+  scanForm.addEventListener('submit', runHostedScan);
+
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.style.color = '';
+          if (link.getAttribute('href') === '#' + entry.target.id) {
+            if (!link.classList.contains('nav-cta')) {
+              link.style.color = 'var(--text)';
+            }
+          }
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
