@@ -2,6 +2,8 @@
 name = "llm-security-scanner"
 version = "0.1.0"
 description = "OWASP Top 10 for LLMs security scanner — fully offline"
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.28.1",

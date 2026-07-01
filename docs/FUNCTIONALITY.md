@@ -59,10 +59,13 @@ The landing page and hosted web-scan service moved to the private `llm-security-
 
 ---
 
-## Open questions for you
+## Decisions (2026-07-01)
 
-- **License**: no `LICENSE` file exists yet. What license should this repo carry (MIT, Apache-2.0, something else), given it's meant to be open source?
-- **Versioning/releases**: `pyproject.toml` is pinned at `0.1.0`. Do you want tagged GitHub releases, changelog, and/or PyPI publishing at some point, or keep it install-from-git only for now?
-- **Contribution model**: any `CONTRIBUTING.md` / issue templates / PR template planned, or is this solo-maintained for now?
-- **DoS/LLM10 defaults**: confirm `--include-dos-tests` should stay opt-in by default (safety default) rather than on-by-default.
-- **Roadmap**: any OSS-side features planned (new OWASP categories, more target types, non-Ollama judge support) that should be tracked here, separate from the SaaS premium roadmap?
+- **License**: MIT (`LICENSE`, `pyproject.toml` `license = "MIT"`).
+- **Versioning/releases**: tagged GitHub releases + `CHANGELOG.md`, no PyPI publishing — install via `pip install git+https://github.com/konradxmalinowski/llm-security-scanner`.
+- **Contribution model**: `CONTRIBUTING.md` + issue/PR templates added now, ahead of any external contributors.
+- **DoS/LLM10 defaults**: stays opt-in (`--include-dos-tests`) — confirmed as the safe default.
+- **Roadmap**: no concrete plans beyond the current scope yet, except:
+  - support for judge models beyond Ollama (currently offline-first/Ollama-only per `CLAUDE.md` — this would need that constraint revisited)
+  - deeper OWASP payload coverage (more than the current ~41 payloads)
+- **Public link to the SaaS product**: none yet. Once the private `llm-security-scanner-saas` service has a public launch, this README should link to it as a hosted option.
