@@ -27,7 +27,7 @@ class TextReporter:
         for f in report.findings:
             result = "VULNERABLE" if f.success else "Safe"
             lines.append(
-                f"{f.attack_id:<12} {f.owasp_category:<10} {f.name[:50]:<50} {str(f.severity):<10} {result}"
+                f"{f.attack_id:<12} {f.owasp_category:<10} {f.name[:50]:<50} {f.severity!s:<10} {result}"
             )
 
         # Recommendations grouped by category

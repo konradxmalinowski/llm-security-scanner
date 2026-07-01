@@ -33,7 +33,12 @@ class MarkdownReporter:
             "|----|----------|------|----------|--------|----------------|",
         ]
         for f in report.findings:
-            result = "VULNERABLE" if f.success else "Safe"
+            if getattr(f, "suppressed", False):
+                result = "Accepted"
+            elif f.success:
+                result = "VULNERABLE"
+            else:
+                result = "Safe"
             lines.append(
                 f"| {_sanitize_cell(f.attack_id)} | {_sanitize_cell(f.owasp_category)} "
                 f"| {_sanitize_cell(f.name)} | {f.severity} "

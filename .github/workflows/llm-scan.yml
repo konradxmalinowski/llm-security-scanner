@@ -1,0 +1,78 @@
+# LLM Security Scanner GitHub Actions Workflow
+#
+# Prerequisites:
+#   Configure TARGET_URL in repository Settings > Secrets and variables > Actions.
+#   Example: https://api.example.com/chat
+#   Leave unset to skip the scan step (workflow will still run preflight checks).
+#
+# RAM constraint: ubuntu-latest runners have ~7GB RAM.
+#   llama3.2:3b Q4 quantized requires ~2GB -- fits comfortably.
+#   Do NOT use 7B+ models (llama3:7b ~4GB, llama3.1:8b ~5GB) -- they risk OOM.
+
+name: LLM Security Scan
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'  # Weekly: Monday 9 AM UTC
+  workflow_dispatch:
+
+jobs:
+  llm-security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60  # LLM inference can be slow on shared runners
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install scanner
+        run: uv pip install -e . --system
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | bash
+
+      - name: Start Ollama and pull models
+        run: |
+          ollama serve &
+          # Wait for Ollama HTTP server to be ready (up to 15 * 2s = 30s)
+          for i in $(seq 1 15); do
+            if curl -s http://localhost:11434 > /dev/null; then break; fi
+            sleep 2
+          done
+          # llama3.2:3b Q4 ~2GB RAM fits within ubuntu-latest 7GB runner limit
+          # do not use 7B+ models (llama3:7b ~4GB, llama3.1:8b ~5GB) -- risk OOM
+          ollama pull llama3.2:3b
+
+      - name: Run security scan
+        env:
+          TARGET_URL: ${{ secrets.TARGET_URL }}
+        run: |
+          llm-scanner \
+            --target "$TARGET_URL" \
+            --target-type url \
+            --judge-model llama3.2:3b \
+            --fail-on-score 7.0 \
+            --format json,sarif \
+            --output-dir ./reports
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()  # upload even if scan found vulnerabilities (exit code 1)
+        with:
+          sarif_file: ./reports/
+          category: llm-security
+
+      - name: Upload reports as artifact
+        uses: actions/upload-artifact@v4
+        if: always()  # preserve reports even on scan failure
+        with:
+          name: llm-scan-reports
+          path: ./reports/

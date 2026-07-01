@@ -211,3 +211,102 @@ def test_get_reporter_html() -> None:
 def test_get_reporter_unknown_raises() -> None:
     with pytest.raises(ValueError, match="Unknown report format"):
         get_file_reporter("pdf")
+
+
+# ---------------------------------------------------------------------------
+# ADV-05 suppression label tests (Task 4)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def suppressed_report() -> ScanReport:
+    """Report with one suppressed finding (success=True, suppressed=True) and
+    one normal vulnerable finding."""
+    findings = [
+        AttackResult(
+            attack_id="LLM01-001",
+            owasp_category="LLM01",
+            name="Suppressed Finding",
+            payload="p",
+            response="r",
+            success=True,
+            judge_reasoning="j",
+            severity=Severity.HIGH,
+            suppressed=True,
+            suppression_reason="accepted risk",
+        ),
+        AttackResult(
+            attack_id="LLM01-002",
+            owasp_category="LLM01",
+            name="Normal Vulnerable Finding",
+            payload="p2",
+            response="r2",
+            success=True,
+            judge_reasoning="j2",
+            severity=Severity.HIGH,
+            suppressed=False,
+        ),
+    ]
+    return ScanReport(
+        target="http://test.com",
+        timestamp=datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC),
+        risk_score=2.5,
+        findings=findings,
+    )
+
+
+def test_markdown_suppressed_finding_shows_accepted(suppressed_report: ScanReport) -> None:
+    """MarkdownReporter labels suppressed=True findings as 'Accepted'."""
+    md = MarkdownReporter()._render(suppressed_report)
+    assert "Accepted" in md, "Expected 'Accepted' label for suppressed finding"
+
+
+def test_markdown_non_suppressed_vulnerable_unchanged(suppressed_report: ScanReport) -> None:
+    """Non-suppressed success=True findings still render 'VULNERABLE' (no regression)."""
+    md = MarkdownReporter()._render(suppressed_report)
+    assert "VULNERABLE" in md, "Expected 'VULNERABLE' for non-suppressed vulnerable finding"
+
+
+def test_markdown_accepted_not_vulnerable_for_suppressed(suppressed_report: ScanReport) -> None:
+    """The suppressed finding must show 'Accepted', NOT 'VULNERABLE'."""
+    md = MarkdownReporter()._render(suppressed_report)
+    # One VULNERABLE (non-suppressed), one Accepted (suppressed)
+    assert md.count("VULNERABLE") == 1, (
+        f"Expected exactly 1 VULNERABLE (non-suppressed), found {md.count('VULNERABLE')}"
+    )
+    assert md.count("Accepted") == 1
+
+
+def test_markdown_safe_finding_unchanged(sample_report: ScanReport) -> None:
+    """Non-suppressed success=False findings still render 'Safe' (no regression)."""
+    md = MarkdownReporter()._render(sample_report)
+    assert "Safe" in md
+
+
+def test_html_suppressed_finding_has_accepted_span(
+    tmp_path: Path, suppressed_report: ScanReport
+) -> None:
+    """HtmlReporter renders <span class="accepted">Accepted</span> for suppressed findings."""
+    reporter = HtmlReporter()
+    html = reporter.save(suppressed_report, tmp_path).read_text()
+    assert 'class="accepted"' in html, "Expected class='accepted' for suppressed finding"
+    assert "Accepted" in html
+
+
+def test_html_suppressed_row_has_suppressed_class(
+    tmp_path: Path, suppressed_report: ScanReport
+) -> None:
+    """Suppressed findings get a 'suppressed' CSS class on the <tr> row."""
+    reporter = HtmlReporter()
+    html = reporter.save(suppressed_report, tmp_path).read_text()
+    assert "suppressed" in html, "Expected 'suppressed' class on row for suppressed finding"
+
+
+def test_html_non_suppressed_vulnerable_unchanged(
+    tmp_path: Path, suppressed_report: ScanReport
+) -> None:
+    """Non-suppressed vulnerable findings still render 'VULNERABLE' span in HTML."""
+    reporter = HtmlReporter()
+    html = reporter.save(suppressed_report, tmp_path).read_text()
+    assert 'class="vulnerable"' in html
+    assert "VULNERABLE" in html

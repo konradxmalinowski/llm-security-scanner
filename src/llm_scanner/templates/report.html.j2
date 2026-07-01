@@ -16,6 +16,8 @@
     tr.medium { background: #fffacc; }
     .vulnerable { color: #c0392b; font-weight: bold; }
     .safe { color: #27ae60; }
+    .accepted { color: #7f8c8d; font-style: italic; }
+    .suppressed { opacity: 0.7; }
     .payload { font-family: monospace; font-size: 0.85em; word-break: break-all; }
   </style>
 </head>
@@ -37,13 +39,13 @@
     </thead>
     <tbody>
       {% for finding in report.findings %}
-      <tr class="{{ finding.severity }}">
+      <tr class="{{ finding.severity }}{% if finding.suppressed %} suppressed{% endif %}">
         <td>{{ finding.attack_id }}</td>
         <td>{{ finding.owasp_category }}</td>
         <td>{{ finding.name }}</td>
         <td>{{ finding.severity }}</td>
-        <td class="{% if finding.success %}vulnerable{% else %}safe{% endif %}">
-          {% if finding.success %}VULNERABLE{% else %}Safe{% endif %}
+        <td>
+          {% if finding.suppressed %}<span class="accepted">Accepted</span>{% elif finding.success %}<span class="vulnerable">VULNERABLE</span>{% else %}<span class="safe">Safe</span>{% endif %}
         </td>
         <td class="payload">{{ finding.payload }}</td>
         <td>{{ finding.recommendation }}</td>

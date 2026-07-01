@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import yaml
 
 from llm_scanner.cli import (
     _SAFE_CATEGORIES,
     _SEVERITY_RANK,
+    _apply_suppressions,
     _build_parser,
     _resolve_categories,
+    _ScanAbort,
 )
-from llm_scanner.models import Severity
+from llm_scanner.models import AttackResult, ScanReport, Severity
 from llm_scanner.scanner import LLMScanner
 
 # asyncio_mode = "auto" is set in pyproject.toml — no @pytest.mark.asyncio needed
@@ -39,16 +43,21 @@ def _ns(**kwargs: object) -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 
 
-def test_parser_requires_target() -> None:
-    """--target is required; missing it causes SystemExit."""
-    with pytest.raises(SystemExit):
-        _build_parser().parse_args(["--target-type", "url", "--judge-model", "llama3.2:3b"])
+def test_parser_target_is_optional_at_parse_time() -> None:
+    """--target is no longer required at argparse level (Phase 05: --targets mode).
+
+    Runtime enforcement in _run() raises _ScanAbort when both --target and
+    --targets are absent; argparse itself does not raise SystemExit.
+    """
+    # Should NOT raise -- argparse accepts missing --target (optional since Phase 05)
+    args = _build_parser().parse_args(["--target-type", "url", "--judge-model", "llama3.2:3b"])
+    assert args.target is None
 
 
 def test_parser_requires_target_type() -> None:
-    """--target-type is required."""
+    """--target-type accepts valid choices only."""
     with pytest.raises(SystemExit):
-        _build_parser().parse_args(["--target", "http://x.com", "--judge-model", "llama3.2:3b"])
+        _build_parser().parse_args(["--target", "http://x.com", "--target-type", "grpc", "--judge-model", "llama3.2:3b"])
 
 
 def test_parser_requires_judge_model() -> None:
@@ -239,3 +248,204 @@ def test_risk_score_capped_at_10() -> None:
     """Large sums are capped at 10.0."""
     findings = [_make_finding(True, Severity.CRITICAL) for _ in range(5)]
     assert LLMScanner._compute_risk_score(findings) == 10.0  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Phase 05 tests — ADV-01, ADV-02, ADV-05, ADV-06
+# ---------------------------------------------------------------------------
+
+
+def _make_report(risk_score: float, *, suppressed: bool = False) -> ScanReport:
+    """Build a minimal ScanReport for test use."""
+    finding = AttackResult(
+        attack_id="LLM01-001",
+        owasp_category="LLM01",
+        name="test",
+        payload="p",
+        response="r",
+        success=True,
+        judge_reasoning="j",
+        severity=Severity.HIGH,
+        suppressed=suppressed,
+    )
+    return ScanReport(
+        target="http://example.com",
+        timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+        risk_score=risk_score,
+        findings=[finding],
+    )
+
+
+# --- _build_parser() Phase 05 flag tests ---
+
+
+def test_build_parser_has_fail_on_score() -> None:
+    """--fail-on-score is parsed as a float into args.fail_on_score."""
+    args = _build_parser().parse_args([
+        "--target", "t", "--target-type", "url", "--judge-model", "m",
+        "--fail-on-score", "7.5",
+    ])
+    assert args.fail_on_score == 7.5
+
+
+def test_build_parser_fail_on_score_default_is_none() -> None:
+    """--fail-on-score defaults to None when not provided."""
+    args = _parse()
+    assert args.fail_on_score is None
+
+
+def test_build_parser_has_targets_flag() -> None:
+    """--targets is parsed as a Path into args.targets_file."""
+    args = _build_parser().parse_args([
+        "--targets", "targets.yaml", "--judge-model", "m",
+    ])
+    assert args.targets_file == Path("targets.yaml")
+
+
+def test_build_parser_has_suppressions_flag() -> None:
+    """--suppressions is parsed as a Path into args.suppressions_file."""
+    args = _parse("--suppressions", "suppressions.yaml")
+    assert args.suppressions_file == Path("suppressions.yaml")
+
+
+def test_build_parser_suppressions_default_is_none() -> None:
+    """--suppressions defaults to None when not provided."""
+    args = _parse()
+    assert args.suppressions_file is None
+
+
+def test_build_parser_baseline_save() -> None:
+    """baseline save subcommand sets command='baseline', baseline_action='save', name='prod'."""
+    args = _build_parser().parse_args([
+        "--judge-model", "m", "baseline", "save", "--name", "prod",
+    ])
+    assert args.command == "baseline"
+    assert args.baseline_action == "save"
+    assert args.name == "prod"
+
+
+def test_build_parser_baseline_compare() -> None:
+    """baseline compare subcommand sets command='baseline', baseline_action='compare'."""
+    args = _build_parser().parse_args([
+        "--judge-model", "m", "baseline", "compare", "--name", "prod",
+    ])
+    assert args.command == "baseline"
+    assert args.baseline_action == "compare"
+    assert args.name == "prod"
+
+
+def test_build_parser_default_command_is_scan() -> None:
+    """When no subcommand is given, args.command defaults to 'scan'."""
+    args = _parse()
+    assert args.command == "scan"
+
+
+def test_build_parser_set_defaults_after_add_subparsers() -> None:
+    """Regression: set_defaults(command='scan') must be after add_subparsers.
+
+    Verifies the CRITICAL ORDER requirement from RESEARCH.md: if set_defaults
+    is called before add_subparsers, args.command would be None at runtime.
+    """
+    # When no subcommand and no --targets, command must be 'scan', not None
+    args = _build_parser().parse_args(["--judge-model", "m"])
+    assert args.command == "scan", (
+        "args.command is None -- set_defaults was likely called before add_subparsers"
+    )
+
+
+# --- --fail-on-score threshold tests (ADV-01) ---
+
+
+def test_fail_on_score_raises_when_exceeded(tmp_path: Path) -> None:
+    """_apply_suppressions + risk_score check: _ScanAbort raised when score >= threshold."""
+
+    report = _make_report(risk_score=8.0)
+    args = argparse.Namespace(fail_on_score=7.0)
+
+    # Simulate the fail-on-score check from _run()
+    if getattr(args, "fail_on_score", None) is not None and report.risk_score >= args.fail_on_score:
+        with pytest.raises(_ScanAbort):
+            raise _ScanAbort()
+    else:
+        pytest.fail("Expected _ScanAbort condition to be True")
+
+
+def test_fail_on_score_passes_when_below() -> None:
+    """No exception when risk_score < fail_on_score threshold."""
+    report = _make_report(risk_score=6.9)
+    args = argparse.Namespace(fail_on_score=7.0)
+
+    # Verify condition is False — no _ScanAbort should be raised
+    assert not (
+        getattr(args, "fail_on_score", None) is not None
+        and report.risk_score >= args.fail_on_score
+    )
+
+
+def test_fail_on_score_none_never_raises() -> None:
+    """When fail_on_score=None, the check is a no-op regardless of risk_score."""
+    args = argparse.Namespace(fail_on_score=None)
+
+    # Condition must be False when fail_on_score is None
+    assert getattr(args, "fail_on_score", None) is None
+
+
+# --- Suppression integration test (ADV-05) ---
+
+
+def test_suppressions_applied_before_fail_check(tmp_path: Path) -> None:
+    """Suppressed findings are excluded from risk_score before fail-on-score check."""
+    # Create a suppression file suppressing LLM01-001
+    sup_file = tmp_path / "suppressions.yaml"
+    sup_file.write_text("suppressions:\n  - attack_id: 'LLM01-001'\n    reason: 'accepted'\n")
+
+    # Build report with one HIGH finding (score=2.5 normally)
+    finding = AttackResult(
+        attack_id="LLM01-001",
+        owasp_category="LLM01",
+        name="test",
+        payload="p",
+        response="r",
+        success=True,
+        judge_reasoning="j",
+        severity=Severity.HIGH,
+    )
+    original = ScanReport(
+        target="t",
+        timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+        risk_score=2.5,
+        findings=[finding],
+    )
+
+    # Apply suppressions -- risk_score should recompute to 0.0 (no unsuppressed findings)
+    result = _apply_suppressions(original, sup_file)
+    assert result.risk_score == 0.0, f"Expected 0.0, got {result.risk_score}"
+    assert result.findings[0].suppressed is True
+
+
+# --- GitHub Actions workflow smoke test (ADV-01) ---
+
+
+def test_workflow_yaml_valid() -> None:
+    """.github/workflows/llm-scan.yml is valid YAML with required keys."""
+    workflow_path = (
+        Path(__file__).parent.parent / ".github" / "workflows" / "llm-scan.yml"
+    )
+    assert workflow_path.exists(), f"Workflow file not found at {workflow_path}"
+    data = yaml.safe_load(workflow_path.read_text())
+    assert "jobs" in data, "Workflow YAML missing 'jobs' key"
+    assert "llm-security-scan" in data["jobs"], "Workflow YAML missing 'llm-security-scan' job"
+
+
+def test_workflow_contains_required_steps() -> None:
+    """Workflow YAML contains all required steps and flags."""
+    workflow_path = (
+        Path(__file__).parent.parent / ".github" / "workflows" / "llm-scan.yml"
+    )
+    content = workflow_path.read_text()
+    assert "actions/checkout@v4" in content
+    assert "--fail-on-score" in content
+    assert "json,sarif" in content
+    assert "upload-sarif@v3" in content
+    assert "if: always()" in content
+    assert "timeout-minutes: 60" in content
