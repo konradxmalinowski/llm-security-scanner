@@ -152,7 +152,71 @@ Reports land in `./reports/`. Open `report_<timestamp>.html` in a browser for th
 
 ---
 
-## 6. Scenario C — Scan a real HTTP endpoint
+## 6. Scenario C — Scan the OpenAI chatbot demo app
+
+The OpenAI demo app sends every payload to a real OpenAI model and returns its actual response, giving the scanner more realistic behaviour to judge than the offline mock.
+
+**Step 1 — Configure the API key (once)**
+
+Create a `.env` file in the project root (it is already in `.gitignore`):
+
+```bash
+cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
+echo "OPENAI_API_KEY=sk-..." > .env
+echo "OPENAI_LLM_MODEL=gpt-4o-mini" >> .env
+```
+
+**Step 2 — Install demo extras (once)**
+
+```bash
+uv pip install -e ".[demo]"
+```
+
+**Step 3 — Start the OpenAI demo app**
+
+Open a dedicated terminal:
+
+```bash
+cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
+flask --app demo/chatbot_openai_app.py run --port 5001
+```
+
+Expected:
+```
+ * Running on http://127.0.0.1:5001
+```
+
+**Step 4 — Verify the app is up**
+
+```bash
+curl -s http://localhost:5001/health
+# {"status":"ok","model":"gpt-4o-mini"}
+
+curl -s -X POST http://localhost:5001/chat \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "hello"}' | python3 -m json.tool
+```
+
+**Step 5 — Run the scanner**
+
+Open a second terminal:
+
+```bash
+cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
+
+llm-scanner \
+  --target http://localhost:5001/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --format md,json,html \
+  --output-dir ./reports
+```
+
+**What to expect:** A well-configured OpenAI model with guardrails will resist most attacks. Expect a lower Risk Score than the offline vulnerable app, with results varying by model.
+
+---
+
+## 7. Scenario D — Scan a real HTTP endpoint
 
 Target any LLM-backed service that accepts:
 
@@ -180,7 +244,7 @@ The `--api-key` value is sent as `Authorization: Bearer <token>` and is never pr
 
 ---
 
-## 7. Common scan patterns
+## 8. Common scan patterns
 
 ### Focus on the two highest-risk categories
 
@@ -241,7 +305,7 @@ llm-scanner \
 
 ---
 
-## 8. Reading the output
+## 9. Reading the output
 
 ### Terminal table
 
@@ -294,7 +358,7 @@ Open `reports/report_<timestamp>.html` in any browser. Rows are color-coded by s
 
 ---
 
-## 9. Running the test suite
+## 10. Running the test suite
 
 ```bash
 # Run all tests
@@ -312,7 +376,7 @@ uv run pytest tests/test_judge.py::test_evaluate_success -v
 
 ---
 
-## 10. Linting and formatting
+## 11. Linting and formatting
 
 ```bash
 # Check for lint errors
@@ -330,7 +394,7 @@ uv run ruff format --check src/ tests/
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### `[ERROR] Ollama is not running at http://localhost:11434`
 
@@ -394,7 +458,7 @@ mkdir -p ./reports && chmod 755 ./reports
 
 ---
 
-## 12. OWASP category reference
+## 13. OWASP category reference
 
 | Category | What it tests |
 |----------|--------------|
@@ -411,7 +475,7 @@ mkdir -p ./reports && chmod 755 ./reports
 
 ---
 
-## 13. Adding custom payloads
+## 14. Adding custom payloads
 
 Payload files live in `payloads/`. Each file maps to one OWASP category.
 
