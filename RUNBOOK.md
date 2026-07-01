@@ -96,7 +96,58 @@ What happens:
 
 ---
 
-## 5. Scenario B — Scan the built-in demo app
+## 5. Scenario B — Run the hosted web UI
+
+Use this when you want the browser-based scan form.
+
+Important constraints:
+- The hosted UI must be served by `backend/landing_server.py`
+- It only accepts public `http/https` target URLs
+- `localhost`, private IPs, VPN-only hosts, and internal staging environments are rejected by design
+
+**Step 1 — Start the hosted UI backend**
+
+```bash
+cd "/Users/konrad.malinowski/Documents/Konrad/AI-Engineer/AI/LLM Security Scanner"
+flask --app backend/landing_server.py run --port 8080
+```
+
+**Step 2 — Open the correct URL**
+
+```text
+http://localhost:8080
+```
+
+Do not open `frontend/index.html` directly in the browser. Do not serve it from another static server.
+
+**Step 3 — Understand the common failure mode**
+
+If the form shows:
+
+```text
+HTTP 404: The frontend could not find /api/scan on this host.
+```
+
+that means the page is not being served by `backend/landing_server.py`.
+
+**Step 4 — Use the right target type**
+
+Examples:
+- Valid hosted target: `https://chat.example.com/api/chat`
+- Invalid hosted target: `http://localhost:5001/chat`
+
+For localhost targets, use the CLI directly:
+
+```bash
+llm-scanner \
+  --target http://localhost:5001/chat \
+  --target-type url \
+  --judge-model llama3.2:3b
+```
+
+---
+
+## 6. Scenario C — Scan the built-in demo app
 
 The demo app is an intentionally vulnerable Flask chatbot. It is the easiest way to test the scanner end-to-end because it is guaranteed to have multiple findings.
 
@@ -152,7 +203,7 @@ Reports land in `./reports/`. Open `report_<timestamp>.html` in a browser for th
 
 ---
 
-## 6. Scenario C — Scan the OpenAI chatbot demo app
+## 7. Scenario D — Scan the OpenAI chatbot demo app
 
 The OpenAI demo app sends every payload to a real OpenAI model and returns its actual response, giving the scanner more realistic behaviour to judge than the offline mock.
 
@@ -216,7 +267,7 @@ llm-scanner \
 
 ---
 
-## 7. Scenario D — Scan a real HTTP endpoint
+## 8. Scenario E — Scan a real HTTP endpoint
 
 Target any LLM-backed service that accepts:
 
@@ -244,7 +295,7 @@ The `--api-key` value is sent as `Authorization: Bearer <token>` and is never pr
 
 ---
 
-## 8. Common scan patterns
+## 9. Common scan patterns
 
 ### Focus on the two highest-risk categories
 

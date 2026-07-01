@@ -81,6 +81,24 @@ Use CI/CD for anything that only exists inside the user's environment:
 - staging behind VPN or private VPC
 - authenticated internal services
 
+### Hosted web UI
+
+Start the hosted UI through the Flask backend, not by opening `frontend/index.html` directly:
+
+```bash
+flask --app backend/landing_server.py run --port 8080
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+The page calls `POST /api/scan` on the same host. If you open the HTML file directly or serve it from another static server, the form will fail with `HTTP 404` because `/api/scan` does not exist there.
+
+The hosted form is for public URLs only. A target like `http://localhost:5001/chat` must be scanned from the local CLI or CI/CD, not from the hosted page.
+
 ### 1 — Scan a local Ollama model
 
 Test one local model using another as the judge. The target and judge **must** be different models.
@@ -396,9 +414,9 @@ llm-security-scanner/
 ├── backend/
 │   ├── vulnerable_app.py      # Offline vulnerable chatbot — no API key needed (port 5000)
 │   ├── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)
-│   └── landing_server.py      # Marketing landing page server (port 8080)
+│   └── landing_server.py      # Hosted web UI + /api/scan backend (port 8080)
 ├── frontend/
-│   └── index.html             # Landing page
+│   └── index.html             # Hosted scan UI and CI/CD documentation
 ├── tests/               # pytest suite (unit + integration)
 └── pyproject.toml
 ```
