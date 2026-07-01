@@ -268,4 +268,11 @@ def main() -> None:
     """CLI entry point -- declared in pyproject.toml [project.scripts]."""
     parser = _build_parser()
     args = parser.parse_args()
-    asyncio.run(_run(args))
+    try:
+        asyncio.run(_run(args))
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Scan interrupted by user.[/yellow]")
+        sys.exit(130)
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[red]Fatal error:[/red] {exc}", file=sys.stderr)
+        sys.exit(1)
