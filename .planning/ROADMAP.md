@@ -123,7 +123,21 @@ Plans:
   5. `suppressions.yaml` entries exclude matching findings from the risk score and mark them "Accepted" in all report formats
   6. `--targets targets.yaml` accepts a multi-target YAML file and produces a side-by-side comparison table across all targets
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Extend AttackResult with suppressed/suppression_reason fields + SuppressionLoader module + suppression tests
+
+**Wave 2** *(blocked on Wave 1 completion — 05-02, 05-03, 05-04 run in parallel)*
+
+- [ ] 05-02-PLAN.md — SarifReporter + register in reporters/__init__.py + SARIF tests
+- [ ] 05-03-PLAN.md — TrendReporter + index.html.j2 Jinja2 template + trend tests
+- [ ] 05-04-PLAN.md — BaselineManager (save/load/diff) + baseline tests
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 05-05-PLAN.md — CLI integration (--fail-on-score, --targets, --suppressions, baseline subcommands, suppression pipeline, trend regeneration) + GitHub Actions workflow + CLI tests
 
 ## Progress
 
@@ -136,4 +150,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Core Engine | 3/3 | Complete    | 2026-06-30 |
 | 3. Scanner + CLI | 2/2 | Complete    | 2026-07-01 |
 | 4. Reports, Tests & Demo | 2/2 | Complete    | 2026-07-01 |
-| 5. Advanced Features | 0/? | Pending     | — |
+| 5. Advanced Features | 0/5 | Pending     | — |
