@@ -260,6 +260,8 @@ async def _run(args: argparse.Namespace) -> None:
                 console.print(f"[dim]Saved {fmt.upper()} report:[/dim] {saved}")
             except ValueError as exc:
                 print(f"Warning: {exc}", file=sys.stderr)
+            except OSError as exc:
+                print(f"Warning: Could not save {fmt.upper()} report: {exc}", file=sys.stderr)
 
 
 def main() -> None:
