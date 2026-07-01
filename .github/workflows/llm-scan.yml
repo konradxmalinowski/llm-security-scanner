@@ -1,18 +1,8 @@
-# LLM Security Scanner GitHub Actions Workflow
-#
-# Prerequisites:
-#   Configure TARGET_URL in repository Settings > Secrets and variables > Actions.
-#   Example: https://api.example.com/chat
-#   Leave unset to skip the scan step (workflow will still run preflight checks).
-#
-# RAM constraint: ubuntu-latest runners have ~7GB RAM.
-#   llama3.2:3b Q4 quantized requires ~2GB -- fits comfortably.
-#   Do NOT use 7B+ models (llama3:7b ~4GB, llama3.1:8b ~5GB) -- they risk OOM.
-
 name: LLM Security Scan
 
 on:
-  workflow_dispatch:  # manual trigger only — no live target configured
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   llm-security-scan:
@@ -49,10 +39,10 @@ jobs:
 
       - name: Run security scan
         env:
-          TARGET_URL: ${{ secrets.TARGET_URL }}
+          LLM_ENDPOINT: ${{ secrets.LLM_ENDPOINT }}
         run: |
           llm-scanner \
-            --target "$TARGET_URL" \
+            --target "$LLM_ENDPOINT" \
             --target-type url \
             --judge-model llama3.2:3b \
             --fail-on-score 7.0 \

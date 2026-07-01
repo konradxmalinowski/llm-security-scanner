@@ -1,0 +1,21 @@
+stages:
+  - test
+
+llm-security-scan:
+  stage: test
+  image: ghcr.io/your-org/llm-security-scanner:latest
+  services:
+    - name: ollama/ollama:latest
+      alias: ollama
+  variables:
+    OLLAMA_HOST: http://ollama:11434
+    LLM_ENDPOINT: http://app:5000/chat
+  before_script:
+    - curl -fsS "$OLLAMA_HOST/api/version"
+    - curl -fsS "$OLLAMA_HOST/api/pull" -d '{"name":"llama3.2:3b"}'
+  script:
+    - llm-scanner --config examples/llm-scan.yml
+  artifacts:
+    when: always
+    paths:
+      - reports/

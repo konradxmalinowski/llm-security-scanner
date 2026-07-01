@@ -1,0 +1,125 @@
+name: 'LLM Security Scanner'
+description: 'Automated OWASP Top 10 for LLMs security testing — 46+ attack payloads, local Ollama judge, fully offline.'
+author: 'Konrad Malinowski'
+
+inputs:
+  target:
+    description: 'Target URL (HTTP endpoint) or Ollama model name to test'
+    required: false
+  target-type:
+    description: 'Type of target: url or ollama'
+    required: false
+    default: 'url'
+  judge-model:
+    description: 'Local Ollama model used as the AI evaluator'
+    required: false
+    default: 'llama3.2:3b'
+  api-key:
+    description: 'Bearer token for authenticated endpoints (never logged)'
+    required: false
+    default: ''
+  severity:
+    description: 'Minimum severity filter: critical, high, medium, low, info. Empty = all.'
+    required: false
+    default: ''
+  categories:
+    description: 'Comma-separated OWASP categories (e.g. LLM01,LLM07). Empty = all except LLM10.'
+    required: false
+    default: ''
+  include-dos-tests:
+    description: 'Include LLM10 Unbounded Consumption probes. Only use against targets you own.'
+    required: false
+    default: 'false'
+  output-dir:
+    description: 'Directory for saved report files'
+    required: false
+    default: 'llm-scan-reports'
+  fail-on-score:
+    description: 'Fail the workflow when risk score is greater than or equal to this threshold. Empty = never fail by score.'
+    required: false
+    default: ''
+  config:
+    description: 'Optional llm-scan.yml config path. Explicit action inputs override config values.'
+    required: false
+    default: ''
+
+outputs:
+  report-html:
+    description: 'Path to the generated HTML report'
+    value: ${{ steps.scan.outputs.report-html }}
+  risk-score:
+    description: 'Numeric risk score (0.0–10.0)'
+    value: ${{ steps.scan.outputs.risk-score }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Install llm-security-scanner
+      shell: bash
+      run: |
+        uv pip install --system -e "${{ github.action_path }}/../../.."
+
+    - name: Install Ollama
+      shell: bash
+      run: |
+        curl -fsSL https://ollama.com/install.sh | bash
+
+    - name: Start Ollama and pull judge model
+      shell: bash
+      run: |
+        ollama serve &
+        echo "Waiting for Ollama to be ready..."
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:11434/api/version >/dev/null 2>&1; then
+            echo "Ollama ready after $((i * 2))s"
+            break
+          fi
+          sleep 2
+        done
+        ollama pull "${{ inputs.judge-model }}"
+
+    - name: Run LLM security scan
+      id: scan
+      shell: bash
+      run: |
+        set -e
+        mkdir -p "${{ inputs.output-dir }}"
+
+        ARGS=()
+
+        [ -n "${{ inputs.config }}" ] && ARGS+=(--config "${{ inputs.config }}")
+        [ -n "${{ inputs.target }}" ] && ARGS+=(--target "${{ inputs.target }}")
+        [ -n "${{ inputs.target-type }}" ] && ARGS+=(--target-type "${{ inputs.target-type }}")
+        [ -n "${{ inputs.judge-model }}" ] && ARGS+=(--judge-model "${{ inputs.judge-model }}")
+
+        ARGS+=(--format json,html,sarif --output-dir "${{ inputs.output-dir }}")
+
+        [ -n "${{ inputs.api-key }}" ]    && ARGS+=(--api-key "${{ inputs.api-key }}")
+        [ -n "${{ inputs.severity }}" ]   && ARGS+=(--severity "${{ inputs.severity }}")
+        [ -n "${{ inputs.categories }}" ] && ARGS+=(--categories "${{ inputs.categories }}")
+        [ -n "${{ inputs.fail-on-score }}" ] && ARGS+=(--fail-on-score "${{ inputs.fail-on-score }}")
+        [ "${{ inputs.include-dos-tests }}" = "true" ] && ARGS+=(--include-dos-tests)
+
+        set +e
+        llm-scanner "${ARGS[@]}"
+        SCAN_RC=$?
+        set -e
+
+        HTML=$(find "${{ inputs.output-dir }}" -name report.html -print | head -1 || true)
+        echo "report-html=${HTML}" >> "$GITHUB_OUTPUT"
+
+        JSON=$(find "${{ inputs.output-dir }}" -name report.json -print | head -1 || true)
+        if [ -n "$JSON" ]; then
+          SCORE=$(python -c 'import json,sys; print(json.load(open(sys.argv[1])).get("risk_score", ""))' "$JSON" || true)
+          echo "risk-score=${SCORE}" >> "$GITHUB_OUTPUT"
+        fi
+
+        exit "$SCAN_RC"

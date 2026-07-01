@@ -1,0 +1,15 @@
+target: ${LLM_ENDPOINT}
+target_type: url
+judge_model: llama3.2:3b
+categories:
+  - LLM01
+  - LLM02
+  - LLM05
+  - LLM07
+severity: medium
+formats:
+  - json
+  - html
+  - sarif
+output_dir: ./reports
+fail_on_score: 7.0
