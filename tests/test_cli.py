@@ -93,8 +93,8 @@ def test_parser_api_key_arg(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_parser_output_dir(capsys: pytest.CaptureFixture[str]) -> None:
     """--output-dir is parsed as a Path (CLI-06)."""
-    args = _parse("--output-dir", "/tmp/scan-results")
-    assert args.output_dir == Path("/tmp/scan-results")
+    args = _parse("--output-dir", "/tmp/scan-results")  # noqa: S108
+    assert args.output_dir == Path("/tmp/scan-results")  # noqa: S108
     assert isinstance(args.output_dir, Path)
 
 

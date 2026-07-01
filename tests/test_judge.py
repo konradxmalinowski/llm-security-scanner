@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -96,7 +95,7 @@ async def test_judge_timeout_no_raise(
     sample_payload: Payload,
     mock_ollama_client: AsyncMock,
 ) -> None:
-    mock_ollama_client.chat.side_effect = asyncio.TimeoutError()
+    mock_ollama_client.chat.side_effect = TimeoutError()
     with patch("llm_scanner.judge.ollama_judge.ollama.AsyncClient", return_value=mock_ollama_client):
         judge = OllamaJudge(model="llama3.2:3b")
         result = await judge.evaluate(sample_payload, "some response")
