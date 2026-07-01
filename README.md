@@ -43,7 +43,7 @@ llm-scanner CLI
 |-------------|---------|-------|
 | Python | 3.11+ | Uses `asyncio.TaskGroup` and `tomllib` |
 | [uv](https://docs.astral.sh/uv/) | latest | Package manager; replaces pip+venv |
-| [Ollama](https://ollama.com/) | latest | Must be running locally on port 11434 |
+| [Ollama](https://ollama.com/) | latest | Must be reachable by the scanner, default `http://localhost:11434` |
 | At least one Ollama model | any | Used as the AI judge |
 
 ---
@@ -123,7 +123,13 @@ llm-scanner \
 
 ### 3 — Scan from YAML config
 
-Create `llm-scan.yml`:
+Start from one of the scenario-based examples in `examples/config/`:
+- `examples/config/local-url.yml`
+- `examples/config/public-url.yml`
+- `examples/config/ollama-target.yml`
+- `examples/config/ci-url.yml`
+
+Or create `llm-scan.yml`:
 
 ```yaml
 target: ${LLM_ENDPOINT}
@@ -144,18 +150,87 @@ LLM_ENDPOINT=http://localhost:5000/chat llm-scanner --config llm-scan.yml
 
 CLI flags override config values, so CI can keep shared defaults in YAML and override the target per environment.
 
-### 4 — Docker for CI/CD
+See `examples/README.md` for a quick map of all example configs and pipeline templates.
+
+### 4 — Docker for local and CI/CD runs
+
+The scanner container does not need Ollama installed inside it, but it does need a reachable Ollama HTTP endpoint. Set `OLLAMA_HOST` accordingly.
+
+#### Local Docker: app on your machine, scanner in Docker
+
+Build the image:
 
 ```bash
 docker build -t llm-security-scanner .
+```
 
+If your target app is running on your machine at `http://localhost:5000/chat`, run the scanner container against:
+- Ollama in another container at `http://ollama:11434`
+- your app via `http://host.docker.internal:5000/chat`
+
+Use the provided Compose example:
+
+```bash
+docker compose -f examples/docker/docker-compose.local.yml up
+```
+
+Default assumptions in that file:
+- `OLLAMA_HOST=http://ollama:11434`
+- `LLM_ENDPOINT=http://host.docker.internal:5000/chat`
+- reports are written to `./reports`
+
+Change `LLM_ENDPOINT` if your target is another Docker service or a public URL.
+
+#### Direct `docker run`
+
+When Ollama is reachable at `http://host.docker.internal:11434` and your target app at `http://host.docker.internal:5000/chat`:
+
+```bash
 docker run --rm \
-  --network host \
-  -e LLM_ENDPOINT=http://localhost:5000/chat \
+  --add-host host.docker.internal:host-gateway \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
   -v "$PWD/reports:/reports" \
   llm-security-scanner \
-  --config examples/llm-scan.yml \
+  --target http://host.docker.internal:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --format json,html,sarif \
   --output-dir /reports
+```
+
+#### CI/CD containers
+
+In CI, the scanner container should point to:
+- an Ollama service via `OLLAMA_HOST`
+- the target app via a job-reachable URL such as `http://app:5000/chat`
+
+Ready-made examples:
+- GitHub Actions: `examples/github/llm-security.docker.yml`
+- GitLab CI: `examples/gitlab/llm-security.gitlab-ci.docker.yml`
+
+Example:
+
+```bash
+docker run --rm \
+  -e OLLAMA_HOST=http://ollama:11434 \
+  llm-security-scanner \
+  --target http://app:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --fail-on-score 7.0 \
+  --format json,html,sarif \
+  --output-dir ./reports
+```
+
+If you scan an Ollama model directly from Docker, the same `OLLAMA_HOST` mechanism applies:
+
+```bash
+docker run --rm \
+  -e OLLAMA_HOST=http://ollama:11434 \
+  llm-security-scanner \
+  --target mistral:7b \
+  --target-type ollama \
+  --judge-model llama3.2:3b
 ```
 
 ### 5 — Focused scan with saved reports
@@ -269,7 +344,9 @@ This gives more realistic scan results than the offline mock — the judge evalu
 
 ### GitHub Actions
 
-For this repository, see `.github/workflows/llm-scan.yml`. For another repository, use the composite action once this repo is published or vendored:
+For this repository, see `.github/workflows/llm-scan.yml`. For another repository:
+- use `examples/github/llm-security.yml` for the normal runner-based setup
+- use `examples/github/llm-security.docker.yml` if you want the scan itself to run inside Docker
 
 ```yaml
 name: LLM Security Scan
@@ -281,25 +358,43 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    env:
+      LLM_ENDPOINT: ${{ vars.LLM_ENDPOINT }}
+      LLM_JUDGE_MODEL: ${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}
+      LLM_FAIL_ON_SCORE: ${{ vars.LLM_FAIL_ON_SCORE || '7.0' }}
+      LLM_SEVERITY: ${{ vars.LLM_SEVERITY }}
+      LLM_CATEGORIES: ${{ vars.LLM_CATEGORIES }}
+      LLM_INCLUDE_DOS_TESTS: ${{ vars.LLM_INCLUDE_DOS_TESTS || 'false' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: your-org/llm-security-scanner/.github/actions/llm-scan@v1
+      - uses: konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@main
         with:
-          target: http://localhost:5000/chat
+          target: ${{ env.LLM_ENDPOINT }}
           target-type: url
-          judge-model: llama3.2:3b
-          fail-on-score: '7.0'
+          judge-model: ${{ env.LLM_JUDGE_MODEL }}
+          severity: ${{ env.LLM_SEVERITY }}
+          categories: ${{ env.LLM_CATEGORIES }}
+          include-dos-tests: ${{ env.LLM_INCLUDE_DOS_TESTS }}
+          fail-on-score: ${{ env.LLM_FAIL_ON_SCORE }}
 ```
 
-Start your app earlier in the job if the target is `localhost`. Keep API keys in GitHub Secrets and pass them through the `api-key` input.
+Set `LLM_ENDPOINT` to the URL reachable from that job, for example `http://localhost:5000/chat` or a service URL inside the CI network. If your target requires bearer auth, add `api-key: ${{ secrets.LLM_API_KEY }}` to the action inputs.
 
 ### GitLab CI
 
-Use `examples/gitlab/llm-security.gitlab-ci.yml` as a template. The Docker image should run in the same network as the application under test, then call:
+Use `examples/gitlab/llm-security.gitlab-ci.yml` as a template. Define the target URL through CI variables:
 
-```bash
-llm-scanner --config examples/llm-scan.yml
+```yaml
+variables:
+  LLM_ENDPOINT: "http://app:5000/chat"  # replace with the URL reachable from this job
+  LLM_JUDGE_MODEL: "llama3.2:3b"
+  LLM_FAIL_ON_SCORE: "7.0"
+  LLM_SEVERITY: ""
+  LLM_CATEGORIES: ""
+  LLM_INCLUDE_DOS_TESTS: "false"
 ```
+
+If your target requires bearer auth, define `LLM_API_KEY` as an extra CI variable. If you prefer running the packaged Docker image from the pipeline, use `examples/gitlab/llm-security.gitlab-ci.docker.yml`.
 
 Reports are saved under `reports/` and should be uploaded as job artifacts.
 

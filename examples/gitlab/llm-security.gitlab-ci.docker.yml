@@ -3,23 +3,22 @@ stages:
 
 llm-security-scan:
   stage: test
-  image: python:3.11-slim
+  image: docker:27
   services:
-    - name: ollama/ollama:latest
-      alias: ollama
+    - name: docker:27-dind
+      alias: docker
   variables:
-    OLLAMA_HOST: http://ollama:11434
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
     LLM_ENDPOINT: "http://app:5000/chat"
+    OLLAMA_HOST: "http://your-ollama-host:11434"
     LLM_JUDGE_MODEL: "llama3.2:3b"
     LLM_FAIL_ON_SCORE: "7.0"
     LLM_SEVERITY: ""
     LLM_CATEGORIES: ""
     LLM_INCLUDE_DOS_TESTS: "false"
   before_script:
-    - pip install uv
-    - uv pip install --system "git+https://github.com/konradxmalinowski/llm-security-scanner.git@main"
-    - curl -fsS "$OLLAMA_HOST/api/version"
-    - curl -fsS "$OLLAMA_HOST/api/pull" -d "{\"name\":\"$LLM_JUDGE_MODEL\"}"
+    - docker build -t llm-security-scanner .
   script:
     - |
       set -eu
@@ -27,14 +26,16 @@ llm-security-scan:
         echo "Set LLM_ENDPOINT to the URL reachable from this job, for example http://app:5000/chat or http://localhost:5000/chat" >&2
         exit 1
       }
+
       ARGS="
         --target $LLM_ENDPOINT
         --target-type url
         --judge-model $LLM_JUDGE_MODEL
         --format json,html,sarif
-        --output-dir ./reports
+        --output-dir /reports
         --fail-on-score $LLM_FAIL_ON_SCORE
       "
+
       if [ -n "${LLM_API_KEY:-}" ]; then
         ARGS="$ARGS --api-key ${LLM_API_KEY}"
       fi
@@ -47,7 +48,9 @@ llm-security-scan:
       if [ "$LLM_INCLUDE_DOS_TESTS" = "true" ]; then
         ARGS="$ARGS --include-dos-tests"
       fi
-      sh -c "llm-scanner $ARGS"
+
+      mkdir -p reports
+      sh -c "docker run --rm -e OLLAMA_HOST=\"$OLLAMA_HOST\" -v \"$CI_PROJECT_DIR/reports:/reports\" llm-security-scanner $ARGS"
   artifacts:
     when: always
     paths:

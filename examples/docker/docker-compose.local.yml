@@ -1,0 +1,36 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+  scanner:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      LLM_ENDPOINT: http://host.docker.internal:5000/chat
+      LLM_JUDGE_MODEL: llama3.2:3b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    working_dir: /workspace
+    volumes:
+      - ../../reports:/workspace/reports
+    entrypoint:
+      - sh
+      - -lc
+      - >
+        llm-scanner
+        --target "$LLM_ENDPOINT"
+        --target-type url
+        --judge-model "$LLM_JUDGE_MODEL"
+        --format json,html,sarif
+        --output-dir /workspace/reports
+
+volumes:
+  ollama-data:

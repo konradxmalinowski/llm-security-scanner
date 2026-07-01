@@ -1,0 +1,13 @@
+target: mistral:7b
+target_type: ollama
+judge_model: llama3.2:3b
+categories:
+  - LLM01
+  - LLM02
+  - LLM07
+severity: medium
+formats:
+  - json
+  - html
+output_dir: ./reports
+fail_on_score: 7.0

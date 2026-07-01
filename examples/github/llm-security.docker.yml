@@ -1,0 +1,63 @@
+name: LLM Security Scan (Docker)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  llm-security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LLM_ENDPOINT: ${{ vars.LLM_ENDPOINT }}
+      OLLAMA_HOST: ${{ vars.OLLAMA_HOST || 'http://host.docker.internal:11434' }}
+      LLM_JUDGE_MODEL: ${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}
+      LLM_FAIL_ON_SCORE: ${{ vars.LLM_FAIL_ON_SCORE || '7.0' }}
+      LLM_SEVERITY: ${{ vars.LLM_SEVERITY }}
+      LLM_CATEGORIES: ${{ vars.LLM_CATEGORIES }}
+      LLM_INCLUDE_DOS_TESTS: ${{ vars.LLM_INCLUDE_DOS_TESTS || 'false' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate workflow variables
+        run: |
+          test -n "$LLM_ENDPOINT" || {
+            echo "Set repository variable LLM_ENDPOINT to the URL reachable from this job, for example http://localhost:5000/chat" >&2
+            exit 1
+          }
+
+      - name: Build scanner image
+        run: docker build -t llm-security-scanner .
+
+      - name: Run security scan in Docker
+        run: |
+          mkdir -p reports
+
+          ARGS=(
+            --target "$LLM_ENDPOINT"
+            --target-type url
+            --judge-model "$LLM_JUDGE_MODEL"
+            --format json,html,sarif
+            --output-dir /reports
+            --fail-on-score "$LLM_FAIL_ON_SCORE"
+          )
+
+          [ -n "$LLM_SEVERITY" ] && ARGS+=(--severity "$LLM_SEVERITY")
+          [ -n "$LLM_CATEGORIES" ] && ARGS+=(--categories "$LLM_CATEGORIES")
+          [ "$LLM_INCLUDE_DOS_TESTS" = "true" ] && ARGS+=(--include-dos-tests)
+          [ -n "${{ secrets.LLM_API_KEY }}" ] && ARGS+=(--api-key "${{ secrets.LLM_API_KEY }}")
+
+          docker run --rm \
+            --add-host host.docker.internal:host-gateway \
+            -e OLLAMA_HOST="$OLLAMA_HOST" \
+            -v "$PWD/reports:/reports" \
+            llm-security-scanner \
+            "${ARGS[@]}"
+
+      - name: Upload reports as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: llm-security-reports
+          path: ./reports/

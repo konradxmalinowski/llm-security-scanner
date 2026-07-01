@@ -1,10 +1,3 @@
-# Generic baseline example.
-# For new setups, prefer:
-# - examples/config/local-url.yml
-# - examples/config/public-url.yml
-# - examples/config/ollama-target.yml
-# - examples/config/ci-url.yml
-
 target: ${LLM_ENDPOINT}
 target_type: url
 judge_model: llama3.2:3b

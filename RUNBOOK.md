@@ -72,6 +72,8 @@ ollama serve
 
 Leave `ollama serve` running in a dedicated terminal, or it runs as a background service on macOS after first install.
 
+If the scanner runs inside Docker, set `OLLAMA_HOST` to the Ollama service URL reachable from that container, for example `http://ollama:11434` or `http://host.docker.internal:11434`.
+
 ---
 
 ## 4. Scenario A — Scan a local Ollama model

@@ -7,7 +7,7 @@ on:
 jobs:
   llm-security-scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # LLM inference can be slow on shared runners
+    timeout-minutes: 60
     env:
       LLM_ENDPOINT: ${{ vars.LLM_ENDPOINT }}
       LLM_JUDGE_MODEL: ${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}
@@ -19,29 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Install scanner
-        run: uv pip install -e . --system
-
-      - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | bash
-
-      - name: Start Ollama and pull models
+      - name: Start Ollama
         run: |
+          curl -fsSL https://ollama.com/install.sh | bash
           ollama serve &
-          # Wait for Ollama HTTP server to be ready (up to 15 * 2s = 30s)
           for i in $(seq 1 15); do
-            if curl -s http://localhost:11434 > /dev/null; then break; fi
+            if curl -sf http://localhost:11434/api/version >/dev/null 2>&1; then
+              break
+            fi
             sleep 2
           done
-          # llama3.2:3b Q4 ~2GB RAM fits within ubuntu-latest 7GB runner limit
-          # do not use 7B+ models (llama3:7b ~4GB, llama3.1:8b ~5GB) -- risk OOM
           ollama pull "$LLM_JUDGE_MODEL"
 
       - name: Validate workflow variables
@@ -52,7 +39,7 @@ jobs:
           }
 
       - name: Run security scan
-        uses: ./.github/actions/llm-scan
+        uses: konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@main
         with:
           target: ${{ env.LLM_ENDPOINT }}
           target-type: url
@@ -62,17 +49,11 @@ jobs:
           include-dos-tests: ${{ env.LLM_INCLUDE_DOS_TESTS }}
           fail-on-score: ${{ env.LLM_FAIL_ON_SCORE }}
           output-dir: ./reports
-
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()  # upload even if scan found vulnerabilities (exit code 1)
-        with:
-          sarif_file: ./reports/
-          category: llm-security
+          api-key: ${{ secrets.LLM_API_KEY }}
 
       - name: Upload reports as artifact
         uses: actions/upload-artifact@v4
-        if: always()  # preserve reports even on scan failure
+        if: always()
         with:
-          name: llm-scan-reports
+          name: llm-security-reports
           path: ./reports/
