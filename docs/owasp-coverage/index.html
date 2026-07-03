@@ -7,7 +7,7 @@
   <meta name="description" content="How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/owasp-coverage/">
 
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="article">
   <meta property="og:site_name" content="LLM Security Scanner">
   <meta property="og:title" content="OWASP LLM Top 10 — LLM Security Scanner">
   <meta property="og:description" content="How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.">
@@ -33,6 +33,25 @@
     "description": "How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.",
     "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/owasp-coverage/",
     "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "OWASP Top 10 for LLMs 2025 Coverage",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "LLM01: Prompt Injection", "description": "Instructions embedded in user input that override or subvert the system prompt." },
+      { "@type": "ListItem", "position": 2, "name": "LLM02: Sensitive Information Disclosure", "description": "Leakage of PII, credentials, or confidential data through model responses." },
+      { "@type": "ListItem", "position": 3, "name": "LLM03: Supply Chain", "description": "Risks from third-party models, datasets, plugins, or fine-tuning sources." },
+      { "@type": "ListItem", "position": 4, "name": "LLM04: Data & Model Poisoning", "description": "Compromised training data affecting model behaviour and output integrity." },
+      { "@type": "ListItem", "position": 5, "name": "LLM05: Improper Output Handling", "description": "Downstream injection attacks (XSS, SQLi) via unsanitised model output." },
+      { "@type": "ListItem", "position": 6, "name": "LLM06: Excessive Agency", "description": "Model taking high-impact autonomous actions without explicit authorisation." },
+      { "@type": "ListItem", "position": 7, "name": "LLM07: System Prompt Leakage", "description": "Extraction of confidential system-level instructions from the model context." },
+      { "@type": "ListItem", "position": 8, "name": "LLM08: Vector & Embedding Weaknesses", "description": "Manipulation or poisoning of vector stores and RAG pipeline data." },
+      { "@type": "ListItem", "position": 9, "name": "LLM09: Misinformation", "description": "Model generating false, misleading, or harmful content as factual output." },
+      { "@type": "ListItem", "position": 10, "name": "LLM10: Unbounded Consumption", "description": "Resource exhaustion via oversized or recursive requests. Opt-in to protect targets." }
+    ]
   }
   </script>
 </head>
