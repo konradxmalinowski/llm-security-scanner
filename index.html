@@ -59,11 +59,11 @@
 
 <header class="site-topbar">
   <a class="topbar-brand" href="#hero">LLM Security Scanner</a>
-  <div class="topbar-nav" aria-label="Primary navigation">
+  <nav class="topbar-nav" aria-label="Primary navigation">
     <a href="#hero" class="active">Home</a>
     <a href="/llm-security-scanner/docs/">Docs</a>
     <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
-  </div>
+  </nav>
   <div class="topbar-right">
     <a class="topbar-search" href="/llm-security-scanner/docs/">Search docs</a>
     <a class="topbar-action" href="#hosted-scan">Run scanner ↗</a>
@@ -71,7 +71,7 @@
 </header>
 
 <!-- ── NAV ─────────────────────────────────────────────────── -->
-<nav>
+<nav aria-label="Section navigation">
   <a class="nav-logo" href="#hero">
     <div class="nav-logo-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -240,7 +240,7 @@
       <div class="card-icon-box">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       </div>
-      <div class="teaser-title">CI/CD pipeline</div>
+      <h3 class="teaser-title">CI/CD pipeline</h3>
       <div class="teaser-desc">Run the scanner as a gate in GitHub Actions or GitLab CI. Block merges when the risk score exceeds your threshold.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/cicd/">View CI/CD guide &rarr;</a>
     </div>
@@ -248,7 +248,7 @@
       <div class="card-icon-box">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
-      <div class="teaser-title">Local endpoint</div>
+      <h3 class="teaser-title">Local endpoint</h3>
       <div class="teaser-desc">Point the CLI at a chatbot on <code>localhost</code> or another loopback address &mdash; no waiting on the hosted scan for that.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/getting-started/">View getting started guide &rarr;</a>
     </div>
@@ -256,7 +256,7 @@
       <div class="card-icon-box">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
       </div>
-      <div class="teaser-title">Docker &amp; containers</div>
+      <h3 class="teaser-title">Docker &amp; containers</h3>
       <div class="teaser-desc">Build the scanner into a container image and run it against services on your Docker network or internal VPN.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/cicd/">View Docker examples &rarr;</a>
     </div>
@@ -273,27 +273,27 @@
   <div class="steps">
     <div class="step">
       <div class="step-num">01</div>
-      <div class="step-title">Preflight</div>
+      <h3 class="step-title">Preflight</h3>
       <div class="step-desc">Confirms Ollama is running, both models are pulled, and the target is reachable before firing a single payload.</div>
     </div>
     <div class="step">
       <div class="step-num">02</div>
-      <div class="step-title">Load Payloads</div>
+      <h3 class="step-title">Load Payloads</h3>
       <div class="step-desc">Reads YAML attack files from <code>payloads/</code>, filters by requested categories and minimum severity.</div>
     </div>
     <div class="step">
       <div class="step-num">03</div>
-      <div class="step-title">Fire Attacks</div>
+      <h3 class="step-title">Fire Attacks</h3>
       <div class="step-desc">Dispatches each payload concurrently (3 at a time via <code>asyncio.Semaphore</code>), collects raw responses.</div>
     </div>
     <div class="step">
       <div class="step-num">04</div>
-      <div class="step-title">AI Judge</div>
+      <h3 class="step-title">AI Judge</h3>
       <div class="step-desc">Sends each <em>(payload, response)</em> pair to a local Ollama model for a structured verdict — no cloud required.</div>
     </div>
     <div class="step">
       <div class="step-num">05</div>
-      <div class="step-title">Report</div>
+      <h3 class="step-title">Report</h3>
       <div class="step-desc">Prints Rich table to terminal, saves Markdown / JSON / HTML with risk score and per-finding reasoning.</div>
     </div>
   </div>
@@ -308,61 +308,61 @@
   <div class="owasp-grid">
     <div class="owasp-card">
       <div class="owasp-badge">LLM01</div>
-      <div class="owasp-title">Prompt Injection</div>
+      <h3 class="owasp-title">Prompt Injection</h3>
       <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
       <div class="owasp-payloads">5 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM02</div>
-      <div class="owasp-title">Sensitive Information Disclosure</div>
+      <h3 class="owasp-title">Sensitive Information Disclosure</h3>
       <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
       <div class="owasp-payloads">5 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM03</div>
-      <div class="owasp-title">Supply Chain</div>
+      <h3 class="owasp-title">Supply Chain</h3>
       <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
       <div class="owasp-payloads">4 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM04</div>
-      <div class="owasp-title">Data &amp; Model Poisoning</div>
+      <h3 class="owasp-title">Data &amp; Model Poisoning</h3>
       <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
       <div class="owasp-payloads">4 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM05</div>
-      <div class="owasp-title">Improper Output Handling</div>
+      <h3 class="owasp-title">Improper Output Handling</h3>
       <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
       <div class="owasp-payloads">5 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM06</div>
-      <div class="owasp-title">Excessive Agency</div>
+      <h3 class="owasp-title">Excessive Agency</h3>
       <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
       <div class="owasp-payloads">5 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM07</div>
-      <div class="owasp-title">System Prompt Leakage</div>
+      <h3 class="owasp-title">System Prompt Leakage</h3>
       <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
       <div class="owasp-payloads">5 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM08</div>
-      <div class="owasp-title">Vector &amp; Embedding Weaknesses</div>
+      <h3 class="owasp-title">Vector &amp; Embedding Weaknesses</h3>
       <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
       <div class="owasp-payloads">4 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM09</div>
-      <div class="owasp-title">Misinformation</div>
+      <h3 class="owasp-title">Misinformation</h3>
       <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
       <div class="owasp-payloads">4 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card" style="border-color: #f8717133;">
       <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
-      <div class="owasp-title">Unbounded Consumption</div>
+      <h3 class="owasp-title">Unbounded Consumption</h3>
       <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
       <div class="owasp-payloads" style="color: #f87171;">5 payloads &mdash; <code>--include-dos-tests</code></div>
     </div>
@@ -404,7 +404,7 @@
       <div class="card-icon-box">
         <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
       </div>
-      <div class="teaser-title">CLI reference</div>
+      <h3 class="teaser-title">CLI reference</h3>
       <div class="teaser-desc">Every flag the scanner understands &mdash; <code>--target</code>, <code>--categories</code>, <code>--severity</code>, <code>--format</code>, and more.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/cli-reference/">View CLI reference &rarr;</a>
     </div>
@@ -412,7 +412,7 @@
       <div class="card-icon-box">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       </div>
-      <div class="teaser-title">Output formats</div>
+      <h3 class="teaser-title">Output formats</h3>
       <div class="teaser-desc">Terminal, Markdown, JSON, and self-contained HTML reports &mdash; colour-coded by severity, safe by default.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/output-formats/">View report formats &rarr;</a>
     </div>
@@ -420,7 +420,7 @@
       <div class="card-icon-box">
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
-      <div class="teaser-title">Built secure by default</div>
+      <h3 class="teaser-title">Built secure by default</h3>
       <div class="teaser-desc">Fully offline judge, XSS-safe HTML reports, an opt-in DoS gate, and safe YAML parsing throughout.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/security/">View security properties &rarr;</a>
     </div>

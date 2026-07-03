@@ -1246,6 +1246,11 @@
       padding: 0.45rem 0.75rem;
     }
 
+    .docs-search:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-dim);
+    }
+
     .docs-search svg { width: 15px; height: 15px; stroke: var(--muted); fill: none; stroke-width: 2; flex-shrink: 0; }
 
     .docs-search input {

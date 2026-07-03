@@ -40,15 +40,15 @@
 
 <header class="site-topbar">
   <a class="topbar-brand" href="/llm-security-scanner/">LLM Security Scanner</a>
-  <div class="topbar-nav" aria-label="Primary navigation">
+  <nav class="topbar-nav" aria-label="Primary navigation">
     <a href="/llm-security-scanner/">Home</a>
     <a href="/llm-security-scanner/docs/" class="active">Docs</a>
     <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
-  </div>
+  </nav>
   <div class="topbar-right">
     <div class="docs-search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="docs-search-input" type="text" placeholder="Search docs">
+      <input id="docs-search-input" type="text" placeholder="Search docs" aria-label="Search documentation">
     </div>
     <a class="topbar-action" href="/llm-security-scanner/#hosted-scan">Run scanner ↗</a>
   </div>
@@ -56,6 +56,7 @@
 
 <div class="docs-shell">
   <aside class="docs-sidebar">
+    <nav aria-label="Docs navigation">
     <div class="docs-nav-group">
       <div class="docs-nav-group-title">Overview</div>
       <ul>
@@ -78,6 +79,7 @@
         <li><a href="/llm-security-scanner/docs/security/">Security Properties</a></li>
       </ul>
     </div>
+    </nav>
   </aside>
 
   <main class="docs-content">
@@ -88,61 +90,61 @@
     <div class="owasp-grid">
       <div class="owasp-card">
         <div class="owasp-badge">LLM01</div>
-        <div class="owasp-title">Prompt Injection</div>
+        <h2 class="owasp-title">Prompt Injection</h2>
         <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
         <div class="owasp-payloads">5 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM02</div>
-        <div class="owasp-title">Sensitive Information Disclosure</div>
+        <h2 class="owasp-title">Sensitive Information Disclosure</h2>
         <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
         <div class="owasp-payloads">5 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM03</div>
-        <div class="owasp-title">Supply Chain</div>
+        <h2 class="owasp-title">Supply Chain</h2>
         <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
         <div class="owasp-payloads">4 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM04</div>
-        <div class="owasp-title">Data &amp; Model Poisoning</div>
+        <h2 class="owasp-title">Data &amp; Model Poisoning</h2>
         <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
         <div class="owasp-payloads">4 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM05</div>
-        <div class="owasp-title">Improper Output Handling</div>
+        <h2 class="owasp-title">Improper Output Handling</h2>
         <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
         <div class="owasp-payloads">5 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM06</div>
-        <div class="owasp-title">Excessive Agency</div>
+        <h2 class="owasp-title">Excessive Agency</h2>
         <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
         <div class="owasp-payloads">5 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM07</div>
-        <div class="owasp-title">System Prompt Leakage</div>
+        <h2 class="owasp-title">System Prompt Leakage</h2>
         <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
         <div class="owasp-payloads">5 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM08</div>
-        <div class="owasp-title">Vector &amp; Embedding Weaknesses</div>
+        <h2 class="owasp-title">Vector &amp; Embedding Weaknesses</h2>
         <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
         <div class="owasp-payloads">4 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card">
         <div class="owasp-badge">LLM09</div>
-        <div class="owasp-title">Misinformation</div>
+        <h2 class="owasp-title">Misinformation</h2>
         <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
         <div class="owasp-payloads">4 payloads &mdash; default on</div>
       </div>
       <div class="owasp-card" style="border-color: #f8717133;">
         <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
-        <div class="owasp-title">Unbounded Consumption</div>
+        <h2 class="owasp-title">Unbounded Consumption</h2>
         <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
         <div class="owasp-payloads" style="color: #f87171;">5 payloads &mdash; <code>--include-dos-tests</code></div>
       </div>
