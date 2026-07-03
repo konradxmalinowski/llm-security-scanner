@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Introduction — LLM Security Scanner</title>
+  <meta name="description" content="Documentation for LLM Security Scanner — an open-source OWASP LLM Top 10 scanner with a CLI reference and CI/CD integration guides.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="Introduction — LLM Security Scanner">
+  <meta property="og:description" content="Documentation for LLM Security Scanner — an open-source OWASP LLM Top 10 scanner with a CLI reference and CI/CD integration guides.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Introduction — LLM Security Scanner">
+  <meta name="twitter:description" content="Documentation for LLM Security Scanner — an open-source OWASP LLM Top 10 scanner with a CLI reference and CI/CD integration guides.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Introduction — LLM Security Scanner",
+    "description": "Documentation for LLM Security Scanner — an open-source OWASP LLM Top 10 scanner with a CLI reference and CI/CD integration guides.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/" class="active">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Documentation</div>
+    <h1 class="docs-h1">LLM Security Scanner Docs</h1>
+    <p class="docs-lede">Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs. Hosted public-URL scanning is coming soon — for now, run the CLI locally for a full scan.</p>
+
+    <div class="docs-home-grid">
+      <a class="docs-home-card" href="/docs/getting-started/">
+        <div class="docs-home-card-title">Getting Started</div>
+        <div class="docs-home-card-desc">Install the CLI, pull a judge model, and run your first scan in three commands.</div>
+      </a>
+      <a class="docs-home-card" href="/docs/cicd/">
+        <div class="docs-home-card-title">CI/CD Integration</div>
+        <div class="docs-home-card-desc">Run the scanner as a gate in GitHub Actions or GitLab CI, with or without Docker.</div>
+      </a>
+      <a class="docs-home-card" href="/docs/cli-reference/">
+        <div class="docs-home-card-title">CLI Reference</div>
+        <div class="docs-home-card-desc">Every flag the scanner understands — targets, categories, severity, output formats.</div>
+      </a>
+      <a class="docs-home-card" href="/docs/owasp-coverage/">
+        <div class="docs-home-card-title">OWASP LLM Top 10</div>
+        <div class="docs-home-card-desc">What each of the 10 categories tests for, how many payloads it ships with, and whether it's on by default.</div>
+      </a>
+      <a class="docs-home-card" href="/docs/output-formats/">
+        <div class="docs-home-card-title">Output Formats</div>
+        <div class="docs-home-card-desc">Terminal, Markdown, JSON, and self-contained HTML reports, and how to read the risk score.</div>
+      </a>
+      <a class="docs-home-card" href="/docs/security/">
+        <div class="docs-home-card-title">Security Properties</div>
+        <div class="docs-home-card-desc">How the scanner protects itself: offline judge, API key handling, XSS-safe reports, safe YAML parsing.</div>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Properties — LLM Security Scanner</title>
+  <meta name="description" content="How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/security/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="Security Properties — LLM Security Scanner">
+  <meta property="og:description" content="How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/security/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Security Properties — LLM Security Scanner">
+  <meta name="twitter:description" content="How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Security Properties — LLM Security Scanner",
+    "description": "How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/security/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/" class="active">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Reference</div>
+    <h1 class="docs-h1">Built Secure by Default</h1>
+    <p class="docs-lede">A security tool must practice what it tests.</p>
+
+    <div class="security-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="sec-title">Fully offline judge</div>
+        <div class="sec-desc">All judge inference runs via local Ollama. No calls to OpenAI, Anthropic, or any cloud API. Suitable for air-gapped environments and sensitive targets.</div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="sec-title">API key safety</div>
+        <div class="sec-desc"><code>--api-key</code> is sent as a <code>Bearer</code> header only. It is never stored to disk, logged to terminal, or printed in error messages.</div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="sec-title">XSS-safe HTML reports</div>
+        <div class="sec-desc">Jinja2 <code>autoescape=True</code> is mandatory. Attack payloads containing <code>&lt;script&gt;</code> render as escaped text in the HTML report &mdash; never executed.</div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="sec-title">DoS gate (LLM10)</div>
+        <div class="sec-desc">Unbounded Consumption probes require an explicit <code>--include-dos-tests</code> flag. They are never fired by default to protect targets from accidental stress testing.</div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="sec-title">Safe YAML parsing</div>
+        <div class="sec-desc">All payload files are read with <code>yaml.safe_load()</code>. The <code>yaml.load()</code> call with arbitrary <code>Loader</code> is banned by Ruff S506 enforced in CI.</div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="sec-title">Judge independence</div>
+        <div class="sec-desc">The judge model must be different from the target model. Using the same model as both target and judge creates a conflict of interest &mdash; blocked at startup.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OWASP LLM Top 10 — LLM Security Scanner</title>
+  <meta name="description" content="How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/owasp-coverage/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="OWASP LLM Top 10 — LLM Security Scanner">
+  <meta property="og:description" content="How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/owasp-coverage/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="OWASP LLM Top 10 — LLM Security Scanner">
+  <meta name="twitter:description" content="How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "OWASP LLM Top 10 — LLM Security Scanner",
+    "description": "How LLM Security Scanner covers all 10 OWASP Top 10 for LLMs 2025 categories, with payload counts, default-on status, and judge criteria.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/owasp-coverage/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/" class="active">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Reference</div>
+    <h1 class="docs-h1">OWASP LLM Top 10 Coverage</h1>
+    <p class="docs-lede">Every vulnerability from the OWASP Top 10 for LLMs 2025 is covered with dedicated payloads, severity levels, and judge criteria. Filter with <code>--categories LLM01,LLM07</code>.</p>
+
+    <div class="owasp-grid">
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM01</div>
+        <div class="owasp-title">Prompt Injection</div>
+        <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
+        <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM02</div>
+        <div class="owasp-title">Sensitive Information Disclosure</div>
+        <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
+        <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM03</div>
+        <div class="owasp-title">Supply Chain</div>
+        <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
+        <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM04</div>
+        <div class="owasp-title">Data &amp; Model Poisoning</div>
+        <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
+        <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM05</div>
+        <div class="owasp-title">Improper Output Handling</div>
+        <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
+        <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM06</div>
+        <div class="owasp-title">Excessive Agency</div>
+        <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
+        <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM07</div>
+        <div class="owasp-title">System Prompt Leakage</div>
+        <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
+        <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM08</div>
+        <div class="owasp-title">Vector &amp; Embedding Weaknesses</div>
+        <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
+        <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card">
+        <div class="owasp-badge">LLM09</div>
+        <div class="owasp-title">Misinformation</div>
+        <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
+        <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      </div>
+      <div class="owasp-card" style="border-color: #f8717133;">
+        <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
+        <div class="owasp-title">Unbounded Consumption</div>
+        <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
+        <div class="owasp-payloads" style="color: #f87171;">5 payloads &mdash; <code>--include-dos-tests</code></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

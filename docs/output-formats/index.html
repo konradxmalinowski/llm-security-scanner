@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Output Formats — LLM Security Scanner</title>
+  <meta name="description" content="LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/output-formats/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="Output Formats — LLM Security Scanner">
+  <meta property="og:description" content="LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/output-formats/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Output Formats — LLM Security Scanner">
+  <meta name="twitter:description" content="LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Output Formats — LLM Security Scanner",
+    "description": "LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/output-formats/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/" class="active">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Reference</div>
+    <h1 class="docs-h1">Output Formats</h1>
+    <p class="docs-lede">Terminal output is always shown. Optionally save structured reports for archiving, diffing, or sharing with <code>--format</code>.</p>
+
+    <div class="risk-bar" style="margin-bottom:2rem;">
+      <div style="font-size:0.85rem; color:var(--muted); font-weight:500; white-space:nowrap;">Risk score bands:</div>
+      <div class="risk-bands">
+        <div class="risk-band">
+          <div class="risk-dot" style="background:#34d399;"></div>
+          <span style="font-size:0.82rem;"><strong>0 &ndash; 3.9</strong> <span style="color:var(--muted)">Low</span></span>
+        </div>
+        <div class="risk-band">
+          <div class="risk-dot" style="background:#fbbf24;"></div>
+          <span style="font-size:0.82rem;"><strong>4 &ndash; 6.9</strong> <span style="color:var(--muted)">Medium</span></span>
+        </div>
+        <div class="risk-band">
+          <div class="risk-dot" style="background:#f87171;"></div>
+          <span style="font-size:0.82rem;"><strong>7 &ndash; 10</strong> <span style="color:var(--muted)">High</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="format-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="format-card">
+        <div class="format-label">$_</div>
+        <div class="format-name">Terminal</div>
+        <div class="format-flag">always on</div>
+        <div class="format-desc">Rich table with colour-coded severity rows. Risk score printed in green / yellow / red based on band. Always shown, even when other formats are requested.</div>
+      </div>
+      <div class="format-card">
+        <div class="format-label">.md</div>
+        <div class="format-name">Markdown</div>
+        <div class="format-flag">--format md</div>
+        <div class="format-desc">Clean table with attack ID, category, name, severity, result, and recommendation. Ideal for pasting into GitHub issues or Notion.</div>
+      </div>
+      <div class="format-card">
+        <div class="format-label">{}</div>
+        <div class="format-name">JSON</div>
+        <div class="format-flag">--format json</div>
+        <div class="format-desc">Full <code>ScanReport</code> structure including <code>judge_reasoning</code> per finding. Best for programmatic processing, diffing results over time, or feeding into CI pipelines.</div>
+      </div>
+      <div class="format-card">
+        <div class="format-label">.html</div>
+        <div class="format-name">HTML</div>
+        <div class="format-flag">--format html</div>
+        <div class="format-desc">Self-contained file. Rows colour-coded by severity. Jinja2 <code>autoescape=True</code> ensures attack payloads containing <code>&lt;script&gt;</code> render as escaped text &mdash; XSS-safe by design.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

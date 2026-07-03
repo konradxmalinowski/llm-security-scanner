@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CI/CD Integration — LLM Security Scanner</title>
+  <meta name="description" content="Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/cicd/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="CI/CD Integration — LLM Security Scanner">
+  <meta property="og:description" content="Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/cicd/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="CI/CD Integration — LLM Security Scanner">
+  <meta name="twitter:description" content="Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "CI/CD Integration — LLM Security Scanner",
+    "description": "Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/cicd/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/" class="active">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Scanning</div>
+    <h1 class="docs-h1">CI/CD Integration</h1>
+    <p class="docs-lede">Run the scanner as a gate in GitHub Actions or GitLab CI. Block merges when the risk score exceeds your threshold.</p>
+
+    <div data-scenario-scope>
+    <div class="scenario-switcher" data-scenario-switcher style="margin: 0 0 1.5rem;">
+      <button type="button" class="active" data-scenario-target="native">No Docker</button>
+      <button type="button" data-scenario-target="docker">Docker</button>
+    </div>
+
+    <div class="scenario-panel active" data-scenario-panel="native">
+      <h2>GitHub Actions</h2>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="cmt"># .github/workflows/llm-security.yml</span>
+<span class="kw">name</span>: <span class="str">LLM Security Scan</span>
+<span class="kw">on</span>: [pull_request, workflow_dispatch]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: <span class="str">ubuntu-latest</span>
+    <span class="kw">env</span>:
+      <span class="kw">LLM_ENDPOINT</span>: <span class="str">${{ vars.LLM_ENDPOINT }}</span>      <span class="cmt"># URL reachable from this job</span>
+      <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}</span>
+      <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">${{ vars.LLM_FAIL_ON_SCORE || '7.0' }}</span>
+      <span class="kw">LLM_SEVERITY</span>: <span class="str">${{ vars.LLM_SEVERITY }}</span>
+      <span class="kw">LLM_CATEGORIES</span>: <span class="str">${{ vars.LLM_CATEGORIES }}</span>
+      <span class="kw">LLM_INCLUDE_DOS_TESTS</span>: <span class="str">${{ vars.LLM_INCLUDE_DOS_TESTS || 'false' }}</span>
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: <span class="str">actions/checkout@v4</span>
+      - <span class="kw">name</span>: <span class="str">Validate configuration</span>
+        <span class="kw">run</span>: <span class="str">test -n "$LLM_ENDPOINT"</span>
+      - <span class="kw">name</span>: <span class="str">Start Ollama</span>
+        <span class="kw">run</span>: <span class="str">|
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &amp;
+          sleep 5
+          ollama pull "$LLM_JUDGE_MODEL"</span>
+      - <span class="kw">uses</span>: <span class="str">konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@main</span>
+        <span class="kw">with</span>:
+          <span class="kw">target</span>: <span class="str">${{ env.LLM_ENDPOINT }}</span>
+          <span class="kw">target-type</span>: <span class="str">url</span>
+          <span class="kw">judge-model</span>: <span class="str">${{ env.LLM_JUDGE_MODEL }}</span>
+          <span class="kw">severity</span>: <span class="str">${{ env.LLM_SEVERITY }}</span>
+          <span class="kw">categories</span>: <span class="str">${{ env.LLM_CATEGORIES }}</span>
+          <span class="kw">include-dos-tests</span>: <span class="str">${{ env.LLM_INCLUDE_DOS_TESTS }}</span>
+          <span class="kw">fail-on-score</span>: <span class="str">${{ env.LLM_FAIL_ON_SCORE }}</span>
+          <span class="kw">output-dir</span>: <span class="str">./reports</span>
+      <span class="cmt"># Add api-key: ${{ secrets.LLM_API_KEY }} only if the target requires bearer auth</span>
+      - <span class="kw">uses</span>: <span class="str">actions/upload-artifact@v4</span>
+        <span class="kw">with</span>:
+          <span class="kw">name</span>: <span class="str">llm-security-reports</span>
+          <span class="kw">path</span>: <span class="str">reports/</span></pre>
+      </div>
+
+      <h2>GitLab CI</h2>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="cmt"># .gitlab-ci.yml</span>
+<span class="kw">llm-security-scan</span>:
+  <span class="kw">image</span>: <span class="str">python:3.11-slim</span>
+  <span class="kw">stage</span>: <span class="str">test</span>
+  <span class="kw">rules</span>:
+    - <span class="kw">if</span>: <span class="str">$CI_PIPELINE_SOURCE == "merge_request_event"</span>
+    - <span class="kw">if</span>: <span class="str">$CI_PIPELINE_SOURCE == "web"</span>
+  <span class="kw">services</span>:
+    - <span class="kw">name</span>: <span class="str">ollama/ollama:latest</span>
+      <span class="kw">alias</span>: <span class="str">ollama</span>
+  <span class="kw">variables</span>:
+    <span class="kw">OLLAMA_HOST</span>: <span class="str">http://ollama:11434</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose — set as a CI/CD variable</span>
+    <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">llama3.2:3b</span>
+    <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">"7.0"</span>
+    <span class="kw">LLM_SEVERITY</span>: <span class="str">""</span>
+    <span class="kw">LLM_CATEGORIES</span>: <span class="str">""</span>
+    <span class="kw">LLM_INCLUDE_DOS_TESTS</span>: <span class="str">"false"</span>
+  <span class="kw">before_script</span>:
+    - <span class="str">test -n "$LLM_ENDPOINT"</span>
+    - <span class="str">pip install uv</span>
+    - <span class="str">uv pip install --system "git+https://github.com/konradxmalinowski/llm-security-scanner.git@main"</span>
+    - <span class="str">curl -fsS "$OLLAMA_HOST/api/version"</span>
+    - <span class="str">curl -fsS "$OLLAMA_HOST/api/pull" -d "{\"name\":\"$LLM_JUDGE_MODEL\"}"</span>
+  <span class="kw">script</span>:
+    - <span class="str">|
+        set -- --target "$LLM_ENDPOINT" --target-type url --judge-model "$LLM_JUDGE_MODEL" \
+               --format json,html,sarif --output-dir ./reports --fail-on-score "$LLM_FAIL_ON_SCORE"
+        [ -n "${LLM_API_KEY:-}" ] &amp;&amp; set -- "$@" --api-key "$LLM_API_KEY"
+        [ -n "$LLM_SEVERITY" ] &amp;&amp; set -- "$@" --severity "$LLM_SEVERITY"
+        [ -n "$LLM_CATEGORIES" ] &amp;&amp; set -- "$@" --categories "$LLM_CATEGORIES"
+        [ "$LLM_INCLUDE_DOS_TESTS" = "true" ] &amp;&amp; set -- "$@" --include-dos-tests
+        llm-scanner "$@"</span>
+      <span class="cmt"># Add LLM_API_KEY only if the target requires bearer auth — kept out of a single interpolated string on purpose</span>
+  <span class="kw">artifacts</span>:
+    <span class="kw">when</span>: <span class="str">always</span>
+    <span class="kw">paths</span>:
+      - <span class="str">reports/</span></pre>
+      </div>
+    </div>
+
+    <div class="scenario-panel" data-scenario-panel="docker">
+      <h2>GitHub Actions (Docker)</h2>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="cmt"># .github/workflows/llm-security.yml</span>
+<span class="kw">name</span>: <span class="str">LLM Security Scan</span>
+<span class="kw">on</span>: [pull_request, workflow_dispatch]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: <span class="str">ubuntu-latest</span>
+    <span class="kw">env</span>:
+      <span class="kw">LLM_ENDPOINT</span>: <span class="str">${{ vars.LLM_ENDPOINT }}</span>
+      <span class="kw">OLLAMA_HOST</span>: <span class="str">${{ vars.OLLAMA_HOST || 'http://host.docker.internal:11434' }}</span>
+      <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">${{ vars.LLM_JUDGE_MODEL || 'llama3.2:3b' }}</span>
+      <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">${{ vars.LLM_FAIL_ON_SCORE || '7.0' }}</span>
+      <span class="kw">LLM_SCANNER_VERSION</span>: <span class="str">${{ vars.LLM_SCANNER_VERSION }}</span>  <span class="cmt"># empty = latest release from PyPI</span>
+      <span class="kw">LLM_API_KEY</span>: <span class="str">${{ secrets.LLM_API_KEY }}</span>  <span class="cmt"># pass secrets via env:, never inline in a run: script</span>
+    <span class="kw">steps</span>:
+      - <span class="kw">name</span>: <span class="str">Validate configuration</span>
+        <span class="kw">run</span>: <span class="str">test -n "$LLM_ENDPOINT"</span>
+      - <span class="kw">name</span>: <span class="str">Build scanner image</span>
+        <span class="kw">run</span>: <span class="str">|
+          cat &lt;&lt;'EOF' &gt; Dockerfile.llm-scanner
+          FROM python:3.11-slim
+          ARG SCANNER_VERSION=
+          RUN pip install --no-cache-dir "llm-security-scanner${SCANNER_VERSION:+==$SCANNER_VERSION}"
+          ENTRYPOINT ["llm-scanner"]
+          EOF
+          docker build --build-arg SCANNER_VERSION="$LLM_SCANNER_VERSION" -f Dockerfile.llm-scanner -t llm-security-scanner .</span>
+      - <span class="kw">name</span>: <span class="str">Run scan in Docker</span>
+        <span class="kw">run</span>: <span class="str">|
+          mkdir -p reports
+          ARGS=(--target "$LLM_ENDPOINT" --target-type url --judge-model "$LLM_JUDGE_MODEL"
+                --format json,html,sarif --output-dir /reports --fail-on-score "$LLM_FAIL_ON_SCORE")
+          [ -n "$LLM_API_KEY" ] &amp;&amp; ARGS+=(--api-key "$LLM_API_KEY")
+          docker run --rm \
+            --add-host host.docker.internal:host-gateway \
+            -e OLLAMA_HOST="$OLLAMA_HOST" \
+            -v "$PWD/reports:/reports" \
+            llm-security-scanner \
+            "${ARGS[@]}"</span>
+      - <span class="kw">uses</span>: <span class="str">actions/upload-artifact@v4</span>
+        <span class="kw">if</span>: <span class="str">always()</span>
+        <span class="kw">with</span>:
+          <span class="kw">name</span>: <span class="str">llm-security-reports</span>
+          <span class="kw">path</span>: <span class="str">reports/</span></pre>
+      </div>
+
+      <h2>GitLab CI (Docker)</h2>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="cmt"># .gitlab-ci.yml</span>
+<span class="kw">llm-security-scan</span>:
+  <span class="kw">stage</span>: <span class="str">test</span>
+  <span class="kw">image</span>: <span class="str">docker:27</span>
+  <span class="kw">rules</span>:
+    - <span class="kw">if</span>: <span class="str">$CI_PIPELINE_SOURCE == "merge_request_event"</span>
+    - <span class="kw">if</span>: <span class="str">$CI_PIPELINE_SOURCE == "web"</span>
+  <span class="kw">services</span>:
+    - <span class="kw">name</span>: <span class="str">docker:27-dind</span>
+  <span class="kw">variables</span>:
+    <span class="kw">DOCKER_HOST</span>: <span class="str">tcp://docker:2375</span>
+    <span class="kw">DOCKER_TLS_CERTDIR</span>: <span class="str">""</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose — set as a CI/CD variable</span>
+    <span class="kw">OLLAMA_HOST</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose — set as a CI/CD variable</span>
+    <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">llama3.2:3b</span>
+    <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">"7.0"</span>
+    <span class="kw">LLM_SCANNER_VERSION</span>: <span class="str">""</span>  <span class="cmt"># empty = latest release from PyPI</span>
+  <span class="kw">before_script</span>:
+    - <span class="str">test -n "$LLM_ENDPOINT"</span>
+    - <span class="str">test -n "$OLLAMA_HOST"</span>
+    - <span class="str">|
+        cat &lt;&lt;'EOF' &gt; Dockerfile.llm-scanner
+        FROM python:3.11-slim
+        ARG SCANNER_VERSION=
+        RUN pip install --no-cache-dir "llm-security-scanner${SCANNER_VERSION:+==$SCANNER_VERSION}"
+        ENTRYPOINT ["llm-scanner"]
+        EOF
+        docker build --build-arg SCANNER_VERSION="$LLM_SCANNER_VERSION" -f Dockerfile.llm-scanner -t llm-security-scanner .</span>
+  <span class="kw">script</span>:
+    - <span class="str">|
+        mkdir -p reports
+        docker run --rm \
+          -e OLLAMA_HOST="$OLLAMA_HOST" \
+          -v "$CI_PROJECT_DIR/reports:/reports" \
+          llm-security-scanner \
+          --target "$LLM_ENDPOINT" \
+          --target-type url \
+          --judge-model "$LLM_JUDGE_MODEL" \
+          --format json,html,sarif \
+          --output-dir /reports \
+          --fail-on-score "$LLM_FAIL_ON_SCORE"</span>
+      <span class="cmt"># Add -e LLM_API_KEY="$LLM_API_KEY" and --api-key "$LLM_API_KEY" only if needed</span>
+  <span class="kw">artifacts</span>:
+    <span class="kw">when</span>: <span class="str">always</span>
+    <span class="kw">paths</span>:
+      - <span class="str">reports/</span></pre>
+      </div>
+    </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

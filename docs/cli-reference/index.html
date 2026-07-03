@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Reference — LLM Security Scanner</title>
+  <meta name="description" content="Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/cli-reference/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="CLI Reference — LLM Security Scanner">
+  <meta property="og:description" content="Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/cli-reference/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="CLI Reference — LLM Security Scanner">
+  <meta name="twitter:description" content="Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "CLI Reference — LLM Security Scanner",
+    "description": "Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/cli-reference/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/" class="active">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Reference</div>
+    <h1 class="docs-h1">CLI Reference</h1>
+    <p class="docs-lede">Every flag the <code>llm-scanner</code> command understands.</p>
+
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:1.5rem;">
+      <table class="cli-table">
+        <thead>
+          <tr>
+            <th>Flag</th>
+            <th>Required</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="flag-cell">--target</td>
+            <td class="req-yes">Yes</td>
+            <td class="default-cell">&mdash;</td>
+            <td>URL or Ollama model name to test</td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--target-type</td>
+            <td class="req-yes">Yes</td>
+            <td class="default-cell">&mdash;</td>
+            <td><code>url</code> or <code>ollama</code></td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--judge-model</td>
+            <td class="req-yes">Yes</td>
+            <td class="default-cell">&mdash;</td>
+            <td>Local Ollama model used as the AI evaluator</td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--categories</td>
+            <td class="req-no">No</td>
+            <td class="default-cell">LLM01&ndash;LLM09</td>
+            <td>Comma-separated OWASP categories to test. Example: <code>LLM01,LLM07</code></td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--severity</td>
+            <td class="req-no">No</td>
+            <td class="default-cell">all</td>
+            <td>Minimum severity to include: <code>critical</code> <code>high</code> <code>medium</code> <code>low</code> <code>info</code></td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--api-key</td>
+            <td class="req-no">No</td>
+            <td class="default-cell">None</td>
+            <td>Bearer token for authenticated endpoints. Never logged or printed.</td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--output-dir</td>
+            <td class="req-no">No</td>
+            <td class="default-cell">./reports</td>
+            <td>Directory for saved Markdown, JSON, and HTML reports</td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--format</td>
+            <td class="req-no">No</td>
+            <td class="default-cell">terminal only</td>
+            <td>Comma-separated output formats: <code>md</code>, <code>json</code>, <code>html</code></td>
+          </tr>
+          <tr>
+            <td class="flag-cell">--include-dos-tests</td>
+            <td class="req-no">No</td>
+            <td class="default-cell">off</td>
+            <td>Include LLM10 (Unbounded Consumption) probes. Only use against targets you own.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>See <a href="/docs/output-formats/">Output Formats</a> for what each <code>--format</code> value produces, and <a href="/docs/owasp-coverage/">OWASP LLM Top 10</a> for what <code>--categories</code> can filter on.</p>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

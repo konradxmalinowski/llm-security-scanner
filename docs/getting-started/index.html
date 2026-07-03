@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started — LLM Security Scanner</title>
+  <meta name="description" content="Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/getting-started/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="Getting Started — LLM Security Scanner">
+  <meta property="og:description" content="Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/getting-started/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Getting Started — LLM Security Scanner">
+  <meta name="twitter:description" content="Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Getting Started — LLM Security Scanner",
+    "description": "Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/getting-started/",
+    "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="/">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/docs/" class="active">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="docs-search-input" type="text" placeholder="Search docs">
+    </div>
+    <a class="topbar-action" href="/#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Overview</div>
+      <ul>
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/" class="active">Getting Started</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Scanning</div>
+      <ul>
+        <li><a href="/docs/cicd/">CI/CD Integration</a></li>
+      </ul>
+    </div>
+    <div class="docs-nav-group">
+      <div class="docs-nav-group-title">Reference</div>
+      <ul>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP LLM Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="docs-content">
+    <div class="docs-eyebrow">Overview</div>
+    <h1 class="docs-h1">Getting Started</h1>
+    <p class="docs-lede">Install the CLI, pull a local judge model, and run your first scan. The CLI and judge model run directly on your machine.</p>
+
+    <h2 id="prerequisites">Prerequisites</h2>
+    <p>Python 3.11+, <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener noreferrer">uv</a>, and <a href="https://ollama.com/" target="_blank" rel="noopener noreferrer">Ollama</a> running locally.</p>
+
+    <h2 id="install">1 — Install the scanner</h2>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><span class="cmt"># Install package (creates .venv automatically)</span>
+<span class="cmd">uv pip install -e</span> <span class="str">.</span>
+
+<span class="cmt"># For demo apps (Flask chatbots)</span>
+<span class="cmd">uv pip install -e</span> <span class="str">".[demo]"</span>
+
+<span class="cmt"># Verify CLI is available</span>
+<span class="cmd">llm-scanner</span> <span class="kw">--help</span></pre>
+    </div>
+
+    <h2 id="judge-model">2 — Pull a judge model</h2>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><span class="cmt"># Good balance of speed and quality</span>
+<span class="cmd">ollama pull</span> <span class="str">llama3.2:3b</span>
+
+<span class="cmt"># Or a larger, more accurate judge</span>
+<span class="cmd">ollama pull</span> <span class="str">llama3.1:8b</span></pre>
+    </div>
+
+    <h2 id="first-scan">3 — Run your first scan</h2>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><span class="cmd">llm-scanner</span> \
+  <span class="kw">--target</span>      <span class="url">http://localhost:5000/chat</span> \
+  <span class="kw">--target-type</span> <span class="str">url</span> \
+  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
+  <span class="kw">--format</span>      <span class="str">html</span> \
+  <span class="kw">--output-dir</span>  <span class="str">./reports</span></pre>
+    </div>
+
+    <div class="docs-callout">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div>Only have a public URL and don't want to install anything? A hosted, no-install public-URL scan (<a href="/#hosted-scan">preview here</a>) is on the roadmap — for now, run the CLI above against any public or private endpoint.</div>
+    </div>
+
+    <h2 id="next">Next steps</h2>
+    <ul>
+      <li>Wire the scanner into your pipeline — see <a href="/docs/cicd/">CI/CD Integration</a>.</li>
+      <li>Look up any flag — see <a href="/docs/cli-reference/">CLI Reference</a>.</li>
+      <li>Understand what each OWASP category tests — see <a href="/docs/owasp-coverage/">OWASP LLM Top 10</a>.</li>
+    </ul>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

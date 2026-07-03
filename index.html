@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Security Scanner — OWASP LLM Top 10 Testing</title>
+  <meta name="description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 46+ attack payloads, a local AI judge, and a risk score in minutes.">
+  <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LLM Security Scanner">
+  <meta property="og:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
+  <meta property="og:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 46+ attack payloads, a local AI judge, and a risk score in minutes.">
+  <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
+  <meta name="twitter:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025 with a local AI judge.">
+
+  <link rel="stylesheet" href="/static/theme.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "LLM Security Scanner",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "LLM Security Scanner",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Any",
+    "description": "Scans chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs with 46+ attack payloads and a local AI judge.",
+    "offers": [
+      { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "Premium Monthly", "price": "19", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "Premium Yearly", "price": "190", "priceCurrency": "USD" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "LLM Security Scanner",
+    "url": "https://konradxmalinowski.github.io/llm-security-scanner/",
+    "sameAs": ["https://github.com/konradxmalinowski/llm-security-scanner"]
+  }
+  </script>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a class="topbar-brand" href="#hero">LLM Security Scanner</a>
+  <div class="topbar-nav" aria-label="Primary navigation">
+    <a href="#hero" class="active">Home</a>
+    <a href="/docs/">Docs</a>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <div class="topbar-right">
+    <a class="topbar-search" href="/docs/">Search docs</a>
+    <a class="topbar-action" href="#hosted-scan">Run scanner ↗</a>
+  </div>
+</header>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav>
+  <a class="nav-logo" href="#hero">
+    <div class="nav-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    </div>
+    LLM Scanner
+  </a>
+  <ul class="nav-links">
+    <li class="nav-section-title">Get started</li>
+    <li><a href="#hero" class="active">Home</a></li>
+    <li><a href="#hosted-scan">Scan</a></li>
+    <li class="nav-section-title">Scanner</li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#coverage">OWASP Coverage</a></li>
+    <li class="nav-section-title">Documentation</li>
+    <li class="nav-group">
+      <a href="/docs/">Docs</a>
+      <ul class="nav-submenu">
+        <li><a href="/docs/">Introduction</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+        <li><a href="/docs/cicd/">CI/CD</a></li>
+        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/docs/owasp-coverage/">OWASP Top 10</a></li>
+        <li><a href="/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/docs/security/">Security Properties</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<main id="app-workspace">
+<section id="hero">
+  <h1 class="page-title">LLM Security Scanner</h1>
+  <div class="hero-quickstart">
+    <div class="hero-copy">
+      <div class="hero-badge">OWASP Top 10 for LLMs 2025</div>
+      <h2 class="hero-title">Security quickstart</h2>
+      <p class="hero-sub">
+        Find OWASP LLM Top 10 vulnerabilities before attackers do. Run 46+ real attack payloads against a chatbot or LLM-backed API and get a risk score in minutes.
+      </p>
+      <div class="hero-actions">
+        <a href="#hosted-scan" class="btn btn-primary">Start scanning</a>
+        <a href="/docs/" class="btn btn-ghost">Read the docs &rarr;</a>
+      </div>
+    </div>
+
+    <div class="hero-terminal">
+    <div class="terminal-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="term-line">
+      <span class="term-prompt">$</span>
+      <span class="term-cmd">llm-scanner</span>
+      <span class="term-flag"> --target</span>
+      <span class="term-val"> https://chat.example.com/api/chat</span>
+      <span class="term-flag"> --target-type</span>
+      <span class="term-val"> url</span>
+    </div>
+    <div class="term-line">
+      <span class="term-prompt">&nbsp;</span>
+      <span class="term-flag">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--judge-model</span>
+      <span class="term-val"> llama3.2:3b</span>
+      <span class="term-flag"> --format</span>
+      <span class="term-val"> html</span>
+    </div>
+    <br>
+    <div class="term-line"><span class="term-out">Payloads: 46 loaded  |  Judge: llama3.2:3b  |  Target: public URL</span></div>
+    <div class="term-line"><span class="term-out">Warming up judge model...</span></div>
+    <br>
+    <div class="term-line"><span class="term-out">[LLM01-003: Delimiter injection]  ######----  62%  28/46  0:00:34</span></div>
+    <br>
+    <div class="term-line"><span class="term-out">  LLM01-001  Classic ignore prev instructions  high      <span class="term-vuln">VULNERABLE</span></span></div>
+    <div class="term-line"><span class="term-out">  LLM01-002  Role injection DAN               critical  <span class="term-vuln">VULNERABLE</span></span></div>
+    <div class="term-line"><span class="term-out">  LLM07-001  System prompt extraction         critical  <span class="term-vuln">VULNERABLE</span></span></div>
+    <div class="term-line"><span class="term-out">  LLM02-001  PII extraction via context       medium    <span class="term-safe">Safe</span></span></div>
+    <br>
+    <div class="term-line"><span class="term-out">Attacks: 28/46 succeeded  |  Risk Score: <span class="term-score">8.5/10.0  HIGH</span></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOSTED SCAN ──────────────────────────────────────────── -->
+<section id="hosted-scan">
+  <div class="section-label">Public scanner</div>
+  <h2 class="section-title">Scan a public LLM URL</h2>
+  <p class="section-sub">Paste a public endpoint, choose the scan scope, and inspect the generated reports. Private or internal targets should use the <a href="/docs/getting-started/" style="color:var(--accent);">local CLI</a>.</p>
+
+  <div class="hosted-scan">
+    <div class="scan-form-panel">
+      <div class="scan-panel-head">
+        <div class="section-label">Coming soon</div>
+        <div class="scan-panel-title">Free public scan</div>
+        <div class="scan-panel-sub">Running a hosted scan against a public URL straight from this page is on the roadmap. It isn't available yet &mdash; there is no live form here today.</div>
+      </div>
+      <p class="scan-panel-sub">In the meantime, install the CLI and run the exact same scanner engine locally against any public or private endpoint.</p>
+      <div class="scan-primary-row">
+        <a href="/docs/getting-started/" class="btn btn-primary">Run the CLI today &rarr;</a>
+        <div class="scan-footnote">Full installation and first-scan walkthrough in the docs.</div>
+      </div>
+    </div>
+
+    <div class="scan-preview-panel">
+      <div class="scan-preview-head">
+        <div class="scan-preview-title">Live output</div>
+        <div class="scan-preview-sub">This is what a scan run looks like &mdash; from the CLI, on your own machine.</div>
+      </div>
+      <div class="scan-terminal-wrap">
+        <div class="hero-terminal scan-output" id="scan-output">
+          <div class="terminal-dots"><span></span><span></span><span></span></div>
+          <div class="term-line"><span class="term-out">Hosted scanning is coming soon. Run the CLI locally today.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── USE CASES ─────────────────────────────────────────────── -->
+<section id="use-cases">
+  <div class="section-label">Use cases</div>
+  <h2 class="section-title-sm">Local CLI and CI/CD for repeat or private scans</h2>
+  <p class="section-sub">Hosted scanning of a single public URL is coming soon. For localhost, Docker, staging, VPN targets, and repeat scans, run the CLI in your own environment today.</p>
+
+  <div class="teaser-grid">
+    <div class="teaser-card">
+      <div class="card-icon-box">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      </div>
+      <div class="teaser-title">CI/CD pipeline</div>
+      <div class="teaser-desc">Run the scanner as a gate in GitHub Actions or GitLab CI. Block merges when the risk score exceeds your threshold.</div>
+      <a class="teaser-link" href="/docs/cicd/">View CI/CD guide &rarr;</a>
+    </div>
+    <div class="teaser-card">
+      <div class="card-icon-box">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <div class="teaser-title">Local endpoint</div>
+      <div class="teaser-desc">Point the CLI at a chatbot on <code>localhost</code> or another loopback address &mdash; no waiting on the hosted scan for that.</div>
+      <a class="teaser-link" href="/docs/getting-started/">View getting started guide &rarr;</a>
+    </div>
+    <div class="teaser-card">
+      <div class="card-icon-box">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div class="teaser-title">Docker &amp; containers</div>
+      <div class="teaser-desc">Build the scanner into a container image and run it against services on your Docker network or internal VPN.</div>
+      <a class="teaser-link" href="/docs/cicd/">View Docker examples &rarr;</a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── HOW IT WORKS ─────────────────────────────────────────── -->
+<section id="how-it-works">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">From one command to a full security report</h2>
+  <p class="section-sub">The scanner handles everything — preflight, payload dispatch, AI judging, and report generation.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Preflight</div>
+      <div class="step-desc">Confirms Ollama is running, both models are pulled, and the target is reachable before firing a single payload.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">Load Payloads</div>
+      <div class="step-desc">Reads YAML attack files from <code>payloads/</code>, filters by requested categories and minimum severity.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">Fire Attacks</div>
+      <div class="step-desc">Dispatches each payload concurrently (3 at a time via <code>asyncio.Semaphore</code>), collects raw responses.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-title">AI Judge</div>
+      <div class="step-desc">Sends each <em>(payload, response)</em> pair to a local Ollama model for a structured verdict — no cloud required.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">05</div>
+      <div class="step-title">Report</div>
+      <div class="step-desc">Prints Rich table to terminal, saves Markdown / JSON / HTML with risk score and per-finding reasoning.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── OWASP COVERAGE ───────────────────────────────────────── -->
+<section id="coverage">
+  <div class="section-label">Coverage</div>
+  <h2 class="section-title">All 10 OWASP LLM categories</h2>
+  <p class="section-sub">Every vulnerability from the OWASP Top 10 for LLMs 2025 is covered with dedicated payloads, severity levels, and judge criteria.</p>
+
+  <div class="owasp-grid">
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM01</div>
+      <div class="owasp-title">Prompt Injection</div>
+      <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM02</div>
+      <div class="owasp-title">Sensitive Information Disclosure</div>
+      <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM03</div>
+      <div class="owasp-title">Supply Chain</div>
+      <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM04</div>
+      <div class="owasp-title">Data &amp; Model Poisoning</div>
+      <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM05</div>
+      <div class="owasp-title">Improper Output Handling</div>
+      <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM06</div>
+      <div class="owasp-title">Excessive Agency</div>
+      <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM07</div>
+      <div class="owasp-title">System Prompt Leakage</div>
+      <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM08</div>
+      <div class="owasp-title">Vector &amp; Embedding Weaknesses</div>
+      <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card">
+      <div class="owasp-badge">LLM09</div>
+      <div class="owasp-title">Misinformation</div>
+      <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+    </div>
+    <div class="owasp-card" style="border-color: #f8717133;">
+      <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
+      <div class="owasp-title">Unbounded Consumption</div>
+      <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
+      <div class="owasp-payloads" style="color: #f87171;">5 payloads &mdash; <code>--include-dos-tests</code></div>
+    </div>
+  </div>
+
+  <a class="section-link" href="/docs/owasp-coverage/">Full breakdown of every category in the Docs &rarr;</a>
+</section>
+
+<!-- ── QUICK START ───────────────────────────────────────────── -->
+<section id="quickstart">
+  <div class="section-label">Installation</div>
+  <h2 class="section-title-sm">Up and running in three commands</h2>
+  <p class="section-sub">Prerequisites: Python 3.11+, <a href="https://docs.astral.sh/uv/" style="color:var(--accent); text-decoration:none;">uv</a>, and <a href="https://ollama.com/" style="color:var(--accent); text-decoration:none;">Ollama</a> running locally.</p>
+
+  <div class="code-block" style="max-width:720px;">
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    <pre><span class="cmt"># 1. Install and pull a judge model</span>
+<span class="cmd">uv pip install -e</span> <span class="str">.</span>  &amp;&amp;  <span class="cmd">ollama pull</span> <span class="str">llama3.2:3b</span>
+
+<span class="cmt"># 2. Run your first scan</span>
+<span class="cmd">llm-scanner</span> \
+  <span class="kw">--target</span>      <span class="url">http://localhost:5000/chat</span> \
+  <span class="kw">--target-type</span> <span class="str">url</span> \
+  <span class="kw">--judge-model</span> <span class="str">llama3.2:3b</span> \
+  <span class="kw">--format</span>      <span class="str">html</span></pre>
+  </div>
+
+  <a class="section-link" href="/docs/getting-started/">Full installation guide in the Docs &rarr;</a>
+</section>
+
+<!-- ── REFERENCE TEASER ─────────────────────────────────────── -->
+<section id="reference">
+  <div class="section-label">Reference</div>
+  <h2 class="section-title-sm">Flags, output formats, and how it stays secure</h2>
+  <p class="section-sub">Full details live in the docs so this page stays a landing page, not a manual.</p>
+
+  <div class="teaser-grid">
+    <div class="teaser-card">
+      <div class="card-icon-box">
+        <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      </div>
+      <div class="teaser-title">CLI reference</div>
+      <div class="teaser-desc">Every flag the scanner understands &mdash; <code>--target</code>, <code>--categories</code>, <code>--severity</code>, <code>--format</code>, and more.</div>
+      <a class="teaser-link" href="/docs/cli-reference/">View CLI reference &rarr;</a>
+    </div>
+    <div class="teaser-card">
+      <div class="card-icon-box">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="teaser-title">Output formats</div>
+      <div class="teaser-desc">Terminal, Markdown, JSON, and self-contained HTML reports &mdash; colour-coded by severity, safe by default.</div>
+      <a class="teaser-link" href="/docs/output-formats/">View report formats &rarr;</a>
+    </div>
+    <div class="teaser-card">
+      <div class="card-icon-box">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="teaser-title">Built secure by default</div>
+      <div class="teaser-desc">Fully offline judge, XSS-safe HTML reports, an opt-in DoS gate, and safe YAML parsing throughout.</div>
+      <a class="teaser-link" href="/docs/security/">View security properties &rarr;</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer-wrap">
+  <div class="footer-bottom">
+    <span class="footer-copy">LLM Security Scanner · OWASP Top 10 for LLMs 2025</span>
+    <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+  </div>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
