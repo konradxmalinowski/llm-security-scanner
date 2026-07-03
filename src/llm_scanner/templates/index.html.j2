@@ -25,9 +25,13 @@
     <canvas id="trendChart" width="800" height="300"></canvas>
   </div>
 
-  {# Chart.js loaded via CDN — requires internet access in the browser to render the chart.
-     For air-gapped environments, Chart.js (~200KB) can be embedded inline as a future enhancement. #}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  {# Chart.js v4.5.1 (UMD, minified) is vendored at templates/vendor/chart.umd.min.js and inlined
+     here as raw text so the report is fully self-contained — no external requests, no internet
+     access required to view it. {% include %} is used (not {{ }}) so autoescape=True does not
+     HTML-escape the JS source. #}
+  <script>
+    {% include "vendor/chart.umd.min.js" %}
+  </script>
   <script>
     new Chart(document.getElementById('trendChart'), {
       type: 'line',
