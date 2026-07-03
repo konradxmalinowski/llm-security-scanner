@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="LLM Security Scanner shield logo">
+  <rect width="32" height="32" rx="6" fill="#0c0c0c"/>
+  <path d="M16 5 L25 8 V16 C25 21.5 21 25.5 16 27 C11 25.5 7 21.5 7 16 V8 Z" fill="#a78bfa"/>
+  <circle cx="16" cy="15.5" r="2.6" fill="#0c0c0c"/>
+  <rect x="14.6" y="17" width="2.8" height="4.2" rx="1.2" fill="#0c0c0c"/>
+</svg>
