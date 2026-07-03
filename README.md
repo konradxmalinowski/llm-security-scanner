@@ -388,6 +388,8 @@ Best for testing: **LLM01** (Prompt Injection), **LLM07** (System Prompt Leakage
 
 A Flask wrapper around a genuine OpenAI model, giving the scanner realistic LLM responses to evaluate. Uses the same `/chat` + `/health` interface as the vulnerable app.
 
+> **Note:** unlike the rest of this project, this demo app sends every payload to the real OpenAI API — it is the one place data leaves your machine. See [Data handling & operator responsibility](#data-handling--operator-responsibility) for what that means for report files generated from scanning it.
+
 **Setup:**
 
 ```bash
@@ -574,11 +576,26 @@ Every scan also regenerates `<output_dir>/index.html` — a Chart.js dashboard p
 
 ## Security properties
 
-- **Offline-first** — all judge inference runs via local Ollama; no calls to OpenAI, Anthropic, or any cloud API
+- **Offline-first** — the scanner and judge never call OpenAI, Anthropic, or any cloud API; all judge inference runs via local Ollama. The one exception is the *optional* `demo/chatbot_openai_app.py` demo target, which by design calls the real OpenAI API — see [Data handling & operator responsibility](#data-handling--operator-responsibility) below.
 - **API key safety** — `--api-key` is sent as a `Bearer` header only; never logged or printed in error messages
 - **XSS-safe HTML reports** — Jinja2 `autoescape=True`; attack payloads containing `<script>` render as escaped text
 - **DoS gate** — LLM10 (Unbounded Consumption) requires `--include-dos-tests`; never fired by default
 - **No `yaml.load()`** — all YAML is parsed with `yaml.safe_load()` (Ruff S506 enforced in CI)
+
+---
+
+## Data handling & operator responsibility
+
+The scanner's report files (`report.md`, `report.json`, `report.html`, `report.sarif`, and the trend `index.html`) capture the **full raw content** of every attack: the exact payload sent, the target's exact response, and the judge's reasoning (`AttackResult.payload` / `.response` / `.judge_reasoning`). This is by design — full-fidelity output is what makes a finding reviewable and reproducible.
+
+The practical consequence: if the scanned target's response contains real personal data (an actual leaked email, name, or other PII, which is exactly what LLM02/LLM07 payloads are designed to surface when they succeed), that data is written verbatim into local report files under `--output-dir` (default `./reports/`). The scanner does **not** redact, anonymise, or filter response content in any report format.
+
+This is expected and unavoidable for a tool whose job is to prove a leak occurred, but it means the **operator running the scan is responsible for how those report files are subsequently handled**, in line with whatever data protection obligations (e.g. GDPR/RODO) apply to the target being tested:
+
+- `reports/` is gitignored by default — do not force-add or otherwise commit scan output, especially from scans against staging/production targets that may return real user data.
+- Treat report files from any scan against a non-synthetic target as potentially containing personal data, and apply your organisation's normal retention/deletion policy to them (they are plain files on local disk — delete or move them like any other sensitive artifact).
+- The trend dashboard (`index.html`) aggregates data from every historical `report.json` under an output directory — clearing old reports also removes them from the dashboard on the next regeneration.
+- The `demo/chatbot_openai_app.py` demo app (see [Option B](#option-b--real-openai-chatbot-requires-api-key)) sends every payload to the real OpenAI API as part of generating its response — this is the one path in this project where data leaves your machine. It's opt-in, requires your own API key, and is intended for realistic local testing, not for scanning data you don't control.
 
 ---
 

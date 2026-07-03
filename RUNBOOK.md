@@ -446,6 +446,10 @@ The JSON file contains the full `ScanReport` structure. Each finding includes:
 
 Open `report.html` inside the scan's timestamped subfolder (e.g. `reports/20260703T175300_localhost_5000_chat/report.html`) in any browser. Rows are color-coded by severity. Currently shows: ID, Category, Name, Severity, Result, Payload, Recommendation.
 
+### A note on what's in these files
+
+Every report format writes the full raw `payload`, `response`, and `judge_reasoning` for each finding, unredacted. If a scanned target leaks real personal data (an actual email, name, etc. -- the exact thing LLM02/LLM07 payloads are designed to surface), that data ends up verbatim in your local `reports/` files. `reports/` is gitignored by default -- keep it that way, and handle/delete report files from real scans per your own data-retention obligations. See README's "Data handling & operator responsibility" section for the full explanation.
+
 ---
 
 ## 10. Running the test suite
