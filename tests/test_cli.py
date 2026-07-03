@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -679,13 +680,18 @@ def test_workflow_yaml_valid() -> None:
 
 
 def test_workflow_contains_required_steps() -> None:
-    """Workflow YAML contains all required steps and flags."""
+    """Workflow YAML contains all required steps and flags.
+
+    Action references are matched by name only, not exact version pin --
+    Dependabot bumps these pins over time, and hardcoding a version here
+    would make every automated bump PR fail this test for no real reason.
+    """
     workflow_path = (
         Path(__file__).parent.parent / ".github" / "workflows" / "llm-scan.yml"
     )
     content = workflow_path.read_text()
-    assert "actions/checkout@v4" in content
-    assert "upload-sarif@v3" in content
+    assert re.search(r"actions/checkout@v\d+", content)
+    assert re.search(r"upload-sarif@v\d+", content)
     assert "if: always()" in content
     assert "timeout-minutes: 60" in content
 
