@@ -8,15 +8,23 @@ from llm_scanner.models import Payload, Severity
 
 
 class YamlPayloadLoader:
-    def __init__(self, payload_dir: Path) -> None:
-        self._dir = payload_dir
+    def __init__(self, payload_dir: Path | list[Path]) -> None:
+        dirs = [payload_dir] if isinstance(payload_dir, Path) else list(payload_dir)
+        for d in dirs:
+            if not d.is_dir():
+                raise ValueError(f"Payload directory does not exist: {d}")
+        self._dirs = dirs
 
     def load(
         self,
         categories: list[str] | None = None,
         severity: Severity | None = None,
     ) -> list[Payload]:
-        """Load payloads from the main directory (excludes extended/ subdirectory).
+        """Load payloads from the configured directories (excludes extended/ subdirectory).
+
+        When multiple directories are configured, payloads from all of them are
+        merged into a single result list. Duplicate payload IDs across directories
+        are not treated as an error -- both entries are kept.
 
         Args:
             categories: If set, only include payloads whose category is in this list.
@@ -28,7 +36,8 @@ class YamlPayloadLoader:
             categories = [c.upper() for c in categories]
 
         results: list[Payload] = []
-        for path in sorted(self._dir.glob("*.yaml")):
+        paths = sorted(p for d in self._dirs for p in d.glob("*.yaml"))
+        for path in paths:
             try:
                 with path.open(encoding="utf-8") as f:
                     file_data = yaml.safe_load(f)

@@ -89,6 +89,7 @@ class ScanConfig(BaseModel):
     include_dos_tests: bool | None = None
     fail_on_score: float | None = None
     suppressions_file: str | Path | None = None
+    payloads_dir: str | Path | None = None
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -192,6 +193,25 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="YAML file with suppression rules to exclude known false positives (ADV-05)",
     )
+    parser.add_argument(
+        "--payloads-dir",
+        dest="payloads_dir",
+        type=Path,
+        default=None,
+        help="Directory with additional YAML payload files, loaded alongside the bundled library",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=2,
+        help="Retry attempts for HTTP target requests on transient timeout/5xx errors (default: 2)",
+    )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=3,
+        help="Maximum number of attacks run concurrently against the target (default: 3)",
+    )
 
     # Subcommands for baseline management (ADV-02)
     # CRITICAL: add_subparsers MUST be called before set_defaults
@@ -273,6 +293,8 @@ def _apply_config_file(args: argparse.Namespace) -> argparse.Namespace:
         args.fail_on_score = cfg.fail_on_score
     if args.suppressions_file is None and cfg.suppressions_file is not None:
         args.suppressions_file = Path(cfg.suppressions_file)
+    if args.payloads_dir is None and cfg.payloads_dir is not None:
+        args.payloads_dir = Path(cfg.payloads_dir)
 
     return args
 
@@ -406,7 +428,8 @@ async def _run(args: argparse.Namespace) -> None:
         check_http_target_reachable(args.target, getattr(args, "api_key", None))
 
     # 3. Load and filter payloads
-    loader = YamlPayloadLoader(_PAYLOAD_DIR)
+    payloads_dir = getattr(args, "payloads_dir", None)
+    loader = YamlPayloadLoader([_PAYLOAD_DIR, payloads_dir] if payloads_dir else _PAYLOAD_DIR)
     payloads = loader.load(categories=categories)
 
     # CLI-04: minimum severity filter (post-load, because loader does exact-match only)
@@ -429,6 +452,7 @@ async def _run(args: argparse.Namespace) -> None:
         target=args.target,
         api_key=getattr(args, "api_key", None),
         ollama_host=_OLLAMA_HOST,
+        retries=args.retries,
     )
     judge = OllamaJudge(model=args.judge_model, host=_OLLAMA_HOST)
 
@@ -443,6 +467,7 @@ async def _run(args: argparse.Namespace) -> None:
             judge=judge,
             payloads=payloads,
             target_label=args.target,
+            concurrency=args.concurrency,
         )
         report = await scanner.scan()
 

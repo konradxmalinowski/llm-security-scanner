@@ -14,6 +14,12 @@ from llm_scanner.targets.ollama_target import OllamaTarget
 # asyncio_mode = "auto" is set in pyproject.toml — no @pytest.mark.asyncio needed
 
 
+@pytest.fixture(autouse=True)
+def _no_real_backoff_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Avoid real exponential-backoff delays (retry tests would otherwise sleep for real)."""
+    monkeypatch.setattr("llm_scanner.targets.http.asyncio.sleep", AsyncMock())
+
+
 # ---------------------------------------------------------------------------
 # HttpTarget tests (TARGET-01)
 # ---------------------------------------------------------------------------
@@ -66,6 +72,72 @@ async def test_http_target_raises_on_connect_error(mock_httpx_client: AsyncMock)
         target = HttpTarget(url="http://example.com/chat")
         with pytest.raises(TargetError, match="Connection failed"):
             await target.send("hello")
+
+
+# ---------------------------------------------------------------------------
+# HttpTarget retry/backoff tests (--retries)
+# ---------------------------------------------------------------------------
+
+
+async def test_http_target_retries_on_5xx_then_succeeds(
+    mock_httpx_client: AsyncMock, mock_httpx_response: MagicMock
+) -> None:
+    """A 503 followed by a 200 succeeds after exactly one retry (default retries=2)."""
+    resp_503 = MagicMock()
+    resp_503.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "error", request=MagicMock(), response=MagicMock(status_code=503, text="unavailable")
+    )
+    mock_httpx_client.post.side_effect = [resp_503, mock_httpx_response]
+
+    with patch("llm_scanner.targets.http.httpx.AsyncClient", return_value=mock_httpx_client):
+        target = HttpTarget(url="http://example.com/chat")
+        result = await target.send("hello")
+
+    assert result == "mocked response"
+    assert mock_httpx_client.post.call_count == 2
+
+
+async def test_http_target_4xx_fails_immediately_no_retry(
+    mock_httpx_client: AsyncMock,
+) -> None:
+    """A 401 (client error) is not transient -- fails on the first attempt, no retry."""
+    resp_401 = MagicMock()
+    resp_401.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "error", request=MagicMock(), response=MagicMock(status_code=401, text="unauthorized")
+    )
+    mock_httpx_client.post.return_value = resp_401
+
+    with patch("llm_scanner.targets.http.httpx.AsyncClient", return_value=mock_httpx_client):
+        target = HttpTarget(url="http://example.com/chat")
+        with pytest.raises(TargetError, match="HTTP 401"):
+            await target.send("hello")
+
+    assert mock_httpx_client.post.call_count == 1
+
+
+async def test_http_target_retries_zero_disables_retry(mock_httpx_client: AsyncMock) -> None:
+    """retries=0 preserves the exact pre-retry behavior: a single attempt, no retry."""
+    mock_httpx_client.post.side_effect = httpx.ConnectError("refused")
+
+    with patch("llm_scanner.targets.http.httpx.AsyncClient", return_value=mock_httpx_client):
+        target = HttpTarget(url="http://example.com/chat", retries=0)
+        with pytest.raises(TargetError, match="Connection failed"):
+            await target.send("hello")
+
+    assert mock_httpx_client.post.call_count == 1
+
+
+async def test_http_target_exhausts_retries_then_raises(mock_httpx_client: AsyncMock) -> None:
+    """After retries are exhausted, the original TargetError is raised (default retries=2)."""
+    mock_httpx_client.post.side_effect = httpx.ReadTimeout("timed out", request=MagicMock())
+
+    with patch("llm_scanner.targets.http.httpx.AsyncClient", return_value=mock_httpx_client):
+        target = HttpTarget(url="http://example.com/chat")
+        with pytest.raises(TargetError, match="timed out"):
+            await target.send("hello")
+
+    # 1 initial attempt + 2 retries = 3 total calls
+    assert mock_httpx_client.post.call_count == 3
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +219,18 @@ def test_target_interface_compliance() -> None:
 def test_factory_creates_http_target() -> None:
     result = TargetFactory.from_config("url", "http://example.com")
     assert isinstance(result, HttpTarget)
+
+
+def test_factory_default_retries_is_two() -> None:
+    result = TargetFactory.from_config("url", "http://example.com")
+    assert isinstance(result, HttpTarget)
+    assert result._retries == 2
+
+
+def test_factory_forwards_retries_to_http_target() -> None:
+    result = TargetFactory.from_config("url", "http://example.com", retries=5)
+    assert isinstance(result, HttpTarget)
+    assert result._retries == 5
 
 
 def test_factory_creates_ollama_target() -> None:

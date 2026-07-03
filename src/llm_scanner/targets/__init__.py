@@ -15,6 +15,7 @@ class TargetFactory:
         api_key: str | None = None,
         ollama_host: str = "http://localhost:11434",
         timeout: float = 30.0,
+        retries: int = 2,
     ) -> AbstractTarget:
         """Instantiate the correct target implementation.
 
@@ -23,6 +24,7 @@ class TargetFactory:
             target: URL (for "url") or Ollama model name (for "ollama")
             api_key: Optional Bearer token (URL targets only)
             timeout: Read timeout in seconds
+            retries: Retry attempts on transient errors (URL targets only)
 
         Returns:
             An AbstractTarget instance ready to receive send() calls.
@@ -32,7 +34,7 @@ class TargetFactory:
         """
         match target_type:
             case "url":
-                return HttpTarget(url=target, api_key=api_key, timeout=timeout)
+                return HttpTarget(url=target, api_key=api_key, timeout=timeout, retries=retries)
             case "ollama":
                 return OllamaTarget(model=target, host=ollama_host, timeout=timeout)
             case _:

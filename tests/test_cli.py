@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+import llm_scanner.cli as cli_module
 from llm_scanner.cli import (
     _SAFE_CATEGORIES,
     _SEVERITY_RANK,
@@ -16,8 +17,9 @@ from llm_scanner.cli import (
     _resolve_categories,
     _ScanAbort,
 )
-from llm_scanner.models import AttackResult, ScanReport, Severity
+from llm_scanner.models import AttackResult, Payload, ScanReport, Severity
 from llm_scanner.scanner import LLMScanner
+from llm_scanner.targets.base import AbstractTarget
 
 # asyncio_mode = "auto" is set in pyproject.toml — no @pytest.mark.asyncio needed
 
@@ -151,6 +153,7 @@ def test_apply_config_file_populates_missing_values(tmp_path: Path) -> None:
                 "  - sarif",
                 "output_dir: ./ci-reports",
                 "fail_on_score: 7.0",
+                "payloads_dir: ./custom-payloads",
             ]
         ),
         encoding="utf-8",
@@ -167,6 +170,7 @@ def test_apply_config_file_populates_missing_values(tmp_path: Path) -> None:
     assert result.formats == "json,sarif"
     assert result.output_dir == Path("./ci-reports")
     assert result.fail_on_score == 7.0
+    assert result.payloads_dir == Path("./custom-payloads")
 
 
 def test_apply_config_file_keeps_cli_overrides(tmp_path: Path) -> None:
@@ -176,7 +180,8 @@ def test_apply_config_file_keeps_cli_overrides(tmp_path: Path) -> None:
         "target: https://config.example/chat\n"
         "target_type: url\n"
         "judge_model: llama3.2:3b\n"
-        "severity: medium\n",
+        "severity: medium\n"
+        "payloads_dir: ./config-payloads\n",
         encoding="utf-8",
     )
 
@@ -188,6 +193,8 @@ def test_apply_config_file_keeps_cli_overrides(tmp_path: Path) -> None:
             "https://cli.example/chat",
             "--severity",
             "high",
+            "--payloads-dir",
+            "cli-payloads",
         ]
     )
     result = _apply_config_file(args)
@@ -196,6 +203,7 @@ def test_apply_config_file_keeps_cli_overrides(tmp_path: Path) -> None:
     assert result.severity == "high"
     assert result.target_type == "url"
     assert result.judge_model == "llama3.2:3b"
+    assert result.payloads_dir == Path("cli-payloads")
 
 
 def test_parser_ollama_target_type() -> None:
@@ -386,6 +394,42 @@ def test_build_parser_suppressions_default_is_none() -> None:
     assert args.suppressions_file is None
 
 
+def test_build_parser_has_payloads_dir_flag() -> None:
+    """--payloads-dir is parsed as a Path into args.payloads_dir."""
+    args = _parse("--payloads-dir", "custom-payloads/")
+    assert args.payloads_dir == Path("custom-payloads/")
+
+
+def test_build_parser_payloads_dir_default_is_none() -> None:
+    """--payloads-dir defaults to None when not provided."""
+    args = _parse()
+    assert args.payloads_dir is None
+
+
+def test_build_parser_has_retries_flag() -> None:
+    """--retries is parsed as an int into args.retries."""
+    args = _parse("--retries", "5")
+    assert args.retries == 5
+
+
+def test_build_parser_retries_default_is_two() -> None:
+    """--retries defaults to 2 when not provided."""
+    args = _parse()
+    assert args.retries == 2
+
+
+def test_build_parser_has_concurrency_flag() -> None:
+    """--concurrency is parsed as an int into args.concurrency."""
+    args = _parse("--concurrency", "5")
+    assert args.concurrency == 5
+
+
+def test_build_parser_concurrency_default_is_three() -> None:
+    """--concurrency defaults to 3 when not provided (preserves current behavior)."""
+    args = _parse()
+    assert args.concurrency == 3
+
+
 def test_build_parser_baseline_save() -> None:
     """baseline save subcommand sets command='baseline', baseline_action='save', name='prod'."""
     args = _build_parser().parse_args([
@@ -493,6 +537,131 @@ def test_suppressions_applied_before_fail_check(tmp_path: Path) -> None:
     result = _apply_suppressions(original, sup_file)
     assert result.risk_score == 0.0, f"Expected 0.0, got {result.risk_score}"
     assert result.findings[0].suppressed is True
+
+
+# --- --concurrency wiring (Quick Win #3) ---
+
+
+async def test_run_forwards_concurrency_to_scanner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--concurrency N reaches the LLMScanner constructor call inside _run()."""
+    captured: dict[str, object] = {}
+
+    class _FakeTarget(AbstractTarget):
+        async def send(self, prompt: str) -> str:
+            return "ok"
+
+    class _RecordingScanner:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+        async def scan(self) -> ScanReport:
+            return ScanReport(
+                target="http://example.com/chat",
+                timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+                risk_score=0.0,
+                findings=[],
+            )
+
+    class _FakeLoader:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def load(self, **_kwargs: object) -> list[Payload]:
+            return [
+                Payload(
+                    id="LLM01-001",
+                    name="Test",
+                    category="LLM01",
+                    severity=Severity.HIGH,
+                    payload="hi",
+                    judge_criteria="crit",
+                )
+            ]
+
+    monkeypatch.setattr(cli_module, "check_ollama_running", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_model_available", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_judge_differs_from_target", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_http_target_reachable", lambda *a, **k: None)
+
+    async def _fake_warm_up(_judge: object) -> None:
+        return None
+
+    monkeypatch.setattr(cli_module, "warm_up_judge", _fake_warm_up)
+    monkeypatch.setattr(cli_module, "YamlPayloadLoader", _FakeLoader)
+    monkeypatch.setattr(cli_module.TargetFactory, "from_config", lambda **kw: _FakeTarget())
+    monkeypatch.setattr(cli_module, "OllamaJudge", lambda **kw: object())
+    monkeypatch.setattr(cli_module, "LLMScanner", _RecordingScanner)
+
+    args = _parse("--concurrency", "5")
+    args.output_dir = tmp_path
+    args.formats = ""  # skip file reporters -- not under test here
+
+    await cli_module._run(args)
+
+    assert captured["concurrency"] == 5
+
+
+async def test_run_forwards_default_concurrency_to_scanner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without --concurrency, the default of 3 still reaches LLMScanner (no behavior change)."""
+    captured: dict[str, object] = {}
+
+    class _FakeTarget(AbstractTarget):
+        async def send(self, prompt: str) -> str:
+            return "ok"
+
+    class _RecordingScanner:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+        async def scan(self) -> ScanReport:
+            return ScanReport(
+                target="http://example.com/chat",
+                timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+                risk_score=0.0,
+                findings=[],
+            )
+
+    class _FakeLoader:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def load(self, **_kwargs: object) -> list[Payload]:
+            return [
+                Payload(
+                    id="LLM01-001",
+                    name="Test",
+                    category="LLM01",
+                    severity=Severity.HIGH,
+                    payload="hi",
+                    judge_criteria="crit",
+                )
+            ]
+
+    monkeypatch.setattr(cli_module, "check_ollama_running", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_model_available", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_judge_differs_from_target", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_http_target_reachable", lambda *a, **k: None)
+
+    async def _fake_warm_up(_judge: object) -> None:
+        return None
+
+    monkeypatch.setattr(cli_module, "warm_up_judge", _fake_warm_up)
+    monkeypatch.setattr(cli_module, "YamlPayloadLoader", _FakeLoader)
+    monkeypatch.setattr(cli_module.TargetFactory, "from_config", lambda **kw: _FakeTarget())
+    monkeypatch.setattr(cli_module, "OllamaJudge", lambda **kw: object())
+    monkeypatch.setattr(cli_module, "LLMScanner", _RecordingScanner)
+
+    args = _parse()
+    args.output_dir = tmp_path
+    args.formats = ""
+
+    await cli_module._run(args)
+
+    assert captured["concurrency"] == 3
 
 
 # --- GitHub Actions workflow smoke test (ADV-01) ---
