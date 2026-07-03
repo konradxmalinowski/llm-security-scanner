@@ -516,8 +516,17 @@ def test_workflow_contains_required_steps() -> None:
     )
     content = workflow_path.read_text()
     assert "actions/checkout@v4" in content
-    assert "--fail-on-score" in content
-    assert "json,sarif" in content
     assert "upload-sarif@v3" in content
     assert "if: always()" in content
     assert "timeout-minutes: 60" in content
+
+
+def test_composite_action_contains_required_flags() -> None:
+    """Composite action YAML contains the scan flags moved out of llm-scan.yml."""
+    action_path = (
+        Path(__file__).parent.parent / ".github" / "actions" / "llm-scan" / "action.yml"
+    )
+    assert action_path.exists(), f"Composite action file not found at {action_path}"
+    content = action_path.read_text()
+    assert "--fail-on-score" in content
+    assert "json,html,sarif" in content
