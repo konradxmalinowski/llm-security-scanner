@@ -83,6 +83,16 @@
   }
 
   // ── Landing docs router: load docs into the workspace without leaving the page ──
+  // GitHub Pages serves this as a project page under /llm-security-scanner/, not
+  // at the domain root, so every path comparison below must account for that
+  // base prefix instead of assuming '/' and '/docs' are the real root paths.
+  const SITE_BASE = '/llm-security-scanner';
+  const HOME_PATH = SITE_BASE + '/';
+  const DOCS_BASE = SITE_BASE + '/docs';
+  function isDocsPath(pathname) {
+    return pathname === DOCS_BASE || pathname.startsWith(DOCS_BASE + '/');
+  }
+
   const appWorkspace = document.getElementById('app-workspace');
   if (appWorkspace) {
     const landingShell = document.createElement('div');
@@ -116,18 +126,20 @@
     }
 
     function setActiveDocsLink(pathname) {
-      const normalizedPath = pathname || '/';
-      const isDocsPath = normalizedPath === '/docs' || normalizedPath.startsWith('/docs/');
+      const normalizedPath = pathname || HOME_PATH;
+      const onDocsPath = isDocsPath(normalizedPath);
       document.querySelectorAll('.nav-submenu a, .topbar-nav a').forEach((link) => {
         const href = link.getAttribute('href');
         const linkPath = href ? new URL(href, window.location.origin).pathname : '';
-        const shouldBeActive = isDocsPath && linkPath === normalizedPath;
+        const shouldBeActive = onDocsPath && linkPath === normalizedPath;
         link.classList.toggle('active', shouldBeActive);
       });
-      if (window.location.pathname === '/docs' || window.location.pathname.startsWith('/docs/')) {
-        document.querySelectorAll('.topbar-nav a[href="/docs"], .nav-submenu a[href="/docs"]').forEach((link) => {
-          link.classList.add('active');
-        });
+      if (isDocsPath(window.location.pathname)) {
+        document
+          .querySelectorAll(`.topbar-nav a[href="${DOCS_BASE}/"], .nav-submenu a[href="${DOCS_BASE}/"]`)
+          .forEach((link) => {
+            link.classList.add('active');
+          });
       }
     }
 
@@ -142,7 +154,7 @@
 
     async function loadDocs(pathname, options = {}) {
       const url = new URL(pathname, window.location.origin);
-      if (!(url.pathname === '/docs' || url.pathname.startsWith('/docs/'))) return false;
+      if (!isDocsPath(url.pathname)) return false;
 
       const { pushState = true } = options;
       const requestId = ++docsRequestId;
@@ -205,7 +217,7 @@
       const { pushState = false, hash = '' } = options;
       showLanding();
       if (pushState) {
-        history.pushState({ view: 'landing' }, '', hash ? `/${hash}` : '/');
+        history.pushState({ view: 'landing' }, '', hash ? `${HOME_PATH}${hash}` : HOME_PATH);
       }
       setActiveDocsLink(window.location.pathname);
       if (hash) {
@@ -224,12 +236,12 @@
       if (!href) return;
 
       const isHashOnly = href.startsWith('#');
-      const isRootHash = href.startsWith('/#');
+      const isRootHash = href.startsWith(`${HOME_PATH}#`);
       if (docsPanel && (isHashOnly || isRootHash)) {
         event.preventDefault();
         restoreLanding({
           pushState: true,
-          hash: isHashOnly ? href : href.slice(1),
+          hash: isHashOnly ? href : href.slice(HOME_PATH.length),
         });
         return;
       }
@@ -237,10 +249,10 @@
       const url = new URL(href, window.location.href);
       if (url.origin !== window.location.origin) return;
 
-      const isDocsPath = url.pathname === '/docs' || url.pathname.startsWith('/docs/');
-      const isHomePath = url.pathname === '/' || url.pathname === '';
+      const onDocsPath = isDocsPath(url.pathname);
+      const isHomePath = url.pathname === HOME_PATH || url.pathname === SITE_BASE;
 
-      if (isDocsPath) {
+      if (onDocsPath) {
         event.preventDefault();
         loadDocs(url.pathname + url.search + url.hash, { pushState: true });
         return;
@@ -255,7 +267,7 @@
     document.addEventListener('click', handleLinkClick);
 
     window.addEventListener('popstate', () => {
-      if (window.location.pathname === '/docs' || window.location.pathname.startsWith('/docs/')) {
+      if (isDocsPath(window.location.pathname)) {
         loadDocs(window.location.pathname + window.location.search + window.location.hash, {
           pushState: false,
         });
@@ -265,7 +277,7 @@
       }
     });
 
-    if (window.location.pathname === '/docs' || window.location.pathname.startsWith('/docs/')) {
+    if (isDocsPath(window.location.pathname)) {
       loadDocs(window.location.pathname + window.location.search + window.location.hash, {
         pushState: false,
       });

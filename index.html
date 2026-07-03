@@ -17,7 +17,7 @@
   <meta name="twitter:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
   <meta name="twitter:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025 with a local AI judge.">
 
-  <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/llm-security-scanner/static/theme.css">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -57,11 +57,11 @@
   <a class="topbar-brand" href="#hero">LLM Security Scanner</a>
   <div class="topbar-nav" aria-label="Primary navigation">
     <a href="#hero" class="active">Home</a>
-    <a href="/docs/">Docs</a>
+    <a href="/llm-security-scanner/docs/">Docs</a>
     <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
   </div>
   <div class="topbar-right">
-    <a class="topbar-search" href="/docs/">Search docs</a>
+    <a class="topbar-search" href="/llm-security-scanner/docs/">Search docs</a>
     <a class="topbar-action" href="#hosted-scan">Run scanner ↗</a>
   </div>
 </header>
@@ -86,15 +86,15 @@
     <li><a href="#coverage">OWASP Coverage</a></li>
     <li class="nav-section-title">Documentation</li>
     <li class="nav-group">
-      <a href="/docs/">Docs</a>
+      <a href="/llm-security-scanner/docs/">Docs</a>
       <ul class="nav-submenu">
-        <li><a href="/docs/">Introduction</a></li>
-        <li><a href="/docs/getting-started/">Getting Started</a></li>
-        <li><a href="/docs/cicd/">CI/CD</a></li>
-        <li><a href="/docs/cli-reference/">CLI Reference</a></li>
-        <li><a href="/docs/owasp-coverage/">OWASP Top 10</a></li>
-        <li><a href="/docs/output-formats/">Output Formats</a></li>
-        <li><a href="/docs/security/">Security Properties</a></li>
+        <li><a href="/llm-security-scanner/docs/">Introduction</a></li>
+        <li><a href="/llm-security-scanner/docs/getting-started/">Getting Started</a></li>
+        <li><a href="/llm-security-scanner/docs/cicd/">CI/CD</a></li>
+        <li><a href="/llm-security-scanner/docs/cli-reference/">CLI Reference</a></li>
+        <li><a href="/llm-security-scanner/docs/owasp-coverage/">OWASP Top 10</a></li>
+        <li><a href="/llm-security-scanner/docs/output-formats/">Output Formats</a></li>
+        <li><a href="/llm-security-scanner/docs/security/">Security Properties</a></li>
       </ul>
     </li>
   </ul>
@@ -113,7 +113,7 @@
       </p>
       <div class="hero-actions">
         <a href="#hosted-scan" class="btn btn-primary">Start scanning</a>
-        <a href="/docs/" class="btn btn-ghost">Read the docs &rarr;</a>
+        <a href="/llm-security-scanner/docs/" class="btn btn-ghost">Read the docs &rarr;</a>
       </div>
     </div>
 
@@ -156,7 +156,7 @@
 <section id="hosted-scan">
   <div class="section-label">Public scanner</div>
   <h2 class="section-title">Scan a public LLM URL</h2>
-  <p class="section-sub">Paste a public endpoint, choose the scan scope, and inspect the generated reports. Private or internal targets should use the <a href="/docs/getting-started/" style="color:var(--accent);">local CLI</a>.</p>
+  <p class="section-sub">Paste a public endpoint, choose the scan scope, and inspect the generated reports. Private or internal targets should use the <a href="/llm-security-scanner/docs/getting-started/" style="color:var(--accent);">local CLI</a>.</p>
 
   <div class="hosted-scan">
     <div class="scan-form-panel">
@@ -167,7 +167,7 @@
       </div>
       <p class="scan-panel-sub">In the meantime, install the CLI and run the exact same scanner engine locally against any public or private endpoint.</p>
       <div class="scan-primary-row">
-        <a href="/docs/getting-started/" class="btn btn-primary">Run the CLI today &rarr;</a>
+        <a href="/llm-security-scanner/docs/getting-started/" class="btn btn-primary">Run the CLI today &rarr;</a>
         <div class="scan-footnote">Full installation and first-scan walkthrough in the docs.</div>
       </div>
     </div>
@@ -200,7 +200,7 @@
       </div>
       <div class="teaser-title">CI/CD pipeline</div>
       <div class="teaser-desc">Run the scanner as a gate in GitHub Actions or GitLab CI. Block merges when the risk score exceeds your threshold.</div>
-      <a class="teaser-link" href="/docs/cicd/">View CI/CD guide &rarr;</a>
+      <a class="teaser-link" href="/llm-security-scanner/docs/cicd/">View CI/CD guide &rarr;</a>
     </div>
     <div class="teaser-card">
       <div class="card-icon-box">
@@ -208,7 +208,7 @@
       </div>
       <div class="teaser-title">Local endpoint</div>
       <div class="teaser-desc">Point the CLI at a chatbot on <code>localhost</code> or another loopback address &mdash; no waiting on the hosted scan for that.</div>
-      <a class="teaser-link" href="/docs/getting-started/">View getting started guide &rarr;</a>
+      <a class="teaser-link" href="/llm-security-scanner/docs/getting-started/">View getting started guide &rarr;</a>
     </div>
     <div class="teaser-card">
       <div class="card-icon-box">
@@ -216,7 +216,7 @@
       </div>
       <div class="teaser-title">Docker &amp; containers</div>
       <div class="teaser-desc">Build the scanner into a container image and run it against services on your Docker network or internal VPN.</div>
-      <a class="teaser-link" href="/docs/cicd/">View Docker examples &rarr;</a>
+      <a class="teaser-link" href="/llm-security-scanner/docs/cicd/">View Docker examples &rarr;</a>
     </div>
   </div>
 </section>
@@ -326,7 +326,7 @@
     </div>
   </div>
 
-  <a class="section-link" href="/docs/owasp-coverage/">Full breakdown of every category in the Docs &rarr;</a>
+  <a class="section-link" href="/llm-security-scanner/docs/owasp-coverage/">Full breakdown of every category in the Docs &rarr;</a>
 </section>
 
 <!-- ── QUICK START ───────────────────────────────────────────── -->
@@ -348,7 +348,7 @@
   <span class="kw">--format</span>      <span class="str">html</span></pre>
   </div>
 
-  <a class="section-link" href="/docs/getting-started/">Full installation guide in the Docs &rarr;</a>
+  <a class="section-link" href="/llm-security-scanner/docs/getting-started/">Full installation guide in the Docs &rarr;</a>
 </section>
 
 <!-- ── REFERENCE TEASER ─────────────────────────────────────── -->
@@ -364,7 +364,7 @@
       </div>
       <div class="teaser-title">CLI reference</div>
       <div class="teaser-desc">Every flag the scanner understands &mdash; <code>--target</code>, <code>--categories</code>, <code>--severity</code>, <code>--format</code>, and more.</div>
-      <a class="teaser-link" href="/docs/cli-reference/">View CLI reference &rarr;</a>
+      <a class="teaser-link" href="/llm-security-scanner/docs/cli-reference/">View CLI reference &rarr;</a>
     </div>
     <div class="teaser-card">
       <div class="card-icon-box">
@@ -372,7 +372,7 @@
       </div>
       <div class="teaser-title">Output formats</div>
       <div class="teaser-desc">Terminal, Markdown, JSON, and self-contained HTML reports &mdash; colour-coded by severity, safe by default.</div>
-      <a class="teaser-link" href="/docs/output-formats/">View report formats &rarr;</a>
+      <a class="teaser-link" href="/llm-security-scanner/docs/output-formats/">View report formats &rarr;</a>
     </div>
     <div class="teaser-card">
       <div class="card-icon-box">
@@ -380,7 +380,7 @@
       </div>
       <div class="teaser-title">Built secure by default</div>
       <div class="teaser-desc">Fully offline judge, XSS-safe HTML reports, an opt-in DoS gate, and safe YAML parsing throughout.</div>
-      <a class="teaser-link" href="/docs/security/">View security properties &rarr;</a>
+      <a class="teaser-link" href="/llm-security-scanner/docs/security/">View security properties &rarr;</a>
     </div>
   </div>
 </section>
@@ -394,6 +394,6 @@
   </div>
 </footer>
 
-<script src="/static/app.js"></script>
+<script src="/llm-security-scanner/static/app.js"></script>
 </body>
 </html>
