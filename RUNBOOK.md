@@ -49,12 +49,20 @@ llm-scanner --help
 Expected output from `--help`:
 
 ```
-usage: llm-scanner [-h] --target TARGET --target-type {url,ollama}
-                   --judge-model JUDGE_MODEL [--categories CATEGORIES]
+usage: llm-scanner [-h] [--target TARGET] [--target-type {url,ollama}]
+                   [--judge-model JUDGE_MODEL] [--config CONFIG_FILE]
+                   [--categories CATEGORIES]
                    [--severity {critical,high,medium,low,info}]
                    [--api-key API_KEY] [--output-dir OUTPUT_DIR]
                    [--format FORMATS] [--include-dos-tests]
+                   [--fail-on-score FAIL_ON_SCORE] [--targets TARGETS_FILE]
+                   [--suppressions SUPPRESSIONS_FILE]
+                   [--payloads-dir PAYLOADS_DIR] [--retries RETRIES]
+                   [--concurrency CONCURRENCY]
+                   {baseline} ...
 ```
+
+`--target`, `--target-type`, and `--judge-model` show as optional in `--help` because `--config` can supply them instead, but at least one source (flags or config file) must provide all three or the scan aborts.
 
 ---
 
@@ -148,7 +156,7 @@ llm-scanner \
   --output-dir ./reports
 ```
 
-Reports land in `./reports/`. Open `report_<timestamp>.html` in a browser for the best view.
+Reports land in `./reports/<timestamp>_<target>/`. Open `report.html` in that folder in a browser for the best view.
 
 **What to expect:** The demo app leaks its system prompt on trigger words, so LLM01 and LLM07 should show multiple `VULNERABLE` findings and a Risk Score above 7.0.
 
@@ -436,7 +444,7 @@ The JSON file contains the full `ScanReport` structure. Each finding includes:
 
 ### HTML report
 
-Open `reports/report_<timestamp>.html` in any browser. Rows are color-coded by severity. Currently shows: ID, Category, Name, Severity, Result, Payload, Recommendation.
+Open `report.html` inside the scan's timestamped subfolder (e.g. `reports/20260703T175300_localhost_5000_chat/report.html`) in any browser. Rows are color-coded by severity. Currently shows: ID, Category, Name, Severity, Result, Payload, Recommendation.
 
 ---
 
