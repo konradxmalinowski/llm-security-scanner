@@ -39,7 +39,9 @@ jobs:
           ollama pull "$LLM_JUDGE_MODEL"
 
       - name: Run security scan
-        uses: konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@main
+        # Pin to a released tag rather than @main; bump it deliberately to adopt
+        # a newer scanner version (mirrors the PyPI release convention in CLAUDE.md).
+        uses: konradxmalinowski/llm-security-scanner/.github/actions/llm-scan@v0.1.0
         with:
           target: ${{ env.LLM_ENDPOINT }}
           target-type: url

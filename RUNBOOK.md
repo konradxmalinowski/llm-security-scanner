@@ -305,6 +305,86 @@ llm-scanner \
   --include-dos-tests
 ```
 
+### Save and compare a baseline
+
+```bash
+# Save the most recent scan's report.json as a named baseline
+llm-scanner baseline save --name production --output-dir ./reports
+
+# Compare a fresh scan against it -- top-level scan flags go BEFORE the subcommand
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --output-dir ./reports \
+  baseline compare --name production
+```
+
+Prints only findings that are new since the baseline.
+
+### Scan multiple targets in one run (`--targets`)
+
+```yaml
+# targets.yml
+targets:
+  - name: "staging"
+    target: "http://staging.internal:5000/chat"
+    target_type: "url"
+  - name: "local-model"
+    target: "mistral:7b"
+    target_type: "ollama"
+```
+
+```bash
+llm-scanner --targets targets.yml --judge-model llama3.2:3b
+```
+
+Prints a single "Multi-Target Comparison" table, one column per target.
+
+### Exclude known false positives (`--suppressions`)
+
+```yaml
+# suppressions.yml
+suppressions:
+  - attack_id: "LLM07-003"
+    reason: "Intentional in demo mode"
+```
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --suppressions suppressions.yml
+```
+
+Matched findings still run and appear as `Accepted`, but are excluded from the risk score. `attack_id` supports exact IDs or `fnmatch` globs (e.g. `LLM01-*`).
+
+### Load custom payloads (`--payloads-dir`)
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --payloads-dir ./my-payloads
+```
+
+Files in `./my-payloads` must follow the same schema as `payloads/` (see section 14). Duplicate IDs across the bundled library and the custom dir are not an error -- both entries run.
+
+### Tune retries and concurrency
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --retries 3 \
+  --concurrency 5
+```
+
+`--retries` (default `2`) retries transient 5xx/timeout/connection errors with exponential backoff; 4xx errors are never retried; `--retries 0` disables retry entirely. `--concurrency` (default `3`) sets how many attacks run in parallel against the target.
+
 ---
 
 ## 9. Reading the output
