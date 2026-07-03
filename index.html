@@ -161,26 +161,60 @@
   <div class="hosted-scan">
     <div class="scan-form-panel">
       <div class="scan-panel-head">
-        <div class="section-label">Coming soon</div>
-        <div class="scan-panel-title">Free public scan</div>
-        <div class="scan-panel-sub">Running a hosted scan against a public URL straight from this page is on the roadmap. It isn't available yet &mdash; there is no live form here today.</div>
+        <div class="scan-panel-title">Free public scan <span class="section-label" style="margin-left:8px;">Coming soon</span></div>
+        <div class="scan-panel-sub">Your endpoint must accept <code>POST {"prompt":"..."}</code> and return <code>{"response":"..."}</code>.</div>
       </div>
-      <p class="scan-panel-sub">In the meantime, install the CLI and run the exact same scanner engine locally against any public or private endpoint.</p>
-      <div class="scan-primary-row">
-        <a href="/llm-security-scanner/docs/getting-started/" class="btn btn-primary">Run the CLI today &rarr;</a>
-        <div class="scan-footnote">Full installation and first-scan walkthrough in the docs.</div>
+      <div class="scan-form-grid">
+        <div class="scan-field">
+          <label class="scan-label" for="scan-target">Endpoint URL</label>
+          <input id="scan-target" class="scan-input" name="target" type="url" placeholder="https://your-app.com/chat" disabled>
+        </div>
+
+        <div class="scan-two-col">
+          <div class="scan-field">
+            <label class="scan-label" for="scan-categories">Categories</label>
+            <input id="scan-categories" class="scan-input" name="categories" placeholder="All standard categories" disabled>
+          </div>
+
+          <div class="scan-field">
+            <label class="scan-label" for="scan-severity">Minimum severity</label>
+            <select id="scan-severity" class="scan-select" name="severity" disabled>
+              <option value="">All severities</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="scan-two-col">
+          <div class="scan-field">
+            <label class="scan-label" for="scan-api-key">Bearer token</label>
+            <input id="scan-api-key" class="scan-input" name="api_key" type="password" autocomplete="off" placeholder="optional" disabled>
+          </div>
+
+          <label class="scan-checkbox" for="scan-include-dos">
+            <input id="scan-include-dos" name="include_dos_tests" type="checkbox" disabled>
+            <div>
+              <strong>Include LLM10 DoS tests</strong>
+              <span>Off by default. Enable only on systems you own.</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="scan-primary-row">
+          <button id="scan-submit" class="btn btn-primary" type="button" disabled title="Coming soon -- run the CLI locally today">Run free scan</button>
+          <div class="scan-footnote">Rejects <code>localhost</code>, Docker, and VPN targets by design &mdash; use the <a href="/llm-security-scanner/docs/getting-started/" style="color:var(--accent);">CLI</a> for those.</div>
+        </div>
       </div>
     </div>
 
     <div class="scan-preview-panel">
       <div class="scan-preview-head">
         <div class="scan-preview-title">Live output</div>
-        <div class="scan-preview-sub">This is what a scan run looks like &mdash; from the CLI, on your own machine.</div>
+        <div class="scan-preview-sub">Streams as the scan runs. Reports appear below when it's done.</div>
       </div>
       <div class="scan-terminal-wrap">
         <div class="hero-terminal scan-output" id="scan-output">
           <div class="terminal-dots"><span></span><span></span><span></span></div>
-          <div class="term-line"><span class="term-out">Hosted scanning is coming soon. Run the CLI locally today.</span></div>
+          <div class="term-line"><span class="term-out">Waiting for a public URL...</span></div>
         </div>
       </div>
     </div>
