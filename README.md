@@ -125,6 +125,16 @@ See `examples/README.md` for a quick map of all example configs and pipeline tem
 
 The scanner container does not need Ollama installed inside it, but it does need a reachable Ollama HTTP endpoint. Set `OLLAMA_HOST` accordingly.
 
+#### Pre-built image
+
+A pre-built image is published to GHCR from each release, installed from PyPI — no local `docker build` needed to try it:
+
+```bash
+docker run ghcr.io/konradxmalinowski/llm-security-scanner:latest --help
+```
+
+Pin a specific released version with the `:<version>` tag (e.g. `:0.2.0`) instead of `:latest` for reproducible CI runs.
+
 #### Local Docker: app on your machine, scanner in Docker
 
 Build the image:

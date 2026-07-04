@@ -48,3 +48,47 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  docker-publish:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Wait for package to be available on PyPI
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          URL="https://pypi.org/pypi/llm-security-scanner/${TAG_VERSION}/json"
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null "$URL"; then
+              echo "llm-security-scanner==${TAG_VERSION} is available on PyPI"
+              exit 0
+            fi
+            echo "Attempt $i: ${TAG_VERSION} not yet indexed on PyPI, retrying in 2s..."
+            sleep 2
+          done
+          echo "Timed out waiting for llm-security-scanner==${TAG_VERSION} to appear on PyPI" >&2
+          exit 1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          IMAGE="ghcr.io/konradxmalinowski/llm-security-scanner"
+          docker build \
+            --build-arg SCANNER_VERSION="$TAG_VERSION" \
+            -f docker/Dockerfile \
+            -t "$IMAGE:$TAG_VERSION" \
+            -t "$IMAGE:latest" \
+            .
+          docker push "$IMAGE:$TAG_VERSION"
+          docker push "$IMAGE:latest"
