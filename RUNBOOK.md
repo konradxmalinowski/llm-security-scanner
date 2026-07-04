@@ -573,18 +573,20 @@ Every scan also writes two files you can inspect after the fact, independent of 
 
 ## 13. OWASP category reference
 
-| Category | What it tests |
-|----------|--------------|
-| LLM01 | **Prompt Injection** — instructions embedded in user input that override the system prompt |
-| LLM02 | **Sensitive Information Disclosure** — leakage of PII, credentials, or confidential data |
-| LLM03 | **Supply Chain** — risks from third-party models, datasets, or fine-tuning sources |
-| LLM04 | **Data and Model Poisoning** — compromised training data affecting model behaviour |
-| LLM05 | **Improper Output Handling** — downstream injection (XSS, SQLi) via unsanitised model output |
-| LLM06 | **Excessive Agency** — model taking high-impact autonomous actions without authorisation |
-| LLM07 | **System Prompt Leakage** — extraction of confidential system-level instructions |
-| LLM08 | **Vector and Embedding Weaknesses** — manipulation or poisoning of vector stores and RAG pipelines |
-| LLM09 | **Misinformation** — model generating false, harmful, or misleading content |
-| LLM10 | **Unbounded Consumption** — resource exhaustion via oversized or recursive requests (opt-in) |
+| Category | What it tests | CWE | CVSS 3.1 score |
+|----------|--------------|-----|----------------|
+| LLM01 | **Prompt Injection** — instructions embedded in user input that override the system prompt | CWE-77, CWE-94 | 9.1 |
+| LLM02 | **Sensitive Information Disclosure** — leakage of PII, credentials, or confidential data | CWE-200 | 7.5 |
+| LLM03 | **Supply Chain** — risks from third-party models, datasets, or fine-tuning sources | CWE-1104, CWE-829 | 8.3 |
+| LLM04 | **Data and Model Poisoning** — compromised training data affecting model behaviour | CWE-20, CWE-1039 | 6.4 |
+| LLM05 | **Improper Output Handling** — downstream injection (XSS, SQLi) via unsanitised model output | CWE-79, CWE-116 | 6.1 |
+| LLM06 | **Excessive Agency** — model taking high-impact autonomous actions without authorisation | CWE-269, CWE-863 | 8.2 |
+| LLM07 | **System Prompt Leakage** — extraction of confidential system-level instructions | CWE-200, CWE-522 | 7.5 |
+| LLM08 | **Vector and Embedding Weaknesses** — manipulation or poisoning of vector stores and RAG pipelines | CWE-668 | 7.1 |
+| LLM09 | **Misinformation** — model generating false, harmful, or misleading content | CWE-345 | 7.5 |
+| LLM10 | **Unbounded Consumption** — resource exhaustion via oversized or recursive requests (opt-in) | CWE-400, CWE-770 | 8.6 |
+
+CWE and CVSS are mapped at category granularity (`CWE_MAP`/`CVSS_MAP` in `src/llm_scanner/models.py`) and populated automatically onto every `AttackResult` (`cwe_ids`, `cvss_vector`, `cvss_score`) unless already set explicitly. The CVSS score is always computed from its paired vector via `compute_cvss_score()` (official CVSS 3.1 base-score formula) — never hardcoded independently of the vector.
 
 ---
 
