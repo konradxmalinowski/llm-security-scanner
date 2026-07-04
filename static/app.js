@@ -73,7 +73,10 @@
       document.querySelectorAll('.docs-nav-group').forEach((group) => {
         let groupHasMatch = false;
         group.querySelectorAll('li').forEach((item) => {
-          const matches = item.textContent.toLowerCase().includes(query);
+          const link = item.querySelector('a');
+          const keywords = link ? (link.dataset.kw || '') : '';
+          const haystack = (item.textContent + ' ' + keywords).toLowerCase();
+          const matches = haystack.includes(query);
           item.style.display = matches ? '' : 'none';
           if (matches) groupHasMatch = true;
         });
