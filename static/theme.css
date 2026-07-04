@@ -1950,7 +1950,7 @@
       .hero-quickstart { grid-template-columns: minmax(0, 1fr); }
       .hero-title { width: 100%; max-width: 100%; font-size: 2.3rem; overflow-wrap: anywhere; }
       .hero-terminal { max-width: 100%; overflow: hidden; font-size: 0.72rem; }
-      .hero-terminal .term-line { min-width: max-content; }
+      .hero-terminal .term-line { min-width: 0; }
       #use-cases .teaser-grid,
       #coverage .owasp-grid { grid-template-columns: 1fr; }
       #use-cases .teaser-card:last-child { grid-column: auto; }
