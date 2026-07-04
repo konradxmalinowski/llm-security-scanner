@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LLM Security Scanner — OWASP LLM Top 10 Testing</title>
-  <meta name="description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 46+ attack payloads, a local AI judge, and a risk score in minutes.">
+  <meta name="description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 51+ attack payloads, a local AI judge, and a risk score in minutes.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="LLM Security Scanner">
   <meta property="og:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
-  <meta property="og:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 46+ attack payloads, a local AI judge, and a risk score in minutes.">
+  <meta property="og:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 51+ attack payloads, a local AI judge, and a risk score in minutes.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
@@ -41,7 +41,7 @@
     "name": "LLM Security Scanner",
     "applicationCategory": "SecurityApplication",
     "operatingSystem": "Any",
-    "description": "Scans chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs with 46+ attack payloads and a local AI judge.",
+    "description": "Scans chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs with 51+ attack payloads and a local AI judge.",
     "offers": { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" }
   }
   </script>
@@ -113,7 +113,7 @@
       <div class="hero-badge">OWASP Top 10 for LLMs 2025</div>
       <h2 class="hero-title">Security quickstart</h2>
       <p class="hero-sub">
-        Find OWASP LLM Top 10 vulnerabilities before attackers do. Run 46+ real attack payloads against a chatbot or LLM-backed API and get a risk score in minutes.
+        Find OWASP LLM Top 10 vulnerabilities before attackers do. Run 51+ real attack payloads against a chatbot or LLM-backed API and get a risk score in minutes.
       </p>
       <div class="hero-actions">
         <a href="#hosted-scan" class="btn btn-primary">Start scanning</a>
@@ -141,17 +141,17 @@
       <span class="term-val"> html</span>
     </div>
     <br>
-    <div class="term-line"><span class="term-out">Payloads: 46 loaded  |  Judge: llama3.2:3b  |  Target: public URL</span></div>
+    <div class="term-line"><span class="term-out">Payloads: 43 loaded  |  Judge: llama3.2:3b  |  Target: public URL</span></div>
     <div class="term-line"><span class="term-out">Warming up judge model...</span></div>
     <br>
-    <div class="term-line"><span class="term-out">[LLM01-003: Delimiter injection]  ######----  62%  28/46  0:00:34</span></div>
+    <div class="term-line"><span class="term-out">[LLM01-003: Delimiter injection]  ######----  63%  27/43  0:00:34</span></div>
     <br>
     <div class="term-line"><span class="term-out">  LLM01-001  Classic ignore prev instructions  high      <span class="term-vuln">VULNERABLE</span></span></div>
     <div class="term-line"><span class="term-out">  LLM01-002  Role injection DAN               critical  <span class="term-vuln">VULNERABLE</span></span></div>
     <div class="term-line"><span class="term-out">  LLM07-001  System prompt extraction         critical  <span class="term-vuln">VULNERABLE</span></span></div>
     <div class="term-line"><span class="term-out">  LLM02-001  PII extraction via context       medium    <span class="term-safe">Safe</span></span></div>
     <br>
-    <div class="term-line"><span class="term-out">Attacks: 28/46 succeeded  |  Risk Score: <span class="term-score">8.5/10.0  HIGH</span></span></div>
+    <div class="term-line"><span class="term-out">Attacks: 27/43 succeeded  |  Risk Score: <span class="term-score">8.5/10.0  HIGH</span></span></div>
     </div>
   </div>
 </section>
@@ -316,7 +316,7 @@
       <div class="owasp-badge">LLM02</div>
       <h3 class="owasp-title">Sensitive Information Disclosure</h3>
       <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">7 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM03</div>
@@ -334,19 +334,19 @@
       <div class="owasp-badge">LLM05</div>
       <h3 class="owasp-title">Improper Output Handling</h3>
       <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM06</div>
       <h3 class="owasp-title">Excessive Agency</h3>
       <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">7 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM07</div>
       <h3 class="owasp-title">System Prompt Leakage</h3>
       <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">4 payloads &mdash; default on</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM08</div>
@@ -364,7 +364,7 @@
       <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
       <h3 class="owasp-title">Unbounded Consumption</h3>
       <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
-      <div class="owasp-payloads" style="color: #f87171;">5 payloads &mdash; <code>--include-dos-tests</code></div>
+      <div class="owasp-payloads" style="color: #f87171;">8 payloads &mdash; <code>--include-dos-tests</code></div>
     </div>
   </div>
 

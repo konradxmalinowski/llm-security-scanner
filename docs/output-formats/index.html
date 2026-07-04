@@ -105,7 +105,7 @@
       </div>
     </div>
 
-    <div class="format-grid" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="format-grid" style="grid-template-columns: repeat(3, 1fr);">
       <div class="format-card">
         <div class="format-label">$_</div>
         <h2 class="format-name">Terminal</h2>
@@ -116,19 +116,25 @@
         <div class="format-label">.md</div>
         <h2 class="format-name">Markdown</h2>
         <div class="format-flag">--format md</div>
-        <div class="format-desc">Clean table with attack ID, category, name, severity, result, and recommendation. Ideal for pasting into GitHub issues or Notion.</div>
+        <div class="format-desc">Clean table with attack ID, category, name, severity, result, and recommendation. Ideal for pasting into GitHub issues or Notion. Each finding now also lists its CWE ID and CVSS 3.1 score.</div>
       </div>
       <div class="format-card">
         <div class="format-label">{}</div>
         <h2 class="format-name">JSON</h2>
         <div class="format-flag">--format json</div>
-        <div class="format-desc">Full <code>ScanReport</code> structure including <code>judge_reasoning</code> per finding. Best for programmatic processing, diffing results over time, or feeding into CI pipelines.</div>
+        <div class="format-desc">Full <code>ScanReport</code> structure including <code>judge_reasoning</code> per finding. Best for programmatic processing, diffing results over time, or feeding into CI pipelines. Findings include <code>cwe_ids</code> and a full <code>cvss_vector</code>/<code>cvss_score</code>.</div>
       </div>
       <div class="format-card">
         <div class="format-label">.html</div>
         <h2 class="format-name">HTML</h2>
         <div class="format-flag">--format html</div>
-        <div class="format-desc">Self-contained file. Rows colour-coded by severity. Jinja2 <code>autoescape=True</code> ensures attack payloads containing <code>&lt;script&gt;</code> render as escaped text &mdash; XSS-safe by design.</div>
+        <div class="format-desc">Self-contained file. Rows colour-coded by severity. Jinja2 <code>autoescape=True</code> ensures attack payloads containing <code>&lt;script&gt;</code> render as escaped text &mdash; XSS-safe by design. Each finding displays its mapped CWE ID and CVSS score.</div>
+      </div>
+      <div class="format-card">
+        <div class="format-label">.sarif</div>
+        <h2 class="format-name">SARIF</h2>
+        <div class="format-flag">--format sarif</div>
+        <div class="format-desc">SARIF 2.1.0 output consumed by the GitHub Security tab and VS Code's SARIF Viewer. Includes CWE taxonomy mappings per rule and a <code>security-severity</code> property GitHub uses to rank findings.</div>
       </div>
     </div>
   </main>

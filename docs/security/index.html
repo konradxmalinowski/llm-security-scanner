@@ -130,6 +130,20 @@
         <h2 class="sec-title">Judge independence</h2>
         <div class="sec-desc">The judge model must be different from the target model. Using the same model as both target and judge creates a conflict of interest &mdash; blocked at startup.</div>
       </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </div>
+        <h2 class="sec-title">Hardened CI pipeline</h2>
+        <div class="sec-desc">Every push and PR to this project's own codebase runs <code>pip-audit</code> (dependency scanning), <code>gitleaks</code> (secret scanning), and CodeQL (static analysis).</div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h2 class="sec-title">Self-audited</h2>
+        <div class="sec-desc">This project publishes its own <a href="https://github.com/konradxmalinowski/llm-security-scanner/blob/main/docs/THREAT_MODEL.md" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">STRIDE threat model</a>, analysing the scanner's own attack surface.</div>
+      </div>
     </div>
   </main>
 </div>
