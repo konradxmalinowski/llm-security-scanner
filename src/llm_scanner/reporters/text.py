@@ -42,4 +42,19 @@ class TextReporter:
             lines += ["", "-" * 100, "RECOMMENDATIONS", "-" * 100]
             lines += rec_lines
 
+        # CWE / CVSS mapping grouped by category
+        seen_mapping: set[str] = set()
+        mapping_lines: list[str] = []
+        for f in report.findings:
+            if f.owasp_category not in seen_mapping and (f.cwe_ids or f.cvss_vector):
+                seen_mapping.add(f.owasp_category)
+                cwe_str = ", ".join(f.cwe_ids)
+                mapping_lines.append(
+                    f"{f.owasp_category}: {cwe_str} | CVSS {f.cvss_score:.1f} ({f.cvss_vector})"
+                )
+
+        if mapping_lines:
+            lines += ["", "-" * 100, "CWE / CVSS MAPPING", "-" * 100]
+            lines += mapping_lines
+
         return "\n".join(lines) + "\n"

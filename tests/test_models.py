@@ -4,7 +4,16 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from llm_scanner.models import OWASP_RECOMMENDATIONS, AttackResult, Payload, ScanReport, Severity
+from llm_scanner.models import (
+    CVSS_MAP,
+    CWE_MAP,
+    OWASP_RECOMMENDATIONS,
+    AttackResult,
+    Payload,
+    ScanReport,
+    Severity,
+    compute_cvss_score,
+)
 
 _BASE_RESULT = dict(
     attack_id="LLM01-001",
@@ -47,6 +56,88 @@ def test_attack_result_fields():
 def test_attack_result_rejects_extra_fields():
     with pytest.raises(ValidationError):
         AttackResult(**_BASE_RESULT, unknown_field="injected")
+
+
+# --- CWE / CVSS mapping (Task: CWE/CVSS mapping for OWASP LLM categories) ---
+
+_ALL_CATEGORIES = [f"LLM{i:02d}" for i in range(1, 11)]
+
+
+def test_cwe_map_covers_all_categories():
+    for category in _ALL_CATEGORIES:
+        assert category in CWE_MAP, f"{category} missing from CWE_MAP"
+        assert len(CWE_MAP[category]) >= 1
+        for cwe_id in CWE_MAP[category]:
+            assert cwe_id.startswith("CWE-")
+
+
+def test_cvss_map_covers_all_categories():
+    for category in _ALL_CATEGORIES:
+        assert category in CVSS_MAP, f"{category} missing from CVSS_MAP"
+        assert CVSS_MAP[category].startswith("CVSS:3.1/")
+
+
+def test_cvss_map_vectors_produce_valid_scores():
+    """Every mapped vector must parse and produce a score in the valid CVSS range."""
+    for category, vector in CVSS_MAP.items():
+        score = compute_cvss_score(vector)
+        assert 0.0 <= score <= 10.0, f"{category} vector produced out-of-range score {score}"
+        assert score > 0.0, f"{category} vector produced a zero score — check the vector"
+
+
+def test_compute_cvss_score_reference_vector_critical_unchanged_scope():
+    """CVSS 3.1 spec worked example: full-impact, unchanged-scope vector scores 9.8."""
+    vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    assert compute_cvss_score(vector) == 9.8
+
+
+def test_compute_cvss_score_reference_vector_critical_changed_scope():
+    """CVSS 3.1 spec worked example: full-impact, changed-scope vector scores 10.0 (capped)."""
+    vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H"
+    assert compute_cvss_score(vector) == 10.0
+
+
+def test_compute_cvss_score_low_severity_vector():
+    """A low-privilege, high-complexity, minimal-impact vector scores low (< 3.0)."""
+    vector = "CVSS:3.1/AV:P/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N"
+    score = compute_cvss_score(vector)
+    assert 0.0 < score < 3.0
+
+
+def test_compute_cvss_score_empty_vector_returns_zero():
+    assert compute_cvss_score("") == 0.0
+
+
+def test_compute_cvss_score_malformed_vector_returns_zero():
+    assert compute_cvss_score("not-a-vector") == 0.0
+    assert compute_cvss_score("CVSS:3.1/AV:X/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N") == 0.0
+
+
+def test_attack_result_auto_populates_cwe_cvss_fields():
+    result = AttackResult(**_BASE_RESULT)
+    assert result.cwe_ids == CWE_MAP["LLM01"]
+    assert result.cvss_vector == CVSS_MAP["LLM01"]
+    assert result.cvss_score == compute_cvss_score(CVSS_MAP["LLM01"])
+    assert result.cvss_score > 0.0
+
+
+def test_attack_result_explicit_cwe_cvss_not_overwritten():
+    result = AttackResult(
+        **_BASE_RESULT,
+        cwe_ids=["CWE-9999"],
+        cvss_vector="CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:N/I:N/A:L",
+        cvss_score=1.2,
+    )
+    assert result.cwe_ids == ["CWE-9999"]
+    assert result.cvss_vector == "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:N/I:N/A:L"
+    assert result.cvss_score == 1.2
+
+
+def test_attack_result_unknown_category_defaults_cwe_cvss():
+    result = AttackResult(**{**_BASE_RESULT, "owasp_category": "LLM99"})
+    assert result.cwe_ids == []
+    assert result.cvss_vector == ""
+    assert result.cvss_score == 0.0
 
 
 def test_payload_model_fields():

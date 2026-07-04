@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from llm_scanner.models import AttackResult, ScanReport, Severity
+from llm_scanner.models import CWE_MAP, AttackResult, ScanReport, Severity
 from llm_scanner.reporters.sarif import SarifReporter
 
 
@@ -211,3 +211,77 @@ def test_sarif_fingerprint(sarif_dict: dict) -> None:
         # Format: "{attack_id}:1"
         assert fingerprint.endswith(":1")
         assert len(fingerprint) > 2
+
+
+# --- CWE/CVSS mapping in SARIF output ---
+
+
+def test_sarif_taxonomies_present(sarif_dict: dict) -> None:
+    """runs[0].tool.driver.taxonomies must reference the CWE taxonomy."""
+    taxonomies = sarif_dict["runs"][0]["tool"]["driver"]["taxonomies"]
+    assert len(taxonomies) == 1
+    cwe_taxonomy = taxonomies[0]
+    assert cwe_taxonomy["name"] == "CWE"
+    assert "guid" in cwe_taxonomy
+    assert cwe_taxonomy["taxa"], "Expected at least one CWE taxon"
+
+
+def test_sarif_taxonomies_cover_all_cwe_ids_in_findings(sarif_dict: dict, sample_report: ScanReport) -> None:
+    taxa_ids = {taxon["id"] for taxon in sarif_dict["runs"][0]["tool"]["driver"]["taxonomies"][0]["taxa"]}
+    expected_ids = {
+        cwe_id.removeprefix("CWE-")
+        for f in sample_report.findings
+        for cwe_id in f.cwe_ids
+    }
+    assert expected_ids
+    assert expected_ids.issubset(taxa_ids)
+
+
+def test_sarif_rule_relationships_point_to_cwe_taxonomy(sarif_dict: dict) -> None:
+    """Each rule's relationships reference the CWE taxon(s) with kinds=['superset']."""
+    rules = sarif_dict["runs"][0]["tool"]["driver"]["rules"]
+    cwe_taxonomy_guid = sarif_dict["runs"][0]["tool"]["driver"]["taxonomies"][0]["guid"]
+    for rule in rules:
+        category = rule["id"]
+        expected_cwe_ids = {c.removeprefix("CWE-") for c in CWE_MAP[category]}
+        relationships = rule["relationships"]
+        assert relationships, f"Expected relationships on rule {category}"
+        for rel in relationships:
+            assert rel["kinds"] == ["superset"]
+            assert rel["target"]["toolComponent"]["name"] == "CWE"
+            assert rel["target"]["toolComponent"]["guid"] == cwe_taxonomy_guid
+            assert rel["target"]["id"] in expected_cwe_ids
+
+
+def test_sarif_rule_has_security_severity_property(sarif_dict: dict) -> None:
+    """Each rule carries properties.security-severity — the GitHub Security tab convention."""
+    rules = sarif_dict["runs"][0]["tool"]["driver"]["rules"]
+    for rule in rules:
+        assert "properties" in rule
+        severity_str = rule["properties"]["security-severity"]
+        assert isinstance(severity_str, str)
+        # Must be a float-parseable string in the valid CVSS range.
+        value = float(severity_str)
+        assert 0.0 <= value <= 10.0
+
+
+def test_sarif_no_taxonomies_when_no_cwe_ids() -> None:
+    """Unknown OWASP category yields no CWE mapping — taxonomies must be an empty list, not raise."""
+    finding = AttackResult(
+        attack_id="LLM99-000",
+        owasp_category="LLM99",
+        name="Unknown category finding",
+        payload="p",
+        response="r",
+        success=True,
+        judge_reasoning="j",
+        severity=Severity.LOW,
+    )
+    report = ScanReport(
+        target="http://test",
+        timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+        risk_score=1.0,
+        findings=[finding],
+    )
+    sarif = SarifReporter()._build(report)
+    assert sarif["runs"][0]["tool"]["driver"]["taxonomies"] == []

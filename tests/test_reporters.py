@@ -6,11 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from llm_scanner.models import AttackResult, ScanReport, Severity
+from llm_scanner.models import CVSS_MAP, CWE_MAP, AttackResult, ScanReport, Severity
 from llm_scanner.reporters import get_file_reporter
 from llm_scanner.reporters.html import HtmlReporter
 from llm_scanner.reporters.json_reporter import JsonReporter
 from llm_scanner.reporters.markdown import MarkdownReporter
+from llm_scanner.reporters.text import TextReporter
 
 
 @pytest.fixture
@@ -97,6 +98,21 @@ def test_markdown_creates_output_dir(tmp_path: Path, sample_report: ScanReport) 
     reporter = MarkdownReporter()
     path = reporter.save(sample_report, nested)
     assert path.exists()
+
+
+def test_markdown_contains_cwe_cvss_mapping_section(
+    tmp_path: Path, sample_report: ScanReport
+) -> None:
+    """New '## CWE / CVSS Mapping' section, one row per distinct category present."""
+    reporter = MarkdownReporter()
+    path = reporter.save(sample_report, tmp_path)
+    content = path.read_text()
+    assert "## CWE / CVSS Mapping" in content
+    assert "| Category | CWE | CVSS Vector | CVSS Score |" in content
+    # sample_report has LLM01 and LLM07 findings
+    assert "LLM01" in content.split("## CWE / CVSS Mapping")[1]
+    assert CWE_MAP["LLM01"][0] in content
+    assert CVSS_MAP["LLM01"] in content
 
 
 # --- JsonReporter tests (REPORT-03) ---
@@ -188,6 +204,51 @@ def test_html_shows_vulnerable_result(tmp_path: Path, sample_report: ScanReport)
     path = reporter.save(sample_report, tmp_path)
     html = path.read_text()
     assert "VULNERABLE" in html
+
+
+def test_html_contains_cwe_cvss_mapping_section(
+    tmp_path: Path, sample_report: ScanReport
+) -> None:
+    """New 'CWE / CVSS Mapping' table, mirroring the markdown reporter's section."""
+    reporter = HtmlReporter()
+    path = reporter.save(sample_report, tmp_path)
+    html = path.read_text()
+    assert "CWE / CVSS Mapping" in html
+    assert CWE_MAP["LLM01"][0] in html
+    assert CVSS_MAP["LLM01"] in html
+
+
+# --- TextReporter tests ---
+
+
+def test_text_creates_file(tmp_path: Path, sample_report: ScanReport) -> None:
+    reporter = TextReporter()
+    path = reporter.save(sample_report, tmp_path)
+    assert path.exists()
+    assert path.name == "report.txt"
+
+
+def test_text_contains_target_and_findings(tmp_path: Path, sample_report: ScanReport) -> None:
+    reporter = TextReporter()
+    path = reporter.save(sample_report, tmp_path)
+    content = path.read_text()
+    assert "http://localhost:5000" in content
+    assert "LLM01-001" in content
+    assert "LLM07-001" in content
+
+
+def test_text_contains_cwe_cvss_mapping_section(
+    tmp_path: Path, sample_report: ScanReport
+) -> None:
+    """New 'CWE / CVSS MAPPING' block, same visual style as RECOMMENDATIONS."""
+    reporter = TextReporter()
+    path = reporter.save(sample_report, tmp_path)
+    content = path.read_text()
+    assert "CWE / CVSS MAPPING" in content
+    for category in ("LLM01", "LLM07"):
+        cwe_str = ", ".join(CWE_MAP[category])
+        assert f"{category}: {cwe_str} | CVSS" in content
+        assert CVSS_MAP[category] in content
 
 
 # --- get_file_reporter factory tests ---

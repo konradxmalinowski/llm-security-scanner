@@ -44,4 +44,27 @@ class MarkdownReporter:
                 f"| {_sanitize_cell(f.name)} | {f.severity} "
                 f"| {result} | {_sanitize_cell(f.recommendation)} |"
             )
+
+        # CWE / CVSS mapping, one row per distinct category present in the findings.
+        seen_mapping: set[str] = set()
+        mapping_rows: list[str] = []
+        for f in report.findings:
+            if f.owasp_category not in seen_mapping and (f.cwe_ids or f.cvss_vector):
+                seen_mapping.add(f.owasp_category)
+                cwe_str = ", ".join(f.cwe_ids)
+                mapping_rows.append(
+                    f"| {_sanitize_cell(f.owasp_category)} | {_sanitize_cell(cwe_str)} "
+                    f"| {_sanitize_cell(f.cvss_vector)} | {f.cvss_score:.1f} |"
+                )
+
+        if mapping_rows:
+            lines += [
+                "",
+                "## CWE / CVSS Mapping",
+                "",
+                "| Category | CWE | CVSS Vector | CVSS Score |",
+                "|----------|-----|-------------|------------|",
+            ]
+            lines += mapping_rows
+
         return "\n".join(lines) + "\n"

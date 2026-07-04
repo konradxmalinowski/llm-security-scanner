@@ -53,5 +53,34 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% set seen_categories = [] %}
+  {% set mapping_rows = [] %}
+  {% for finding in report.findings %}
+    {% if finding.owasp_category not in seen_categories and (finding.cwe_ids or finding.cvss_vector) %}
+      {% set _ = seen_categories.append(finding.owasp_category) %}
+      {% set _ = mapping_rows.append(finding) %}
+    {% endif %}
+  {% endfor %}
+  {% if mapping_rows %}
+  <h2>CWE / CVSS Mapping</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th><th>CWE</th><th>CVSS Vector</th><th>CVSS Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for finding in mapping_rows %}
+      <tr class="{{ finding.severity }}">
+        <td>{{ finding.owasp_category }}</td>
+        <td>{{ finding.cwe_ids | join(", ") }}</td>
+        <td class="payload">{{ finding.cvss_vector }}</td>
+        <td>{{ "%.1f"|format(finding.cvss_score) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </body>
 </html>
