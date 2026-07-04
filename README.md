@@ -177,6 +177,14 @@ docker run --rm \
   --output-dir /reports
 ```
 
+`llm-security-scanner` here is the tag from the **local build** step above
+(`docker build -t llm-security-scanner .`) — it only exists on your machine after you
+run that command. If you instead pulled the [pre-built image](#pre-built-image), use
+its full tag (e.g. `ghcr.io/konradxmalinowski/llm-security-scanner:latest` or a pinned
+`:<version>`) in place of `llm-security-scanner` in every command on this page —
+running `docker run ... llm-security-scanner ...` without either step first fails with
+`pull access denied for llm-security-scanner, repository does not exist`.
+
 #### CI/CD containers
 
 In CI, the scanner container should point to:
