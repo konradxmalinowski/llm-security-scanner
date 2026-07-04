@@ -1,6 +1,6 @@
 [project]
 name = "llm-security-scanner"
-version = "0.4.0"
+version = "0.5.0"
 description = "OWASP Top 10 for LLMs security scanner — fully offline"
 readme = "README.md"
 license = "MIT"
