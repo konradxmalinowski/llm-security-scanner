@@ -144,11 +144,17 @@ A Python CLI tool that tests LLM-based applications against the full OWASP Top 1
 
 ### Releasing to PyPI
 
-`.github/workflows/release.yml` only publishes on a pushed `vX.Y.Z` git tag — it never runs on ordinary commits/merges to `main`. To ship a new PyPI release:
+`.github/workflows/release.yml` is unchanged and still only publishes on a pushed `vX.Y.Z` git tag — it never runs on ordinary commits/merges to `main`.
 
-1. Bump `version` in `pyproject.toml` (e.g. `0.1.0` → `0.2.0`), commit and push to `main` as normal — this step alone does **not** publish anything.
-2. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
-3. The workflow checks the tag matches `pyproject.toml`'s version before publishing (mismatch = hard fail, no partial publish).
+Day-to-day, there's no manual release step: commit to `main` with Conventional Commit prefixes (`feat:`, `fix:`, etc.) as normal. `.github/workflows/release-please.yml` (`googleapis/release-please-action`) runs on every push to `main`, scans commits since the last release, and auto-maintains a single open "Release PR" that bumps `pyproject.toml`'s `version` and updates `CHANGELOG.md`.
+
+To ship a new release:
+
+1. Merge the auto-maintained Release PR. release-please creates the `vX.Y.Z` tag and a GitHub Release.
+2. release-please authenticates as a fine-grained PAT (repo secret `RELEASE_PLEASE_TOKEN`, scoped to Contents + Pull requests read/write on this repo only), not the default `GITHUB_TOKEN` — this is specifically so the tag it creates DOES trigger `release.yml` automatically. No manual tag-push step is needed.
+3. `release.yml` then builds and publishes to PyPI as before, checking the tag matches `pyproject.toml`'s version before publishing (mismatch = hard fail, no partial publish).
+
+The old manual process (bump `version` in `pyproject.toml`, then `git tag vX.Y.Z && git push origin vX.Y.Z`) still works as a fallback if ever needed, since `release.yml` itself is unchanged.
 
 Uses PyPI trusted publishing (OIDC) — no token to rotate. The one-time PyPI "pending publisher" registration and the GitHub `pypi` environment are already configured (see `docs/FUNCTIONALITY.md`).
 <!-- GSD:conventions-end -->
