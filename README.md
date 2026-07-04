@@ -1,6 +1,6 @@
 # LLM Security Scanner
 
-A CLI security scanner for LLM-backed applications, runnable locally or from CI/CD against Docker, staging, and other runner-reachable applications. It fires 46+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
+A CLI security scanner for LLM-backed applications, runnable locally or from CI/CD against Docker, staging, and other runner-reachable applications. It fires 51+ automated attacks across the [OWASP Top 10 for LLMs 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/) framework and uses an Ollama model as the AI judge.
 
 ---
 
@@ -11,7 +11,7 @@ llm-scanner CLI
       │
       ├─ Preflight checks (Ollama daemon, model availability, HTTP reachability)
       │
-      ├─ YamlPayloadLoader ──► payloads/ (LLM01–LLM10, 46+ payloads)
+      ├─ YamlPayloadLoader ──► payloads/ (LLM01–LLM10, 51+ payloads)
       │
       ├─ TargetFactory
       │       ├─ HttpTarget   (httpx AsyncClient → POST /endpoint)
@@ -542,6 +542,8 @@ Risk score bands: **0–3.9** (Low), **4–6.9** (Medium), **7–10** (High, sho
 | `--payloads-dir` | No | None | Directory with additional YAML payload files, loaded alongside the bundled library (same `id`/`name`/`payload`/`judge_criteria` schema) |
 | `--retries` | No | `2` | Retry attempts for transient HTTP errors (5xx, timeout, connection failure) with exponential backoff; 4xx errors are never retried; use `--retries 0` to disable |
 | `--concurrency` | No | `3` | Number of attacks run concurrently against the target |
+| `--log-level` | No | `INFO` | Logging verbosity for stderr (and `--log-file`, if given): `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| `--log-file` | No | None | Optional path to write structured JSON log lines (one JSON object per line) |
 
 `*` Required at runtime unless supplied by `--config`.
 
@@ -552,17 +554,17 @@ Risk score bands: **0–3.9** (Low), **4–6.9** (Medium), **7–10** (High, sho
 | Category | Name | Payloads | Default |
 |----------|------|----------|---------|
 | LLM01 | Prompt Injection | 5 | Yes |
-| LLM02 | Sensitive Information Disclosure | 5 | Yes |
+| LLM02 | Sensitive Information Disclosure | 7 | Yes |
 | LLM03 | Supply Chain | 4 | Yes |
 | LLM04 | Data and Model Poisoning | 4 | Yes |
-| LLM05 | Improper Output Handling | 5 | Yes |
-| LLM06 | Excessive Agency | 5 | Yes |
-| LLM07 | System Prompt Leakage | 5 | Yes |
+| LLM05 | Improper Output Handling | 4 | Yes |
+| LLM06 | Excessive Agency | 7 | Yes |
+| LLM07 | System Prompt Leakage | 4 | Yes |
 | LLM08 | Vector and Embedding Weaknesses | 4 | Yes |
 | LLM09 | Misinformation | 4 | Yes |
-| LLM10 | Unbounded Consumption | 5 | `--include-dos-tests` only |
+| LLM10 | Unbounded Consumption | 4 | `--include-dos-tests` only |
 
-**Total: 46+ payloads.** Extended payloads in `payloads/extended/` are loaded automatically.
+**Total: 47 payloads** across LLM01–LLM10, plus 4 extended LLM10 probes in `payloads/extended/` (not loaded by default — pass `--payloads-dir payloads/extended` to include them) — **51 total**.
 
 ---
 
@@ -576,7 +578,11 @@ Each scan writes into its own timestamped subfolder: `<output_dir>/<timestamp>_<
 | Markdown | `--format md` | `report.md` | Table with attack ID, category, name, severity, result, recommendation |
 | JSON | `--format json` | `report.json` | Full `ScanReport` structure including `judge_reasoning` per finding |
 | HTML | `--format html` | `report.html` | Self-contained; Jinja2 `autoescape=True` prevents XSS from payload content |
-| SARIF | `--format sarif` | `report.sarif` | SARIF 2.1.0 JSON, consumable by the GitHub Security tab (code scanning) and VS Code's SARIF Viewer; includes only confirmed, non-suppressed vulnerabilities |
+| SARIF | `--format sarif` | `report.sarif` | SARIF 2.1.0 JSON, consumable by the GitHub Security tab (code scanning) and VS Code's SARIF Viewer; includes only confirmed, non-suppressed vulnerabilities; rules carry a CWE `taxonomies` array and a `security-severity` score |
+
+Every finding in all five formats now also carries `cwe_ids` and a `cvss_vector`/`cvss_score` mapped per OWASP category.
+
+Each scan also writes `metrics.json` (timing and outcome summary for that scan, in the scan's own timestamped subfolder) and appends one line to `audit.jsonl` (a durable, append-only audit trail at the `--output-dir` root, one record per scan ever run).
 
 ### Trend dashboard
 
@@ -591,6 +597,7 @@ Every scan also regenerates `<output_dir>/index.html` — a Chart.js dashboard p
 - **XSS-safe HTML reports** — Jinja2 `autoescape=True`; attack payloads containing `<script>` render as escaped text
 - **DoS gate** — LLM10 (Unbounded Consumption) requires `--include-dos-tests`; never fired by default
 - **No `yaml.load()`** — all YAML is parsed with `yaml.safe_load()` (Ruff S506 enforced in CI)
+- **Hardened own CI** — `.github/workflows/security.yml` runs pip-audit (dependency SCA), gitleaks (secret scanning), and CodeQL (SAST) against this repository on every push/PR plus a weekly schedule; see [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for a STRIDE analysis of the scanner's own attack surface
 
 ---
 

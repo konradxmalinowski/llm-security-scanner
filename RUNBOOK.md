@@ -59,6 +59,8 @@ usage: llm-scanner [-h] [--target TARGET] [--target-type {url,ollama}]
                    [--suppressions SUPPRESSIONS_FILE]
                    [--payloads-dir PAYLOADS_DIR] [--retries RETRIES]
                    [--concurrency CONCURRENCY]
+                   [--log-level {DEBUG,INFO,WARNING,ERROR}]
+                   [--log-file LOG_FILE]
                    {baseline} ...
 ```
 
@@ -99,7 +101,7 @@ llm-scanner \
 
 What happens:
 - Preflight checks Ollama is running, both models are pulled
-- 46 payloads load from `payloads/`
+- 47 payloads load from `payloads/` (default categories exclude LLM10 unless `--include-dos-tests` is set)
 - Each payload is sent to `mistral:7b` via the Ollama SDK
 - `llama3.2:3b` judges each `(payload, response)` pair
 - Results table prints to the terminal
@@ -549,6 +551,23 @@ The output directory is not writable. Either change `--output-dir` or fix permis
 ```bash
 mkdir -p ./reports && chmod 755 ./reports
 ```
+
+### Getting more verbose output while debugging a scan
+
+Use `--log-level DEBUG` for verbose stderr logging, and `--log-file` to also persist structured JSON log lines to a file:
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --log-level DEBUG \
+  --log-file ./reports/scan.log
+```
+
+Every scan also writes two files you can inspect after the fact, independent of `--log-level`:
+- `<output_dir>/<timestamp>_<target_slug>/metrics.json` — timing and outcome summary for that one scan (attack counts, latencies, risk score).
+- `<output_dir>/audit.jsonl` — an append-only audit trail at the `--output-dir` root, one JSON line per scan ever run against that output directory (target, judge model, categories, counts, risk score, duration). Useful for reconstructing scan history without parsing every `report.json`.
 
 ---
 

@@ -15,7 +15,8 @@ A CLI (`llm-scanner`) that fires a battery of OWASP Top 10 for LLMs (2025) attac
 ## Attack library
 
 - YAML files under `payloads/`, one per OWASP category (`llm01_prompt_injection.yaml` … `llm10_unbounded_consumption.yaml`), each entry with `id`, `name`, `payload`, `judge_criteria`.
-- 4–5 payloads per category, ~41 total, plus `payloads/extended/llm10_extended.yaml` with more Unbounded Consumption probes.
+- 4–7 payloads per category, 47 total, plus `payloads/extended/llm10_extended.yaml` with 4 more Unbounded Consumption probes (not loaded by default; pass `--payloads-dir payloads/extended` to include them) — 51 grand total.
+- Every finding carries `cwe_ids` and a `cvss_vector`/`cvss_score` mapped per OWASP category (`models.py`'s `CWE_MAP`/`CVSS_MAP`), surfaced in all report formats.
 - `--categories` filters which OWASP categories run; `--severity` filters by minimum severity.
 - LLM10 (Unbounded Consumption / DoS-style probes) is excluded by default — opt in with `--include-dos-tests`.
 
@@ -32,14 +33,16 @@ A CLI (`llm-scanner`) that fires a battery of OWASP Top 10 for LLMs (2025) attac
 
 - Terminal (Rich table) — always shown.
 - `--format` controls saved files: `md`, `json`, `html`, `txt` (default: all four) into a timestamped subfolder under `--output-dir` (default `./reports`).
-- SARIF 2.1.0 output (`reporters/sarif.py`) — for code-scanning integrations (e.g. GitHub code scanning).
+- SARIF 2.1.0 output (`reporters/sarif.py`) — for code-scanning integrations (e.g. GitHub code scanning); includes CWE taxonomies and a `security-severity` property.
 - Trend dashboard (`reporters/trend.py`) — Chart.js HTML dashboard across historical scans.
 - Baseline management: `llm-scanner baseline save --name X` / `llm-scanner baseline compare --name X` to diff a new scan against a saved baseline.
 - `--fail-on-score <n>` — exit code 1 if risk score ≥ n, for CI gating.
+- Observability: `--log-level`/`--log-file` control structured logging; every scan writes `metrics.json` (per-scan timing/outcome summary) and appends to `audit.jsonl` (durable, append-only audit trail at `--output-dir` root).
 
 ## CI/CD integration
 
 - `.github/workflows/llm-scan.yml` + `.github/actions/llm-scan/action.yml` — GitHub Actions integration (this repo's own CI, installs from local checkout).
+- `.github/workflows/security.yml` — hardens the scanner's own codebase: pip-audit (SCA), gitleaks (secret scanning), CodeQL (SAST), on push/PR plus a weekly schedule. See `docs/THREAT_MODEL.md` for the STRIDE analysis of the scanner's own attack surface.
 - `.github/workflows/release.yml` — tag-triggered PyPI publish (trusted publishing/OIDC).
 - `examples/github/*.yml`, `examples/gitlab/*.yml` — copy-paste CI/CD templates for consumers scanning *their own* app; Docker variants build a minimal `pip install llm-security-scanner` image rather than cloning this repo.
 - `examples/docker/`, `Dockerfile` — containerized scanning (local Docker Compose target or CI runner).
@@ -68,5 +71,5 @@ The landing page and hosted web-scan service moved to the private `llm-security-
 - **DoS/LLM10 defaults**: stays opt-in (`--include-dos-tests`) — confirmed as the safe default.
 - **Roadmap**: no concrete plans beyond the current scope yet, except:
   - support for judge models beyond Ollama (currently offline-first/Ollama-only per `CLAUDE.md` — this would need that constraint revisited)
-  - deeper OWASP payload coverage (more than the current ~41 payloads)
+  - deeper OWASP payload coverage (more than the current 51 payloads)
 - **Public link to the SaaS product**: none yet. Once the private `llm-security-scanner-saas` service has a public launch, this README should link to it as a hosted option.
