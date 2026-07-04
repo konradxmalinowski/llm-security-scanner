@@ -7,6 +7,9 @@ import ollama
 from pydantic import BaseModel, ConfigDict
 
 from llm_scanner.models import JudgeResult, Payload
+from llm_scanner.observability import get_logger
+
+_logger = get_logger()
 
 
 def _find_first_json_object(text: str) -> str | None:
@@ -97,13 +100,30 @@ class OllamaJudge:
             )
             return self._parse_judge_response(raw)
         except TimeoutError:
+            _logger.warning(
+                "judge evaluation timed out",
+                extra={
+                    "event": "judge_timeout",
+                    "attack_id": payload.id,
+                    "error_type": "TimeoutError",
+                },
+            )
             return JudgeResult(
                 success=False,
                 reasoning="",
                 error="judge_timeout",
                 raw_response="",
             )
-        except ConnectionError:
+        except ConnectionError as exc:
+            _logger.warning(
+                "judge model unavailable",
+                extra={
+                    "event": "judge_unavailable",
+                    "attack_id": payload.id,
+                    "error_type": type(exc).__name__,
+                    "error_message": str(exc),
+                },
+            )
             return JudgeResult(
                 success=False,
                 reasoning="",
@@ -111,6 +131,15 @@ class OllamaJudge:
                 raw_response="",
             )
         except Exception as exc:
+            _logger.warning(
+                "judge evaluation failed",
+                extra={
+                    "event": "judge_error",
+                    "attack_id": payload.id,
+                    "error_type": type(exc).__name__,
+                    "error_message": str(exc),
+                },
+            )
             return JudgeResult(
                 success=False,
                 reasoning="",

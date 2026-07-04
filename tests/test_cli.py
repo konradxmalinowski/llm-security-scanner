@@ -457,6 +457,36 @@ def test_build_parser_default_command_is_scan() -> None:
     assert args.command == "scan"
 
 
+def test_build_parser_has_log_level_flag() -> None:
+    """--log-level is parsed into args.log_level."""
+    args = _parse("--log-level", "DEBUG")
+    assert args.log_level == "DEBUG"
+
+
+def test_build_parser_log_level_default_is_info() -> None:
+    """--log-level defaults to INFO when not provided."""
+    args = _parse()
+    assert args.log_level == "INFO"
+
+
+def test_build_parser_log_level_rejects_invalid_choice() -> None:
+    """--log-level only accepts DEBUG/INFO/WARNING/ERROR."""
+    with pytest.raises(SystemExit):
+        _parse("--log-level", "TRACE")
+
+
+def test_build_parser_has_log_file_flag() -> None:
+    """--log-file is parsed as a Path into args.log_file."""
+    args = _parse("--log-file", "scan.log.jsonl")
+    assert args.log_file == Path("scan.log.jsonl")
+
+
+def test_build_parser_log_file_default_is_none() -> None:
+    """--log-file defaults to None when not provided."""
+    args = _parse()
+    assert args.log_file is None
+
+
 def test_build_parser_set_defaults_after_add_subparsers() -> None:
     """Regression: set_defaults(command='scan') must be after add_subparsers.
 

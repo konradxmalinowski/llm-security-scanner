@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import re
 import sys
+import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -15,6 +18,7 @@ from rich.table import Table
 from llm_scanner.baselines import BaselineManager
 from llm_scanner.judge import OllamaJudge
 from llm_scanner.models import ScanReport, Severity
+from llm_scanner.observability import configure_logging
 from llm_scanner.payloads.loader import YamlPayloadLoader
 from llm_scanner.preflight import (
     check_http_target_reachable,
@@ -213,6 +217,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Maximum number of attacks run concurrently against the target (default: 3)",
     )
 
+    # Observability (structured logging)
+    parser.add_argument(
+        "--log-level",
+        dest="log_level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging verbosity for stderr (and --log-file, if given). Default: INFO.",
+    )
+    parser.add_argument(
+        "--log-file",
+        dest="log_file",
+        type=Path,
+        default=None,
+        help="Optional path to write structured JSON log lines (one JSON object per line).",
+    )
+
     # Subcommands for baseline management (ADV-02)
     # CRITICAL: add_subparsers MUST be called before set_defaults
     # add_subparsers(dest='command') resets the dest default to None,
@@ -401,6 +421,8 @@ def _apply_suppressions(report: ScanReport, suppressions_file: Path) -> ScanRepo
 
 async def _run(args: argparse.Namespace) -> None:
     """Orchestrate the full scan pipeline: preflight -> load -> scan -> report."""
+    scan_id = uuid.uuid4().hex[:12]
+
     # Guard: --target is required in scan mode
     if not getattr(args, "target", None):
         console.print("[red]Error: --target is required for scan mode.[/red]")
@@ -468,6 +490,7 @@ async def _run(args: argparse.Namespace) -> None:
             payloads=payloads,
             target_label=args.target,
             concurrency=args.concurrency,
+            scan_id=scan_id,
         )
         report = await scanner.scan()
 
@@ -485,11 +508,13 @@ async def _run(args: argparse.Namespace) -> None:
     scan_dir = args.output_dir / f"{ts}_{target_slug}"
 
     saved_paths: list[str] = []
+    formats_saved: list[str] = []
     for fmt in (f.strip() for f in args.formats.split(",") if f.strip()):
         try:
             reporter = get_file_reporter(fmt)
             saved = reporter.save(report, scan_dir)
             saved_paths.append(str(saved))
+            formats_saved.append(fmt)
         except ValueError as exc:
             print(f"Warning: {exc}", file=sys.stderr)
         except OSError as exc:
@@ -503,6 +528,45 @@ async def _run(args: argparse.Namespace) -> None:
         TrendReporter().save(args.output_dir)
     except OSError as exc:
         print(f"Warning: Could not update trend dashboard: {exc}", file=sys.stderr)
+
+    # 10b. Persist per-scan metrics + append to the durable audit trail (observability).
+    # Runs even if the fail-on-score check below later aborts -- the audit record is
+    # about "was this tested", not "did it pass".
+    metrics = getattr(scanner, "last_metrics", None) or {
+        "total_attacks": report.total_attacks,
+        "successful_attacks": report.successful_attacks,
+        "total_duration_s": 0.0,
+        "avg_target_latency_s": 0.0,
+        "avg_judge_latency_s": 0.0,
+        "risk_score": report.risk_score,
+    }
+    try:
+        scan_dir.mkdir(parents=True, exist_ok=True)
+        (scan_dir / "metrics.json").write_text(
+            json.dumps(metrics, indent=2) + "\n", encoding="utf-8"
+        )
+    except OSError as exc:
+        print(f"Warning: Could not write metrics.json: {exc}", file=sys.stderr)
+
+    audit_record = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "scan_id": scan_id,
+        "target": args.target,
+        "target_type": args.target_type,
+        "judge_model": args.judge_model,
+        "categories": categories,
+        "total_attacks": metrics["total_attacks"],
+        "successful_attacks": metrics["successful_attacks"],
+        "risk_score": metrics["risk_score"],
+        "formats_saved": formats_saved,
+        "duration_s": metrics["total_duration_s"],
+    }
+    try:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        with (args.output_dir / "audit.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(audit_record) + "\n")
+    except OSError as exc:
+        print(f"Warning: Could not append audit.jsonl: {exc}", file=sys.stderr)
 
     # 11. Fail-on-score check -- AFTER suppressions and AFTER saving reports (ADV-01)
     if getattr(args, "fail_on_score", None) is not None and report.risk_score >= args.fail_on_score:
@@ -650,6 +714,7 @@ def main() -> None:
     """CLI entry point -- declared in pyproject.toml [project.scripts]."""
     parser = _build_parser()
     args = parser.parse_args()
+    configure_logging(args.log_level, args.log_file)
     try:
         args = _apply_config_file(args)
         if getattr(args, "targets_file", None) is not None:
