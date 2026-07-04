@@ -65,7 +65,10 @@
     <a href="https://github.com/konradxmalinowski/llm-security-scanner" target="_blank" rel="noopener noreferrer">GitHub</a>
   </div>
   <div class="topbar-right">
-    <a class="topbar-search" href="/llm-security-scanner/docs/">Search docs</a>
+    <div class="docs-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="home-docs-search-input" type="text" placeholder="Search docs" aria-label="Search documentation">
+    </div>
     <a class="topbar-action" href="#hosted-scan">Run scanner ↗</a>
   </div>
 </header>
@@ -92,13 +95,13 @@
     <li class="nav-group">
       <a href="/llm-security-scanner/docs/">Docs</a>
       <ul class="nav-submenu">
-        <li><a href="/llm-security-scanner/docs/">Introduction</a></li>
-        <li><a href="/llm-security-scanner/docs/getting-started/">Getting Started</a></li>
-        <li><a href="/llm-security-scanner/docs/cicd/">CI/CD</a></li>
-        <li><a href="/llm-security-scanner/docs/cli-reference/">CLI Reference</a></li>
-        <li><a href="/llm-security-scanner/docs/owasp-coverage/">OWASP Top 10</a></li>
-        <li><a href="/llm-security-scanner/docs/output-formats/">Output Formats</a></li>
-        <li><a href="/llm-security-scanner/docs/security/">Security Properties</a></li>
+        <li><a href="/llm-security-scanner/docs/" data-kw="overview introduction owasp llm security scanner what is">Introduction</a></li>
+        <li><a href="/llm-security-scanner/docs/getting-started/" data-kw="install cli quickstart uv pip ollama judge model first scan setup">Getting Started</a></li>
+        <li><a href="/llm-security-scanner/docs/cicd/" data-kw="ci cd gate github actions gitlab docker pipeline fail on score merge">CI/CD</a></li>
+        <li><a href="/llm-security-scanner/docs/cli-reference/" data-kw="flags arguments options target categories severity concurrency retries log level file">CLI Reference</a></li>
+        <li><a href="/llm-security-scanner/docs/owasp-coverage/" data-kw="owasp llm01 llm02 llm03 llm04 llm05 llm06 llm07 llm08 llm09 llm10 categories payloads coverage cwe cvss">OWASP Top 10</a></li>
+        <li><a href="/llm-security-scanner/docs/output-formats/" data-kw="terminal markdown json html sarif report risk score cwe cvss">Output Formats</a></li>
+        <li><a href="/llm-security-scanner/docs/security/" data-kw="offline judge api key xss yaml security sca secret scanning codeql gitleaks pip-audit threat model">Security Properties</a></li>
       </ul>
     </li>
   </ul>

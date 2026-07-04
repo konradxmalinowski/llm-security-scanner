@@ -85,6 +85,23 @@
     });
   }
 
+  // ── Home: same client-side filter, applied to the persistent left nav's
+  // Documentation submenu (the homepage has no .docs-sidebar of its own) ──
+  const homeDocsSearchInput = document.getElementById('home-docs-search-input');
+  if (homeDocsSearchInput) {
+    homeDocsSearchInput.addEventListener('input', () => {
+      const query = homeDocsSearchInput.value.trim().toLowerCase();
+      document.querySelectorAll('.nav-submenu').forEach((submenu) => {
+        submenu.querySelectorAll('li').forEach((item) => {
+          const link = item.querySelector('a');
+          const keywords = link ? (link.dataset.kw || '') : '';
+          const haystack = (item.textContent + ' ' + keywords).toLowerCase();
+          item.style.display = haystack.includes(query) ? '' : 'none';
+        });
+      });
+    });
+  }
+
   // ── Landing docs router: load docs into the workspace without leaving the page ──
   // GitHub Pages serves this as a project page under /llm-security-scanner/, not
   // at the domain root, so every path comparison below must account for that
