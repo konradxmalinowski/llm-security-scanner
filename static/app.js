@@ -102,6 +102,29 @@
     });
   }
 
+  // ── Mobile menu toggle: reveals whichever nav exists on this page (the
+  // homepage's section nav, or a docs page's sidebar) as a dropdown panel ──
+  const navToggle = document.querySelector('.nav-toggle');
+  if (navToggle) {
+    const mobileNav = document.querySelector('nav[aria-label="Section navigation"]') || document.querySelector('.docs-sidebar');
+    const closeMobileNav = () => {
+      document.body.classList.remove('mobile-nav-open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    };
+    navToggle.addEventListener('click', () => {
+      const isOpen = document.body.classList.toggle('mobile-nav-open');
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+    if (mobileNav) {
+      mobileNav.addEventListener('click', (event) => {
+        if (event.target.closest('a')) closeMobileNav();
+      });
+    }
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeMobileNav();
+    });
+  }
+
   // ── Landing docs router: load docs into the workspace without leaving the page ──
   // GitHub Pages serves this as a project page under /llm-security-scanner/, not
   // at the domain root, so every path comparison below must account for that

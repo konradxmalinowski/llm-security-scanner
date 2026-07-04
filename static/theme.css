@@ -1539,6 +1539,7 @@
       backdrop-filter: blur(12px);
     }
     .topbar-brand { color: #fff; font-size: 0.95rem; font-weight: 650; text-decoration: none; }
+    .nav-toggle { display: none; }
     .topbar-nav { display: flex; align-items: center; gap: 6px; }
     .topbar-nav a { padding: 7px 10px; border-radius: 6px; color: #aaa; font-size: 0.78rem; text-decoration: none; }
     .topbar-nav a:hover,
@@ -1932,6 +1933,43 @@
       .docs-shell { grid-template-columns: 1fr; }
       .docs-sidebar { display: none; }
       .docs-content { padding: 32px 20px 64px; }
+      nav { display: none; }
+      .topbar-nav { display: none; }
+
+      /* Mobile menu toggle: hidden on desktop, shown here since this is
+         where nav / .docs-sidebar start collapsing. */
+      .nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        background: transparent;
+        border: 1px solid #333;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+      }
+      .nav-toggle svg { width: 18px; height: 18px; }
+      .site-topbar { grid-template-columns: auto 1fr auto; }
+
+      /* Open state: whichever nav exists on this page (homepage's `nav`
+         sidebar, or a docs page's `.docs-sidebar`) is rendered as a
+         full-width dropdown panel below the topbar. */
+      body.mobile-nav-open nav,
+      body.mobile-nav-open .docs-sidebar {
+        display: flex !important;
+        position: fixed;
+        inset: var(--nav-h) 0 0 0;
+        width: 100%;
+        height: calc(100vh - var(--nav-h));
+        overflow-y: auto;
+        z-index: 150;
+        background: #050505;
+        flex-direction: column;
+        padding: 20px;
+      }
     }
 
     @media (max-width: 768px) {
