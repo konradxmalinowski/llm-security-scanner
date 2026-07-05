@@ -1933,6 +1933,7 @@
       .docs-shell { grid-template-columns: 1fr; }
       .docs-sidebar { display: none; }
       .docs-content { padding: 32px 20px 64px; }
+      body { padding-left: 0; }
       nav { display: none; }
       .topbar-nav { display: none; }
 
