@@ -9,3 +9,5 @@ __pycache__/
 sessions/
 plans/
 reports/
+.pytest_cache/
+.ruff_cache/
