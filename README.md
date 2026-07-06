@@ -679,3 +679,9 @@ uv run ruff check --fix src/ tests/
 | Package manager | uv | latest |
 | Linter/formatter | Ruff | 0.15+ |
 | Test runner | pytest + pytest-asyncio | 9.1+ / 1.4+ |
+
+## Usage
+
+```bash
+python3 main.py
+```
