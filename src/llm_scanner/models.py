@@ -187,9 +187,10 @@ class Artifact(BaseModel):
 
     Produced by the detectors package. Every field except ``raw`` is safe to publish:
     ``fingerprint`` is a redacted stand-in for the detected value (first4...last4 plus a
-    sha256 prefix) so that a report which detects a leaked secret never becomes the leak
-    vector by transcribing that secret in cleartext. ``raw`` holds the unredacted value
-    and is populated ONLY when the operator explicitly passes --include-raw-artifacts.
+    per-run HMAC prefix, or a full mask for short values) so that a report which detects a
+    leaked secret never becomes the leak vector by transcribing that secret in cleartext.
+    ``raw`` holds the unredacted value and is populated ONLY when the operator explicitly
+    passes --include-raw-artifacts.
     """
 
     model_config = ConfigDict(extra="forbid")

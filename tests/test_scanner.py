@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
 
 from llm_scanner.models import AttackResult, JudgeResult, Outcome, Payload, ScanReport, Severity
+from llm_scanner.reporters.json_reporter import JsonReporter
 from llm_scanner.scanner import LLMScanner, derive_outcome
 
 # asyncio_mode = "auto" is set in pyproject.toml — no @pytest.mark.asyncio needed
@@ -467,6 +469,98 @@ async def test_scan_redacts_secret_artifacts_by_default(
     assert secret_arts
     assert all(a.raw is None for a in secret_arts)
     assert all(leaked_key not in a.fingerprint for a in secret_arts)
+
+
+async def test_scan_response_redacted_in_report_json_by_default(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+    tmp_path: Path,
+) -> None:
+    """SEC-001 regression: the CRITICAL. A leaked secret in the raw target reply must NOT
+    appear verbatim in report.json when writing with defaults (no --include-raw-artifacts)."""
+    leaked_key = "sk-Ab3kD9xQ2mNp7ZtR4wLq8Vf1Hc6Ug0Yj"
+    mock_target.send.return_value = f"Sure, the key is {leaked_key} -- keep it safe."
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=True, reasoning="leaked a key", error=None, raw_response="{}"
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+
+    # The stored response is redacted in the model...
+    assert leaked_key not in report.findings[0].response
+    # ...and therefore absent from the serialized report.json on disk.
+    path = JsonReporter().save(report, tmp_path)
+    assert leaked_key not in path.read_text(encoding="utf-8")
+
+
+async def test_scan_response_raw_present_with_include_raw(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+    tmp_path: Path,
+) -> None:
+    """The --include-raw-artifacts gate still works: with it set, the full raw response is
+    stored and reaches report.json (unredacted, for local use only)."""
+    leaked_key = "sk-Ab3kD9xQ2mNp7ZtR4wLq8Vf1Hc6Ug0Yj"
+    mock_target.send.return_value = f"Sure, the key is {leaked_key}."
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=True, reasoning="leak", error=None, raw_response="{}"
+    )
+    scanner = LLMScanner(
+        mock_target, mock_judge, [sample_payload], include_raw_artifacts=True
+    )
+    report = await scanner.scan()
+
+    assert leaked_key in report.findings[0].response
+    path = JsonReporter().save(report, tmp_path)
+    assert leaked_key in path.read_text(encoding="utf-8")
+
+
+async def test_scan_two_secrets_redacted_without_offset_corruption(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    """Two distinct secrets in one response must both be redacted, with the surrounding text
+    preserved intact -- proving span offsets are not corrupted by the first replacement."""
+    key_a = "sk-Ab3kD9xQ2mNp7ZtR4wLq8Vf1Hc6Ug0Yj"
+    key_b = "AKIAZX7QW3RT9PLM2VKD"
+    mock_target.send.return_value = f"first {key_a} then middle {key_b} finally end"
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=True, reasoning="two leaks", error=None, raw_response="{}"
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+
+    stored = report.findings[0].response
+    assert key_a not in stored
+    assert key_b not in stored
+    # Non-secret text between and around the secrets survives unbroken.
+    assert stored.startswith("first ")
+    assert " then middle " in stored
+    assert stored.endswith(" finally end")
+
+
+async def test_scan_judge_reasoning_redacted_by_default(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    """SEC-002: if the judge echoes the leaked secret in its reasoning, that value must be
+    redacted from the stored judge_reasoning by default (it ships into SARIF messages)."""
+    leaked_key = "sk-Ab3kD9xQ2mNp7ZtR4wLq8Vf1Hc6Ug0Yj"
+    mock_target.send.return_value = f"the key is {leaked_key}"
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=True,
+        reasoning=f"The model revealed the credential {leaked_key} in its reply.",
+        error=None,
+        raw_response="{}",
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+
+    assert leaked_key not in report.findings[0].judge_reasoning
 
 
 def test_compute_risk_score_error_finding_contributes_nothing() -> None:

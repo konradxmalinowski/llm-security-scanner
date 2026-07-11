@@ -15,7 +15,12 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from llm_scanner.detectors import run_detectors
+from llm_scanner.detectors import (
+    generate_fingerprint_key,
+    redact_response,
+    redact_values_in_text,
+    run_detectors,
+)
 from llm_scanner.judge.reconcile import derive_outcome, reconcile
 from llm_scanner.models import AttackResult, Outcome, Payload, ScanReport, Severity
 from llm_scanner.observability import get_logger
@@ -78,6 +83,10 @@ class LLMScanner:
         self._canary = canary
         self._system_prompt = system_prompt
         self._include_raw_artifacts = include_raw_artifacts
+        # Per-run key for redaction fingerprints. Generated once here (not per-detector-call,
+        # not global state) so every fingerprint in this scan is keyed identically and cannot
+        # be brute-forced against a precomputed table across scans (SEC-003).
+        self._fingerprint_key = generate_fingerprint_key()
         # Populated at the end of scan() -- last scan's metrics summary, read by
         # cli.py to write metrics.json without adding fields to ScanReport itself.
         self.last_metrics: dict[str, float | int] = {}
@@ -123,8 +132,23 @@ class LLMScanner:
                     canary=self._canary,
                     system_prompt=self._system_prompt,
                     include_raw=self._include_raw_artifacts,
+                    key=self._fingerprint_key,
                 )
                 reconciliation = reconcile(judge_result, artifacts)
+
+                # Redact detected secret/canary values from the STORED response and judge
+                # reasoning by default, once, at this boundary so every reporter inherits it
+                # (report.json is written by default and lands in CI logs). --include-raw-
+                # artifacts opts the whole record into cleartext for local use, the same gate
+                # that already governs Artifact.raw (SEC-001, SEC-002).
+                if self._include_raw_artifacts:
+                    stored_response = response
+                    stored_reasoning = judge_result.reasoning
+                else:
+                    stored_response = redact_response(response, artifacts)
+                    stored_reasoning = redact_values_in_text(
+                        judge_result.reasoning, response, artifacts
+                    )
 
                 _logger.debug(
                     "attack completed",
@@ -147,9 +171,9 @@ class LLMScanner:
                     owasp_category=payload.category,
                     name=payload.name,
                     payload=payload.payload,
-                    response=response,
+                    response=stored_response,
                     outcome=reconciliation.outcome,
-                    judge_reasoning=judge_result.reasoning,
+                    judge_reasoning=stored_reasoning,
                     judge_error=judge_result.error,
                     severity=payload.severity,
                     confidence=reconciliation.confidence,

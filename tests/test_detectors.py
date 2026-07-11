@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 
 from llm_scanner.detectors import (
+    MAX_DETECTOR_INPUT_CHARS,
     detect_canary,
     detect_prompt_markers,
     detect_secrets,
     fingerprint,
+    generate_fingerprint_key,
     run_detectors,
     shannon_entropy,
     shingle_overlap,
@@ -31,10 +34,12 @@ def test_fingerprint_never_contains_the_full_secret() -> None:
     assert secret[4:-4] not in fp
 
 
-def test_fingerprint_format_first4_last4_sha() -> None:
+def test_fingerprint_format_first4_last4_hmac() -> None:
+    # Long value keeps the first4/last4 window; the digest is now a keyed HMAC, not a bare
+    # sha256. With the default (keyless) path the HMAC key is empty, so it is deterministic.
     secret = _HIGH_ENTROPY_OPENAI
     fp = fingerprint(secret)
-    expected_digest = hashlib.sha256(secret.encode()).hexdigest()[:8]
+    expected_digest = hmac.new(b"", secret.encode(), hashlib.sha256).hexdigest()[:8]
     assert fp == f"{secret[:4]}...{secret[-4:]}:{expected_digest}"
 
 
@@ -42,6 +47,28 @@ def test_fingerprint_masks_short_values_entirely() -> None:
     fp = fingerprint("abcd")
     assert "abcd" not in fp
     assert fp.startswith("[redacted:4]:")
+
+
+def test_fingerprint_masks_values_up_to_12_chars_entirely() -> None:
+    # SEC-003: the full-mask threshold is 12. A 12-char value must reveal none of itself,
+    # because a first4/last4 window would already expose 8 of its 12 characters.
+    value = "ABCDEFGHIJKL"  # exactly 12 chars
+    fp = fingerprint(value)
+    assert value not in fp
+    assert value[:4] not in fp
+    assert value[-4:] not in fp
+    assert fp.startswith("[redacted:12]:")
+
+
+def test_fingerprint_per_run_key_changes_digest() -> None:
+    # SEC-003: a per-run key makes the digest unpredictable, defeating offline dictionary
+    # confirmation against a precomputed sha256 table.
+    secret = _HIGH_ENTROPY_OPENAI
+    fp_a = fingerprint(secret, generate_fingerprint_key())
+    fp_b = fingerprint(secret, generate_fingerprint_key())
+    assert fp_a != fp_b
+    # The visible window is unchanged; only the keyed digest differs.
+    assert fp_a.split(":")[0] == fp_b.split(":")[0]
 
 
 # ---------------------------------------------------------------------------
@@ -224,3 +251,16 @@ def test_run_detectors_combines_all_layers() -> None:
 def test_run_detectors_pure_no_inputs_is_safe() -> None:
     # No canary, no system prompt, clean response -> empty, never raises.
     assert run_detectors("a clean response", payload="") == []
+
+
+def test_run_detectors_caps_input_beyond_limit() -> None:
+    # SEC-004: only the first MAX_DETECTOR_INPUT_CHARS are scanned. A secret past the cap is
+    # not detected (and therefore not redacted -- documented limitation of the input bound).
+    prefix = "x" * MAX_DETECTOR_INPUT_CHARS
+    response = f"{prefix} {_HIGH_ENTROPY_OPENAI}"
+    assert run_detectors(response, payload="") == []
+    # The same secret within the cap is still detected.
+    assert any(
+        a.type == "secret"
+        for a in run_detectors(f"key {_HIGH_ENTROPY_OPENAI}", payload="")
+    )

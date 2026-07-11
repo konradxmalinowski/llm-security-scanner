@@ -47,6 +47,7 @@ def detect_secrets(
     *,
     payload: str = "",
     include_raw: bool = False,
+    key: bytes | None = None,
 ) -> list[Artifact]:
     """Return one Artifact per high-confidence secret found in *response*.
 
@@ -77,7 +78,7 @@ def detect_secrets(
                 Artifact(
                     type="secret",
                     detector=pattern.name,
-                    fingerprint=fingerprint(value),
+                    fingerprint=fingerprint(value, key),
                     span=match.span(),
                     confidence=0.95,
                     raw=value if include_raw else None,

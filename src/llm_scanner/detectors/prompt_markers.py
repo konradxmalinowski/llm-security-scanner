@@ -93,6 +93,7 @@ def detect_prompt_markers(
     *,
     system_prompt: str | None = None,
     include_raw: bool = False,
+    key: bytes | None = None,
 ) -> list[Artifact]:
     """Detect system-prompt leakage signals in *response*.
 
@@ -115,7 +116,7 @@ def detect_prompt_markers(
                 Artifact(
                     type="prompt_marker",
                     detector=f"marker:{phrase}",
-                    fingerprint=fingerprint(matched_text),
+                    fingerprint=fingerprint(matched_text, key),
                     span=(idx, idx + len(phrase)),
                     confidence=0.4,
                     raw=matched_text if include_raw else None,

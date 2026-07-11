@@ -11,6 +11,7 @@ def detect_canary(
     canary: str | None,
     *,
     include_raw: bool = False,
+    key: bytes | None = None,
 ) -> list[Artifact]:
     """Return one Artifact per occurrence of *canary* in *response*.
 
@@ -35,7 +36,7 @@ def detect_canary(
             Artifact(
                 type="canary",
                 detector="canary_exact",
-                fingerprint=fingerprint(canary),
+                fingerprint=fingerprint(canary, key),
                 span=(start, start + token_len),
                 confidence=1.0,
                 raw=canary if include_raw else None,
