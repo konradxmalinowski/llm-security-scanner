@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from llm_scanner.models import CWE_MAP, AttackResult, ScanReport, Severity
+from llm_scanner.models import CWE_MAP, AttackResult, Outcome, ScanReport, Severity
 from llm_scanner.reporters.sarif import SarifReporter
 
 
@@ -285,3 +285,48 @@ def test_sarif_no_taxonomies_when_no_cwe_ids() -> None:
     )
     sarif = SarifReporter()._build(report)
     assert sarif["runs"][0]["tool"]["driver"]["taxonomies"] == []
+
+
+# --- Phase 0: an unevaluated attack must not silently disappear from SARIF ---
+
+
+def _errored_sarif_report() -> ScanReport:
+    return ScanReport(
+        target="http://localhost:5000",
+        timestamp=datetime(2026, 7, 11, tzinfo=UTC),
+        risk_score=0.0,
+        findings=[
+            AttackResult(
+                attack_id="LLM01-001",
+                owasp_category="LLM01",
+                name="Prompt Injection Test",
+                payload="p",
+                response="r",
+                outcome=Outcome.ERROR,
+                judge_reasoning="",
+                judge_error="judge_timeout",
+                severity=Severity.HIGH,
+            )
+        ],
+    )
+
+
+def test_sarif_errored_finding_is_emitted_as_open_not_omitted() -> None:
+    """In SARIF an absent result means "passed". An attack the judge never evaluated
+    must therefore still appear -- as kind="open" (requires investigation)."""
+    sarif = SarifReporter()._build(_errored_sarif_report())
+    results = sarif["runs"][0]["results"]
+    assert len(results) == 1
+    result = results[0]
+    assert result["kind"] == "open"
+    # SARIF spec: level SHALL be "none" whenever kind is not "fail".
+    assert result["level"] == "none"
+    assert "NOT EVALUATED" in result["message"]["text"]
+    assert "judge_timeout" in result["message"]["text"]
+
+
+def test_sarif_safe_finding_still_omitted(sample_report: ScanReport) -> None:
+    """No regression: a genuine SAFE verdict produces no SARIF result."""
+    results = SarifReporter()._build(sample_report)["runs"][0]["results"]
+    assert all(r["ruleId"] != "LLM07" for r in results)
+    assert all(r.get("kind", "fail") == "fail" for r in results)

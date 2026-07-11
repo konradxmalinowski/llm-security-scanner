@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from llm_scanner.models import AttackResult, JudgeResult, Payload, ScanReport, Severity
-from llm_scanner.scanner import LLMScanner
+from llm_scanner.models import AttackResult, JudgeResult, Outcome, Payload, ScanReport, Severity
+from llm_scanner.scanner import LLMScanner, derive_outcome
 
 # asyncio_mode = "auto" is set in pyproject.toml — no @pytest.mark.asyncio needed
 
@@ -255,3 +255,171 @@ def test_compute_risk_score_capped_at_10() -> None:
     """5 CRITICAL successes (5 * 4.0 = 20.0) capped at 10.0."""
     findings = [_make_finding(success=True, severity=Severity.CRITICAL) for _ in range(5)]
     assert LLMScanner._compute_risk_score(findings) == 10.0
+
+
+# ---------------------------------------------------------------------------
+# Judge failures must surface as Outcome.ERROR, never as a clean pass
+# ---------------------------------------------------------------------------
+
+
+async def test_scan_judge_timeout_produces_error_outcome_not_safe(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    """THE regression test for this bug.
+
+    OllamaJudge.evaluate() returns success=False on timeout. Before the fix, the
+    scanner dropped judge_result.error, so a scan where the judge was unreachable
+    rendered exactly like a scan where the app defended itself: risk 0.0, zero
+    vulnerabilities, every row green. A timed-out judge must be distinguishable
+    from a safe application.
+    """
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=False,
+        reasoning="",
+        error="judge_timeout",
+        raw_response="",
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+
+    finding = report.findings[0]
+    assert finding.outcome is Outcome.ERROR
+    assert finding.judge_error == "judge_timeout"
+    # An unevaluated attack is NOT a successful attack...
+    assert finding.success is False
+    # ...but it is also NOT a clean pass: the report must say so out loud.
+    assert report.errored_attacks == 1
+    assert report.successful_attacks == 0
+    # And the unknown must not be laundered into the risk score.
+    assert report.risk_score == 0.0
+
+
+async def test_scan_judge_unavailable_produces_error_outcome(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=False, reasoning="", error="judge_unavailable", raw_response=""
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+    assert report.findings[0].outcome is Outcome.ERROR
+    assert report.findings[0].judge_error == "judge_unavailable"
+
+
+async def test_scan_all_judge_errors_reports_zero_risk_but_flags_every_finding(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payloads: list[Payload],
+) -> None:
+    """A scan where the judge was down end-to-end must not read as a clean bill of health."""
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=False, reasoning="", error="judge_unavailable", raw_response=""
+    )
+    scanner = LLMScanner(mock_target, mock_judge, sample_payloads)
+    report = await scanner.scan()
+
+    assert report.risk_score == 0.0
+    assert report.successful_attacks == 0
+    assert report.errored_attacks == report.total_attacks == 3
+    assert all(f.outcome is Outcome.ERROR for f in report.findings)
+    assert scanner.last_metrics["errored_attacks"] == 3
+
+
+async def test_scan_clean_judge_verdicts_are_not_errors(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    """A real SAFE verdict (no judge error) stays SAFE and is not counted as errored."""
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=False, reasoning="refused", error=None, raw_response="{}"
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+    assert report.findings[0].outcome is Outcome.SAFE
+    assert report.findings[0].judge_error is None
+    assert report.errored_attacks == 0
+
+
+async def test_scan_success_verdict_maps_to_vulnerable(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])  # mock_judge: success=True
+    report = await scanner.scan()
+    assert report.findings[0].outcome is Outcome.VULNERABLE
+    assert report.findings[0].success is True
+    assert report.errored_attacks == 0
+
+
+async def test_scan_degraded_parse_keeps_verdict_and_records_judge_error(
+    mock_target: AsyncMock,
+    mock_judge: AsyncMock,
+    sample_payload: Payload,
+) -> None:
+    """parse_tier2 / parse_heuristic are DEGRADED parses that still yielded a verdict.
+
+    They are not errors — the judge did decide. The error string is retained (a later
+    phase lowers the confidence of these findings), but the verdict stands.
+    """
+    mock_judge.evaluate.return_value = JudgeResult(
+        success=True, reasoning="leaked", error="parse_tier2", raw_response="```json..."
+    )
+    scanner = LLMScanner(mock_target, mock_judge, [sample_payload])
+    report = await scanner.scan()
+
+    finding = report.findings[0]
+    assert finding.outcome is Outcome.VULNERABLE
+    assert finding.success is True
+    assert finding.judge_error == "parse_tier2"
+    assert report.errored_attacks == 0
+    # HIGH severity success still scores.
+    assert report.risk_score == 2.5
+
+
+# ---------------------------------------------------------------------------
+# derive_outcome() — the JudgeResult.error -> Outcome mapping
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "error",
+    ["judge_timeout", "judge_unavailable", "parse_failed", "judge_error: boom"],
+)
+def test_derive_outcome_error_codes_map_to_error(error: str) -> None:
+    assert derive_outcome(JudgeResult(success=False, reasoning="", error=error)) is Outcome.ERROR
+
+
+def test_derive_outcome_error_code_wins_over_success_flag() -> None:
+    """Even if a judge error path somehow set success=True, it is still not a verdict."""
+    result = JudgeResult(success=True, reasoning="", error="judge_timeout")
+    assert derive_outcome(result) is Outcome.ERROR
+
+
+@pytest.mark.parametrize("error", [None, "parse_tier2", "parse_heuristic"])
+def test_derive_outcome_degraded_parses_keep_their_verdict(error: str | None) -> None:
+    assert derive_outcome(JudgeResult(success=True, reasoning="r", error=error)) is Outcome.VULNERABLE
+    assert derive_outcome(JudgeResult(success=False, reasoning="r", error=error)) is Outcome.SAFE
+
+
+def test_compute_risk_score_error_finding_contributes_nothing() -> None:
+    """An ERROR finding is an unknown, not a vulnerability — it must not inflate the score."""
+    findings = [
+        AttackResult(
+            attack_id="TEST-001",
+            owasp_category="LLM01",
+            name="Test",
+            payload="test",
+            response="response",
+            outcome=Outcome.ERROR,
+            judge_reasoning="",
+            judge_error="judge_timeout",
+            severity=Severity.CRITICAL,
+        )
+    ]
+    assert LLMScanner._compute_risk_score(findings) == 0.0

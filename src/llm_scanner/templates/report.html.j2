@@ -17,7 +17,16 @@
     .vulnerable { color: #c0392b; font-weight: bold; }
     .safe { color: #27ae60; }
     .accepted { color: #7f8c8d; font-style: italic; }
+    .error { color: #8e44ad; font-weight: bold; }
     .suppressed { opacity: 0.7; }
+    tr.errored { background: #f3e6fa; }
+    .warning-banner {
+      border-left: 4px solid #8e44ad;
+      background: #f3e6fa;
+      padding: 0.75em 1em;
+      margin: 1em 0;
+      color: #4a235a;
+    }
     .payload { font-family: monospace; font-size: 0.85em; word-break: break-all; }
   </style>
 </head>
@@ -28,25 +37,38 @@
     <p><strong>Timestamp:</strong> {{ report.timestamp.isoformat() }}</p>
     <p><strong>Risk Score:</strong> {{ "%.1f"|format(report.risk_score) }}/10.0</p>
     <p><strong>Attacks:</strong> {{ report.successful_attacks }}/{{ report.total_attacks }} succeeded</p>
+    {% if report.errored_attacks %}
+    <p><strong>Not evaluated:</strong> {{ report.errored_attacks }}/{{ report.total_attacks }}</p>
+    {% endif %}
   </div>
+  {% if report.errored_attacks %}
+  <div class="warning-banner">
+    <strong>Incomplete scan.</strong> The judge failed to evaluate
+    {{ report.errored_attacks }} of {{ report.total_attacks }} attack(s). Those findings are
+    UNKNOWN, not safe, and are excluded from the risk score above — treat the score as a
+    lower bound until the judge errors are resolved.
+  </div>
+  {% endif %}
   <h2>Findings</h2>
   <table>
     <thead>
       <tr>
         <th>ID</th><th>Category</th><th>Name</th><th>Severity</th>
-        <th>Result</th><th>Payload</th><th>Recommendation</th>
+        <th>Result</th><th>Judge Error</th><th>Payload</th><th>Recommendation</th>
       </tr>
     </thead>
     <tbody>
       {% for finding in report.findings %}
-      <tr class="{{ finding.severity }}{% if finding.suppressed %} suppressed{% endif %}">
+      <tr class="{% if finding.outcome == "error" %}errored{% else %}{{ finding.severity }}{% endif %}{% if finding.suppressed %} suppressed{% endif %}">
         <td>{{ finding.attack_id }}</td>
         <td>{{ finding.owasp_category }}</td>
         <td>{{ finding.name }}</td>
         <td>{{ finding.severity }}</td>
         <td>
-          {% if finding.suppressed %}<span class="accepted">Accepted</span>{% elif finding.success %}<span class="vulnerable">VULNERABLE</span>{% else %}<span class="safe">Safe</span>{% endif %}
+          {# ERROR is checked first: a finding the judge never evaluated must never render as "Safe". #}
+          {% if finding.outcome == "error" %}<span class="error">ERROR</span>{% elif finding.suppressed %}<span class="accepted">Accepted</span>{% elif finding.success %}<span class="vulnerable">VULNERABLE</span>{% else %}<span class="safe">Safe</span>{% endif %}
         </td>
+        <td>{{ finding.judge_error or "" }}</td>
         <td class="payload">{{ finding.payload }}</td>
         <td>{{ finding.recommendation }}</td>
       </tr>

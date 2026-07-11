@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from llm_scanner.models import ScanReport
+from llm_scanner.models import Outcome, ScanReport
 
 
 class TextReporter:
@@ -20,14 +20,29 @@ class TextReporter:
             f"Timestamp : {report.timestamp.isoformat()}",
             f"Risk Score: {report.risk_score:.1f}/10.0",
             f"Attacks   : {report.successful_attacks}/{report.total_attacks} succeeded",
+        ]
+        if report.errored_attacks:
+            lines += [
+                f"NOT EVALUATED: {report.errored_attacks}/{report.total_attacks} "
+                "-- the judge failed on these attacks. Their result is UNKNOWN, not safe,",
+                "and they are excluded from the risk score, so treat the score as a lower bound.",
+            ]
+        lines += [
             "",
-            f"{'ID':<12} {'Category':<10} {'Name':<50} {'Severity':<10} {'Result'}",
-            "-" * 100,
+            f"{'ID':<12} {'Category':<10} {'Name':<50} {'Severity':<10} {'Result':<12} {'Judge Error'}",
+            "-" * 115,
         ]
         for f in report.findings:
-            result = "VULNERABLE" if f.success else "Safe"
+            # ERROR first: a finding the judge never evaluated must never print as "Safe".
+            if f.outcome is Outcome.ERROR:
+                result = "ERROR"
+            elif f.success:
+                result = "VULNERABLE"
+            else:
+                result = "Safe"
             lines.append(
-                f"{f.attack_id:<12} {f.owasp_category:<10} {f.name[:50]:<50} {f.severity!s:<10} {result}"
+                f"{f.attack_id:<12} {f.owasp_category:<10} {f.name[:50]:<50} "
+                f"{f.severity!s:<10} {result:<12} {f.judge_error or ''}"
             )
 
         # Recommendations grouped by category

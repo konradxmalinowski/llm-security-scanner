@@ -18,7 +18,7 @@ from llm_scanner.cli import (
     _resolve_categories,
     _ScanAbort,
 )
-from llm_scanner.models import AttackResult, Payload, ScanReport, Severity
+from llm_scanner.models import AttackResult, Outcome, Payload, ScanReport, Severity
 from llm_scanner.scanner import LLMScanner
 from llm_scanner.targets.base import AbstractTarget
 
@@ -735,3 +735,162 @@ def test_composite_action_contains_required_flags() -> None:
     content = action_path.read_text()
     assert "--fail-on-score" in content
     assert "json,html,sarif" in content
+
+
+# ---------------------------------------------------------------------------
+# Phase 0 — judge errors must not launder into a clean PASS
+# ---------------------------------------------------------------------------
+
+
+class _StubTarget(AbstractTarget):
+    async def send(self, prompt: str) -> str:
+        return "ok"
+
+
+def _patch_run_for_report(monkeypatch: pytest.MonkeyPatch, report: ScanReport) -> None:
+    """Stub out preflight, payload loading, target, judge and scanner so that
+    cli._run() proceeds end-to-end and produces exactly *report*."""
+
+    class _StubScanner:
+        def __init__(self, **_kwargs: object) -> None:
+            self.last_metrics: dict[str, float | int] = {}
+
+        async def scan(self) -> ScanReport:
+            self.last_metrics = {
+                "total_attacks": report.total_attacks,
+                "successful_attacks": report.successful_attacks,
+                "errored_attacks": report.errored_attacks,
+                "total_duration_s": 0.1,
+                "avg_target_latency_s": 0.1,
+                "avg_judge_latency_s": 0.1,
+                "risk_score": report.risk_score,
+            }
+            return report
+
+    class _StubLoader:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def load(self, **_kwargs: object) -> list[Payload]:
+            return [
+                Payload(
+                    id="LLM01-001",
+                    name="Test",
+                    category="LLM01",
+                    severity=Severity.HIGH,
+                    payload="p",
+                    judge_criteria="c",
+                )
+            ]
+
+    async def _fake_warm_up(_judge: object) -> None:
+        return None
+
+    monkeypatch.setattr(cli_module, "check_ollama_running", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_model_available", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_judge_differs_from_target", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "check_http_target_reachable", lambda *a, **k: None)
+    monkeypatch.setattr(cli_module, "warm_up_judge", _fake_warm_up)
+    monkeypatch.setattr(cli_module, "YamlPayloadLoader", _StubLoader)
+    monkeypatch.setattr(cli_module.TargetFactory, "from_config", lambda **kw: _StubTarget())
+    monkeypatch.setattr(cli_module, "OllamaJudge", lambda **kw: object())
+    monkeypatch.setattr(cli_module, "LLMScanner", _StubScanner)
+
+
+def _errored_report() -> ScanReport:
+    """A scan where the judge timed out on the only attack."""
+    return ScanReport(
+        target="http://example.com",
+        timestamp=datetime(2026, 7, 11, tzinfo=UTC),
+        risk_score=0.0,
+        findings=[
+            AttackResult(
+                attack_id="LLM01-001",
+                owasp_category="LLM01",
+                name="Classic Override",
+                payload="p",
+                response="r",
+                outcome=Outcome.ERROR,
+                judge_reasoning="",
+                judge_error="judge_timeout",
+                severity=Severity.HIGH,
+            )
+        ],
+    )
+
+
+def test_build_parser_has_fail_on_judge_error() -> None:
+    """--fail-on-judge-error is a store_true flag, default False."""
+    assert _parse().fail_on_judge_error is False
+    assert _parse("--fail-on-judge-error").fail_on_judge_error is True
+
+
+def test_scan_abort_default_exit_code_is_one() -> None:
+    assert _ScanAbort().exit_code == 1
+
+
+def test_print_results_renders_error_not_safe(capsys: pytest.CaptureFixture[str]) -> None:
+    """An errored finding must render as ERROR, never as a green 'Safe' row."""
+    cli_module._print_results(_errored_report())
+    out = capsys.readouterr().out
+    assert "ERROR" in out
+    assert "Safe" not in out
+    assert "judge_timeout" in out
+    # The summary must call out the unevaluated attacks rather than showing a bare 0.0.
+    assert "Not evaluated" in out
+    assert "1/1" in out
+
+
+def test_print_results_safe_finding_still_renders_safe(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """No regression: a genuine SAFE verdict still renders as Safe, with no error banner."""
+    report = ScanReport(
+        target="http://example.com",
+        timestamp=datetime(2026, 7, 11, tzinfo=UTC),
+        risk_score=0.0,
+        findings=[_make_finding(False, Severity.HIGH)],  # type: ignore[list-item]
+    )
+    cli_module._print_results(report)
+    out = capsys.readouterr().out
+    assert "Safe" in out
+    assert "Not evaluated" not in out
+
+
+async def test_run_fail_on_judge_error_exits_with_code_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--fail-on-judge-error aborts with exit code 2 -- distinct from a risk-score
+    failure (code 1), so CI can tell "target is vulnerable" from "scan is untrustworthy"."""
+    _patch_run_for_report(monkeypatch, _errored_report())
+    args = _parse("--fail-on-judge-error")
+    args.output_dir = tmp_path
+    args.formats = ""
+
+    with pytest.raises(_ScanAbort) as exc_info:
+        await cli_module._run(args)
+    assert exc_info.value.exit_code == 2
+
+
+async def test_run_without_flag_does_not_fail_on_judge_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The flag is opt-in: judge errors are reported but do not abort by default."""
+    _patch_run_for_report(monkeypatch, _errored_report())
+    args = _parse()
+    args.output_dir = tmp_path
+    args.formats = ""
+
+    await cli_module._run(args)  # must not raise
+
+
+async def test_run_fail_on_judge_error_passes_when_no_errors(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A clean scan with the flag set must not abort."""
+    _patch_run_for_report(monkeypatch, _make_report(risk_score=2.5))
+    args = _parse("--fail-on-judge-error")
+    args.output_dir = tmp_path
+    args.formats = ""
+
+    await cli_module._run(args)  # must not raise

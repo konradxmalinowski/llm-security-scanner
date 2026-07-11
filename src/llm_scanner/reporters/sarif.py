@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from llm_scanner.models import ScanReport, Severity
+from llm_scanner.models import Outcome, ScanReport, Severity
 
 _LEVEL_MAP: dict[Severity, str] = {
     Severity.CRITICAL: "error",
@@ -31,7 +31,13 @@ class SarifReporter:
       security findings have no source-file location; GitHub upload-sarif requires
       a non-empty URI — using "." satisfies the validator while conveying that the
       finding is a dynamic test result.
-    - Only findings where success=True AND suppressed=False appear in results[].
+    - Findings where success=True AND suppressed=False appear as kind="fail" results.
+    - Findings the judge could not evaluate (Outcome.ERROR) appear as kind="open"
+      results.  In SARIF, a missing result means "passed", so dropping an errored
+      finding would silently assert the attack was safe.  kind="open" is the SARIF
+      value for "a problem may exist; it requires investigation", which is exactly
+      the semantics of an unevaluated attack.  The spec requires level="none"
+      whenever kind is not "fail", so these carry no severity level.
     - Rules are deduplicated by owasp_category (one rule per OWASP category).
     """
 
@@ -41,6 +47,25 @@ class SarifReporter:
         path = output_dir / "report.sarif"
         path.write_text(json.dumps(self._build(report), indent=2), encoding="utf-8")
         return path
+
+    @staticmethod
+    def _locations(target: str) -> list[dict]:
+        """Build the SARIF locations[] block shared by every result."""
+        return [
+            {
+                "physicalLocation": {
+                    "artifactLocation": {"uri": "."},
+                    "region": {"startLine": 1, "startColumn": 1},
+                },
+                "logicalLocations": [
+                    {
+                        "name": target,
+                        "kind": "function",
+                        "fullyQualifiedName": f"llm-endpoint/{target}",
+                    }
+                ],
+            }
+        ]
 
     def _build(self, report: ScanReport) -> dict:
         """Build and return the SARIF 2.1.0 dict for the given ScanReport."""
@@ -92,33 +117,42 @@ class SarifReporter:
                     }
                 )
 
-        # --- Results: only confirmed, non-suppressed vulnerabilities ---
+        # --- Results: confirmed, non-suppressed vulnerabilities ---
         results: list[dict] = [
             {
                 "ruleId": f.owasp_category,
                 "level": _LEVEL_MAP.get(Severity(f.severity), "note"),
                 "message": {"text": f"{f.name}: {f.judge_reasoning}"},
-                "locations": [
-                    {
-                        "physicalLocation": {
-                            "artifactLocation": {"uri": "."},
-                            "region": {"startLine": 1, "startColumn": 1},
-                        },
-                        "logicalLocations": [
-                            {
-                                "name": report.target,
-                                "kind": "function",
-                                "fullyQualifiedName": f"llm-endpoint/{report.target}",
-                            }
-                        ],
-                    }
-                ],
+                "locations": self._locations(report.target),
                 "partialFingerprints": {
                     "primaryLocationLineHash": f"{f.attack_id}:1"
                 },
             }
             for f in report.findings
             if f.success and not getattr(f, "suppressed", False)
+        ]
+
+        # --- Results: attacks the judge could not evaluate.  Emitted as kind="open"
+        # so they are not silently absent (absence means "passed" in SARIF). ---
+        results += [
+            {
+                "ruleId": f.owasp_category,
+                "kind": "open",
+                "level": "none",  # SARIF: level SHALL be "none" when kind != "fail"
+                "message": {
+                    "text": (
+                        f"{f.name}: NOT EVALUATED -- the judge failed "
+                        f"({f.judge_error or 'unknown judge error'}). "
+                        "This attack's result is unknown, not safe."
+                    )
+                },
+                "locations": self._locations(report.target),
+                "partialFingerprints": {
+                    "primaryLocationLineHash": f"{f.attack_id}:1"
+                },
+            }
+            for f in report.findings
+            if f.outcome is Outcome.ERROR and not getattr(f, "suppressed", False)
         ]
 
         taxonomies = (

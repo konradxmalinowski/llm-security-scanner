@@ -17,7 +17,7 @@ from rich.table import Table
 
 from llm_scanner.baselines import BaselineManager
 from llm_scanner.judge import OllamaJudge
-from llm_scanner.models import ScanReport, Severity
+from llm_scanner.models import Outcome, ScanReport, Severity
 from llm_scanner.observability import configure_logging
 from llm_scanner.payloads.loader import YamlPayloadLoader
 from llm_scanner.preflight import (
@@ -57,9 +57,17 @@ console = Console()
 class _ScanAbort(Exception):
     """Raised inside _run() to signal a structured early exit without a traceback.
 
-    Caught in main() to call sys.exit(1) cleanly, avoiding sys.exit() inside
+    Caught in main() to call sys.exit(exit_code) cleanly, avoiding sys.exit() inside
     an async coroutine which can be fragile under some Python implementations.
+
+    exit_code 1 is the default "scan failed / threshold breached" code. Judge-error
+    aborts use exit code 2 so CI can distinguish "the target is vulnerable" from
+    "the scan could not be trusted".
     """
+
+    def __init__(self, message: str = "", exit_code: int = 1) -> None:
+        super().__init__(message)
+        self.exit_code = exit_code
 
 
 class TargetConfig(BaseModel):
@@ -182,6 +190,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         dest="fail_on_score",
         help="Exit with code 1 if risk score >= this threshold (e.g. 7.0)",
+    )
+    parser.add_argument(
+        "--fail-on-judge-error",
+        action="store_true",
+        dest="fail_on_judge_error",
+        help=(
+            "Exit with code 2 if the judge failed to evaluate any attack "
+            "(timeout, unreachable, or unparseable output). Those findings are "
+            "UNKNOWN, not safe -- use this in CI to reject an untrustworthy scan."
+        ),
     )
     parser.add_argument(
         "--targets",
@@ -359,11 +377,16 @@ def _print_results(report: ScanReport) -> None:
     table.add_column("Name")
     table.add_column("Severity", no_wrap=True)
     table.add_column("Result", no_wrap=True)
+    table.add_column("Judge Error", no_wrap=True)
 
     for finding in report.findings:
         sev_str = str(finding.severity).lower()
         sev_style = _severity_styles.get(sev_str, "")
-        if getattr(finding, "suppressed", False):
+        # ERROR is a third state, checked before success/safe: the judge reached no
+        # verdict, so rendering the row as "Safe" would be a lie (see Outcome.ERROR).
+        if finding.outcome is Outcome.ERROR:
+            result_markup = "[magenta bold]ERROR[/magenta bold]"
+        elif getattr(finding, "suppressed", False):
             result_markup = "[dim]Accepted[/dim]"
         elif finding.success:
             result_markup = "[red bold]VULNERABLE[/red bold]"
@@ -375,6 +398,7 @@ def _print_results(report: ScanReport) -> None:
             finding.name[:60],
             f"[{sev_style}]{finding.severity}[/{sev_style}]",
             result_markup,
+            f"[magenta]{finding.judge_error}[/magenta]" if finding.judge_error else "",
         )
 
     console.print()
@@ -392,7 +416,17 @@ def _print_results(report: ScanReport) -> None:
         score_markup = f"[green]{report.risk_score:.1f}[/green]"
 
     console.print(f"[bold]Attacks:[/bold]    {successful}/{total} succeeded")
+    if report.errored_attacks:
+        console.print(
+            f"[magenta bold]Not evaluated:[/magenta bold] {report.errored_attacks}/{total} "
+            "-- the judge failed on these; their result is UNKNOWN, not safe."
+        )
     console.print(f"[bold]Risk Score:[/bold] {score_markup}/10.0")
+    if report.errored_attacks:
+        console.print(
+            "[magenta]Risk score excludes the unevaluated attacks above "
+            "-- treat it as a lower bound.[/magenta]"
+        )
     console.print()
 
 
@@ -535,6 +569,7 @@ async def _run(args: argparse.Namespace) -> None:
     metrics = getattr(scanner, "last_metrics", None) or {
         "total_attacks": report.total_attacks,
         "successful_attacks": report.successful_attacks,
+        "errored_attacks": report.errored_attacks,
         "total_duration_s": 0.0,
         "avg_target_latency_s": 0.0,
         "avg_judge_latency_s": 0.0,
@@ -568,7 +603,17 @@ async def _run(args: argparse.Namespace) -> None:
     except OSError as exc:
         print(f"Warning: Could not append audit.jsonl: {exc}", file=sys.stderr)
 
-    # 11. Fail-on-score check -- AFTER suppressions and AFTER saving reports (ADV-01)
+    # 11. Fail-on-judge-error check -- runs BEFORE fail-on-score: if the judge could not
+    # evaluate part of the scan, the risk score is a lower bound on an incomplete run and
+    # a "passing" score means nothing. Exit code 2 distinguishes this from a real failure.
+    if getattr(args, "fail_on_judge_error", False) and report.errored_attacks:
+        console.print(
+            f"[magenta bold]FAIL:[/magenta bold] {report.errored_attacks} attack(s) "
+            "could not be evaluated by the judge -- scan results are incomplete."
+        )
+        raise _ScanAbort(exit_code=2)
+
+    # 12. Fail-on-score check -- AFTER suppressions and AFTER saving reports (ADV-01)
     if getattr(args, "fail_on_score", None) is not None and report.risk_score >= args.fail_on_score:
         console.print(
             f"[red bold]FAIL:[/red bold] Risk score {report.risk_score:.1f} "
@@ -723,8 +768,8 @@ def main() -> None:
             asyncio.run(_run(args))
         elif args.command == "baseline":
             asyncio.run(_run_baseline(args))
-    except _ScanAbort:
-        sys.exit(1)
+    except _ScanAbort as exc:
+        sys.exit(exc.exit_code)
     except KeyboardInterrupt:
         console.print("\n[yellow]Scan interrupted by user.[/yellow]")
         sys.exit(130)

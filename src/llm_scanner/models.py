@@ -19,6 +19,20 @@ class Severity(StrEnum):
     INFO = "info"
 
 
+class Outcome(StrEnum):
+    """Tri-state verdict for a single attack.
+
+    VULNERABLE and SAFE are real verdicts. ERROR means the judge could not
+    reach a verdict at all (timeout, unreachable model, unparseable output) —
+    the attack result is UNKNOWN, not safe. Collapsing ERROR into SAFE would
+    let a scan where the judge was down render as a clean bill of health.
+    """
+
+    VULNERABLE = "vulnerable"
+    SAFE = "safe"
+    ERROR = "error"
+
+
 OWASP_RECOMMENDATIONS: dict[str, str] = {
     "LLM01": "Implement input validation and context-aware output encoding; enforce least-privilege system prompts.",
     "LLM02": "Apply data minimization; audit training data; implement output filtering for PII.",
@@ -157,8 +171,14 @@ class AttackResult(BaseModel):
     name: str
     payload: str
     response: str
-    success: bool
+    # `success` stays a STORED field, never a computed_field: model_dump_json() emits
+    # computed fields, and AttackResult is extra="forbid", so a computed `success`
+    # would be rejected when a report is re-validated (BaselineManager.load()).
+    # `_reconcile_outcome` keeps it in lockstep with `outcome` instead.
+    success: bool = False
+    outcome: Outcome = Outcome.SAFE
     judge_reasoning: str
+    judge_error: str | None = None
     severity: Severity
     recommendation: str = ""
     suppressed: bool = False
@@ -166,6 +186,26 @@ class AttackResult(BaseModel):
     cwe_ids: list[str] = Field(default_factory=list)
     cvss_vector: str = ""
     cvss_score: float = 0.0
+
+    @model_validator(mode="after")
+    def _reconcile_outcome(self) -> AttackResult:
+        """Keep `success` and `outcome` consistent, whichever one the caller supplied.
+
+        Invariant enforced here: ``success is True`` if and only if
+        ``outcome is Outcome.VULNERABLE``. An ERROR finding therefore never counts
+        as a successful attack and never contributes to the risk score.
+
+        - Only `success` given (legacy callers, pre-`outcome` JSON reports):
+          derive `outcome` from it.
+        - `outcome` given: it is authoritative and `success` is derived from it,
+          because only `outcome` can express the ERROR state.
+        """
+        fields_set = self.model_fields_set
+        if "outcome" not in fields_set and "success" in fields_set:
+            self.outcome = Outcome.VULNERABLE if self.success else Outcome.SAFE
+        else:
+            self.success = self.outcome is Outcome.VULNERABLE
+        return self
 
     @model_validator(mode="after")
     def _populate_recommendation(self) -> AttackResult:
@@ -208,11 +248,19 @@ class ScanReport(BaseModel):
     def successful_attacks(self) -> int:
         return sum(1 for f in self.findings if f.success)
 
+    @computed_field
+    @property
+    def errored_attacks(self) -> int:
+        """Findings the judge could not evaluate — an unknown, not a pass."""
+        return sum(1 for f in self.findings if f.outcome is Outcome.ERROR)
+
     # Computed fields appear in model_dump_json() output but are rejected
     # as extra inputs by extra="forbid" on the way back in.  Override
     # model_validate_json() to strip them before re-validation so callers
     # can round-trip JSON without a manual pop() workaround.
-    _COMPUTED_FIELDS: ClassVar[frozenset[str]] = frozenset({"total_attacks", "successful_attacks"})
+    _COMPUTED_FIELDS: ClassVar[frozenset[str]] = frozenset(
+        {"total_attacks", "successful_attacks", "errored_attacks"}
+    )
 
     @classmethod
     def model_validate_json(  # type: ignore[override]

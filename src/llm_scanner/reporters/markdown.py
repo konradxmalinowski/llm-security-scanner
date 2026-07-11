@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from llm_scanner.models import ScanReport
+from llm_scanner.models import Outcome, ScanReport
 
 
 def _sanitize_cell(value: str) -> str:
@@ -26,14 +26,27 @@ class MarkdownReporter:
             f"**Timestamp:** {report.timestamp.isoformat()}",
             f"**Risk Score:** {report.risk_score:.1f}/10.0",
             f"**Attacks:** {report.successful_attacks}/{report.total_attacks} succeeded",
+        ]
+        if report.errored_attacks:
+            lines += [
+                f"**Not evaluated:** {report.errored_attacks}/{report.total_attacks}",
+                "",
+                f"> **Warning:** the judge failed to evaluate {report.errored_attacks} attack(s). "
+                "Their result is UNKNOWN, not safe. They are excluded from the risk score, "
+                "so the score above is a lower bound on an incomplete scan.",
+            ]
+        lines += [
             "",
             "## Findings",
             "",
-            "| ID | Category | Name | Severity | Result | Recommendation |",
-            "|----|----------|------|----------|--------|----------------|",
+            "| ID | Category | Name | Severity | Result | Judge Error | Recommendation |",
+            "|----|----------|------|----------|--------|-------------|----------------|",
         ]
         for f in report.findings:
-            if getattr(f, "suppressed", False):
+            # ERROR first: a finding the judge never evaluated must never render as "Safe".
+            if f.outcome is Outcome.ERROR:
+                result = "ERROR"
+            elif getattr(f, "suppressed", False):
                 result = "Accepted"
             elif f.success:
                 result = "VULNERABLE"
@@ -42,7 +55,8 @@ class MarkdownReporter:
             lines.append(
                 f"| {_sanitize_cell(f.attack_id)} | {_sanitize_cell(f.owasp_category)} "
                 f"| {_sanitize_cell(f.name)} | {f.severity} "
-                f"| {result} | {_sanitize_cell(f.recommendation)} |"
+                f"| {result} | {_sanitize_cell(f.judge_error or '')} "
+                f"| {_sanitize_cell(f.recommendation)} |"
             )
 
         # CWE / CVSS mapping, one row per distinct category present in the findings.
