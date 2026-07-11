@@ -6,7 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from llm_scanner.models import CWE_MAP, AttackResult, Outcome, ScanReport, Severity
+from llm_scanner.models import (
+    CWE_MAP,
+    Artifact,
+    AttackResult,
+    Outcome,
+    ScanReport,
+    Severity,
+)
 from llm_scanner.reporters.sarif import SarifReporter
 
 
@@ -330,3 +337,103 @@ def test_sarif_safe_finding_still_omitted(sample_report: ScanReport) -> None:
     results = SarifReporter()._build(sample_report)["runs"][0]["results"]
     assert all(r["ruleId"] != "LLM07" for r in results)
     assert all(r.get("kind", "fail") == "fail" for r in results)
+
+
+# --- Phase 3: confidence, verdict-source levels, artifact relatedLocations, redaction ---
+
+RAW_SECRET = "AKIAIOSFODNN7EXAMPLE"  # noqa: S105 -- fake fixture value, not a real secret
+SECRET_FINGERPRINT = "AKIA...MPLE:a1b2c3d4"  # noqa: S105 -- fake fixture value
+
+
+def _evidence_report() -> ScanReport:
+    return ScanReport(
+        target="http://localhost:5000",
+        timestamp=datetime(2026, 7, 11, tzinfo=UTC),
+        risk_score=6.0,
+        findings=[
+            AttackResult(
+                attack_id="LLM07-CANARY",
+                owasp_category="LLM07",
+                name="Canary leak",
+                payload="p",
+                response="r",
+                outcome=Outcome.VULNERABLE,
+                judge_reasoning="canary leaked verbatim",
+                confidence=1.0,
+                verdict_source="rule_proof",
+                severity=Severity.LOW,  # low severity, but rule_proof must force error
+                artifacts=[
+                    Artifact(
+                        type="canary",
+                        detector="canary_exact",
+                        fingerprint="CANARY-abc123:deadbeef",
+                        span=(12, 25),
+                        confidence=1.0,
+                    )
+                ],
+            ),
+            AttackResult(
+                attack_id="LLM02-SECRET",
+                owasp_category="LLM02",
+                name="Secret leak with conflict",
+                payload="p",
+                response="r",
+                outcome=Outcome.VULNERABLE,
+                judge_reasoning="detector fired, judge disagreed",
+                confidence=0.5,
+                verdict_source="conflict",
+                severity=Severity.CRITICAL,  # critical, but conflict must downgrade to warning
+                artifacts=[
+                    Artifact(
+                        type="secret",
+                        detector="aws_access_key",
+                        fingerprint=SECRET_FINGERPRINT,
+                        span=(6, 26),
+                        confidence=0.9,
+                        raw=RAW_SECRET,
+                    )
+                ],
+            ),
+        ],
+    )
+
+
+def _result_for(sarif: dict, rule_id: str) -> dict:
+    return next(r for r in sarif["runs"][0]["results"] if r["ruleId"] == rule_id)
+
+
+def test_sarif_rule_proof_forces_error_level() -> None:
+    sarif = SarifReporter()._build(_evidence_report())
+    assert _result_for(sarif, "LLM07")["level"] == "error"
+
+
+def test_sarif_conflict_forces_warning_level() -> None:
+    sarif = SarifReporter()._build(_evidence_report())
+    # CRITICAL severity would normally be "error"; conflict downgrades it to "warning".
+    assert _result_for(sarif, "LLM02")["level"] == "warning"
+
+
+def test_sarif_result_carries_confidence_and_source_properties() -> None:
+    sarif = SarifReporter()._build(_evidence_report())
+    canary = _result_for(sarif, "LLM07")
+    assert canary["properties"]["confidence"] == 1.0
+    assert canary["properties"]["verdict_source"] == "rule_proof"
+
+
+def test_sarif_artifacts_become_related_locations_with_spans() -> None:
+    sarif = SarifReporter()._build(_evidence_report())
+    canary = _result_for(sarif, "LLM07")
+    related = canary["relatedLocations"]
+    assert len(related) == 1
+    region = related[0]["physicalLocation"]["region"]
+    assert region["charOffset"] == 12
+    assert region["charLength"] == 13  # 25 - 12
+    assert "canary_exact" in related[0]["message"]["text"]
+
+
+def test_sarif_never_emits_raw_secret_only_fingerprint() -> None:
+    """The SARIF file is uploaded to GitHub Security -- artifact.raw must never appear;
+    only the redacted fingerprint may."""
+    text = json.dumps(SarifReporter()._build(_evidence_report()))
+    assert RAW_SECRET not in text
+    assert SECRET_FINGERPRINT in text

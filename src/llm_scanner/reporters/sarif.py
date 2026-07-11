@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from llm_scanner.models import Outcome, ScanReport, Severity
+from llm_scanner.models import AttackResult, Outcome, ScanReport, Severity, VerdictSource
 
 _LEVEL_MAP: dict[Severity, str] = {
     Severity.CRITICAL: "error",
@@ -47,6 +47,51 @@ class SarifReporter:
         path = output_dir / "report.sarif"
         path.write_text(json.dumps(self._build(report), indent=2), encoding="utf-8")
         return path
+
+    @staticmethod
+    def _result_level(finding: AttackResult) -> str:
+        """SARIF level for a confirmed vulnerability, factoring in the verdict source.
+
+        A deterministic proof (``rule_proof`` -- a canary token found verbatim) is the
+        strongest possible signal and always maps to ``error``. A ``conflict`` (a detector
+        fired but the judge disagreed) is downgraded to ``warning``: it warrants review but
+        is not confirmed. Everything else falls back to the severity map.
+        """
+        if finding.verdict_source == VerdictSource.RULE_PROOF:
+            return "error"
+        if finding.verdict_source == VerdictSource.CONFLICT:
+            return "warning"
+        return _LEVEL_MAP.get(Severity(finding.severity), "note")
+
+    @staticmethod
+    def _related_locations(finding: AttackResult) -> list[dict]:
+        """relatedLocations built from each artifact's span into the response.
+
+        Only the REDACTED ``fingerprint`` reaches the message text -- never ``artifact.raw``.
+        A SARIF file is uploaded to the GitHub Security tab, so a live secret transcribed
+        here would be the leak vector the scanner exists to prevent.
+        """
+        related: list[dict] = []
+        for artifact in finding.artifacts:
+            start, end = artifact.span
+            related.append(
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": "."},
+                        "region": {
+                            "charOffset": start,
+                            "charLength": max(end - start, 0),
+                        },
+                    },
+                    "message": {
+                        "text": (
+                            f"{artifact.type}/{artifact.detector}: {artifact.fingerprint} "
+                            f"(confidence {artifact.confidence:.2f})"
+                        )
+                    },
+                }
+            )
+        return related
 
     @staticmethod
     def _locations(target: str) -> list[dict]:
@@ -118,19 +163,27 @@ class SarifReporter:
                 )
 
         # --- Results: confirmed, non-suppressed vulnerabilities ---
-        results: list[dict] = [
-            {
+        results: list[dict] = []
+        for f in report.findings:
+            if not (f.success and not getattr(f, "suppressed", False)):
+                continue
+            result: dict = {
                 "ruleId": f.owasp_category,
-                "level": _LEVEL_MAP.get(Severity(f.severity), "note"),
+                "level": self._result_level(f),
                 "message": {"text": f"{f.name}: {f.judge_reasoning}"},
                 "locations": self._locations(report.target),
                 "partialFingerprints": {
                     "primaryLocationLineHash": f"{f.attack_id}:1"
                 },
+                "properties": {
+                    "confidence": f.confidence,
+                    "verdict_source": f.verdict_source,
+                },
             }
-            for f in report.findings
-            if f.success and not getattr(f, "suppressed", False)
-        ]
+            related = self._related_locations(f)
+            if related:
+                result["relatedLocations"] = related
+            results.append(result)
 
         # --- Results: attacks the judge could not evaluate.  Emitted as kind="open"
         # so they are not silently absent (absence means "passed" in SARIF). ---

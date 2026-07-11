@@ -17,7 +17,7 @@ from rich.table import Table
 
 from llm_scanner.baselines import BaselineManager
 from llm_scanner.judge import OllamaJudge
-from llm_scanner.models import Outcome, ScanReport, Severity
+from llm_scanner.models import Outcome, ScanReport, Severity, VerdictSource
 from llm_scanner.observability import configure_logging
 from llm_scanner.payloads.loader import YamlPayloadLoader
 from llm_scanner.preflight import (
@@ -409,27 +409,40 @@ def _print_results(report: ScanReport) -> None:
     table.add_column("Name")
     table.add_column("Severity", no_wrap=True)
     table.add_column("Result", no_wrap=True)
+    table.add_column("Conf.", no_wrap=True, justify="right")
+    table.add_column("Source", no_wrap=True)
     table.add_column("Judge Error", no_wrap=True)
 
     for finding in report.findings:
         sev_str = str(finding.severity).lower()
         sev_style = _severity_styles.get(sev_str, "")
+        is_conflict = finding.verdict_source == VerdictSource.CONFLICT
         # ERROR is a third state, checked before success/safe: the judge reached no
         # verdict, so rendering the row as "Safe" would be a lie (see Outcome.ERROR).
         if finding.outcome is Outcome.ERROR:
             result_markup = "[magenta bold]ERROR[/magenta bold]"
         elif getattr(finding, "suppressed", False):
             result_markup = "[dim]Accepted[/dim]"
+        elif is_conflict:
+            # A deterministic detector fired but the judge disagreed. Surfaced, never
+            # silently resolved -- it is the highest-value signal for a human reviewer.
+            result_markup = "[yellow bold]VULNERABLE (CONFLICT)[/yellow bold]"
         elif finding.success:
             result_markup = "[red bold]VULNERABLE[/red bold]"
         else:
             result_markup = "[green]Safe[/green]"
+        source_str = finding.verdict_source or ""
+        source_markup = (
+            f"[yellow bold]{source_str}[/yellow bold]" if is_conflict else source_str
+        )
         table.add_row(
             finding.attack_id,
             finding.owasp_category,
             finding.name[:60],
             f"[{sev_style}]{finding.severity}[/{sev_style}]",
             result_markup,
+            f"{finding.confidence:.2f}",
+            source_markup,
             f"[magenta]{finding.judge_error}[/magenta]" if finding.judge_error else "",
         )
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from llm_scanner.models import Outcome, ScanReport
+from llm_scanner.models import Outcome, ScanReport, VerdictSource
 
 
 def _sanitize_cell(value: str) -> str:
@@ -39,15 +39,20 @@ class MarkdownReporter:
             "",
             "## Findings",
             "",
-            "| ID | Category | Name | Severity | Result | Judge Error | Recommendation |",
-            "|----|----------|------|----------|--------|-------------|----------------|",
+            "| ID | Category | Name | Severity | Result | Conf. | Source | Judge Error "
+            "| Recommendation |",
+            "|----|----------|------|----------|--------|-------|--------|-------------"
+            "|----------------|",
         ]
         for f in report.findings:
+            is_conflict = f.verdict_source == VerdictSource.CONFLICT
             # ERROR first: a finding the judge never evaluated must never render as "Safe".
             if f.outcome is Outcome.ERROR:
                 result = "ERROR"
             elif getattr(f, "suppressed", False):
                 result = "Accepted"
+            elif is_conflict:
+                result = "VULNERABLE (CONFLICT)"
             elif f.success:
                 result = "VULNERABLE"
             else:
@@ -55,9 +60,48 @@ class MarkdownReporter:
             lines.append(
                 f"| {_sanitize_cell(f.attack_id)} | {_sanitize_cell(f.owasp_category)} "
                 f"| {_sanitize_cell(f.name)} | {f.severity} "
-                f"| {result} | {_sanitize_cell(f.judge_error or '')} "
+                f"| {result} | {f.confidence:.2f} | {_sanitize_cell(f.verdict_source or '')} "
+                f"| {_sanitize_cell(f.judge_error or '')} "
                 f"| {_sanitize_cell(f.recommendation)} |"
             )
+
+        # Per-finding detail: judge reasoning + deterministic artifacts (redacted).
+        # Everything user/model-influenced runs through _sanitize_cell so a reasoning
+        # string or artifact fingerprint containing '|' or a newline cannot break the
+        # surrounding table or inject markup.
+        lines += ["", "## Finding Details", ""]
+        for f in report.findings:
+            lines.append(f"### {_sanitize_cell(f.attack_id)} - {_sanitize_cell(f.name)}")
+            lines.append("")
+            lines.append(
+                f"- **Outcome:** {f.outcome.value} "
+                f"| **Confidence:** {f.confidence:.2f} "
+                f"| **Source:** {_sanitize_cell(f.verdict_source or 'n/a')}"
+            )
+            if f.verdict_source == VerdictSource.CONFLICT:
+                lines.append(
+                    "- **Conflict:** a deterministic detector fired but the judge "
+                    "disagreed -- review manually."
+                )
+            lines.append(
+                f"- **Judge reasoning:** {_sanitize_cell(f.judge_reasoning or '(none)')}"
+            )
+            if f.judge_error:
+                lines.append(f"- **Judge error:** {_sanitize_cell(f.judge_error)}")
+            if f.artifacts:
+                lines += [
+                    "",
+                    "| Type | Detector | Fingerprint | Span | Conf. |",
+                    "|------|----------|-------------|------|-------|",
+                ]
+                for a in f.artifacts:
+                    # Render the redacted fingerprint ONLY, never a.raw.
+                    lines.append(
+                        f"| {_sanitize_cell(a.type)} | {_sanitize_cell(a.detector)} "
+                        f"| {_sanitize_cell(a.fingerprint)} "
+                        f"| {a.span[0]}:{a.span[1]} | {a.confidence:.2f} |"
+                    )
+            lines.append("")
 
         # CWE / CVSS mapping, one row per distinct category present in the findings.
         seen_mapping: set[str] = set()

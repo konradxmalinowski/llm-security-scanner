@@ -28,6 +28,26 @@
       color: #4a235a;
     }
     .payload { font-family: monospace; font-size: 0.85em; word-break: break-all; }
+    tr.conflict { background: #fff3cd; }
+    .conflict-flag { color: #b8860b; font-weight: bold; }
+    .conf-badge {
+      display: inline-block; padding: 1px 8px; border-radius: 10px;
+      font-size: 0.8em; font-weight: bold; color: #fff;
+    }
+    .conf-high { background: #27ae60; }
+    .conf-med { background: #e67e22; }
+    .conf-low { background: #c0392b; }
+    .conflict-callout {
+      border-left: 4px solid #b8860b;
+      background: #fff3cd;
+      padding: 0.6em 1em;
+      margin: 0.6em 0;
+      color: #6b5300;
+    }
+    .finding-detail { margin: 1.2em 0; padding-top: 0.6em; border-top: 1px solid #eee; }
+    .finding-detail h3 { margin-bottom: 0.3em; }
+    .reasoning { white-space: pre-wrap; }
+    .fingerprint { font-family: monospace; font-size: 0.85em; word-break: break-all; }
   </style>
 </head>
 <body>
@@ -54,20 +74,26 @@
     <thead>
       <tr>
         <th>ID</th><th>Category</th><th>Name</th><th>Severity</th>
-        <th>Result</th><th>Judge Error</th><th>Payload</th><th>Recommendation</th>
+        <th>Result</th><th>Conf.</th><th>Source</th><th>Judge Error</th>
+        <th>Payload</th><th>Recommendation</th>
       </tr>
     </thead>
     <tbody>
       {% for finding in report.findings %}
-      <tr class="{% if finding.outcome == "error" %}errored{% else %}{{ finding.severity }}{% endif %}{% if finding.suppressed %} suppressed{% endif %}">
+      <tr class="{% if finding.outcome == "error" %}errored{% elif finding.verdict_source == "conflict" %}conflict{% else %}{{ finding.severity }}{% endif %}{% if finding.suppressed %} suppressed{% endif %}">
         <td>{{ finding.attack_id }}</td>
         <td>{{ finding.owasp_category }}</td>
         <td>{{ finding.name }}</td>
         <td>{{ finding.severity }}</td>
         <td>
           {# ERROR is checked first: a finding the judge never evaluated must never render as "Safe". #}
-          {% if finding.outcome == "error" %}<span class="error">ERROR</span>{% elif finding.suppressed %}<span class="accepted">Accepted</span>{% elif finding.success %}<span class="vulnerable">VULNERABLE</span>{% else %}<span class="safe">Safe</span>{% endif %}
+          {% if finding.outcome == "error" %}<span class="error">ERROR</span>{% elif finding.suppressed %}<span class="accepted">Accepted</span>{% elif finding.verdict_source == "conflict" %}<span class="conflict-flag">VULNERABLE (CONFLICT)</span>{% elif finding.success %}<span class="vulnerable">VULNERABLE</span>{% else %}<span class="safe">Safe</span>{% endif %}
         </td>
+        <td>
+          {% set c = finding.confidence %}
+          <span class="conf-badge {% if c >= 0.8 %}conf-high{% elif c >= 0.5 %}conf-med{% else %}conf-low{% endif %}">{{ "%.2f"|format(c) }}</span>
+        </td>
+        <td>{{ finding.verdict_source }}</td>
         <td>{{ finding.judge_error or "" }}</td>
         <td class="payload">{{ finding.payload }}</td>
         <td>{{ finding.recommendation }}</td>
@@ -75,6 +101,48 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <h2>Finding Details</h2>
+  {% for finding in report.findings %}
+  <div class="finding-detail">
+    <h3>{{ finding.attack_id }} &mdash; {{ finding.name }}</h3>
+    <p>
+      <strong>Outcome:</strong> {{ finding.outcome }} &nbsp;
+      <strong>Confidence:</strong>
+      {% set c = finding.confidence %}
+      <span class="conf-badge {% if c >= 0.8 %}conf-high{% elif c >= 0.5 %}conf-med{% else %}conf-low{% endif %}">{{ "%.2f"|format(c) }}</span>
+      &nbsp; <strong>Source:</strong> {{ finding.verdict_source or "n/a" }}
+    </p>
+    {% if finding.verdict_source == "conflict" %}
+    <div class="conflict-callout">
+      <strong>Conflict.</strong> A deterministic detector fired but the judge disagreed.
+      This disagreement is surfaced, not silently resolved &mdash; review it manually.
+    </div>
+    {% endif %}
+    <p><strong>Judge reasoning:</strong> <span class="reasoning">{{ finding.judge_reasoning or "(none)" }}</span></p>
+    {% if finding.judge_error %}<p><strong>Judge error:</strong> {{ finding.judge_error }}</p>{% endif %}
+    {% if finding.artifacts %}
+    <table>
+      <thead>
+        <tr><th>Type</th><th>Detector</th><th>Fingerprint</th><th>Span</th><th>Conf.</th></tr>
+      </thead>
+      <tbody>
+        {% for artifact in finding.artifacts %}
+        {# Render the REDACTED fingerprint only. artifact.raw is never surfaced here -- #}
+        {# a live secret in a CI-published HTML report would be the leak vector itself. #}
+        <tr>
+          <td>{{ artifact.type }}</td>
+          <td>{{ artifact.detector }}</td>
+          <td class="fingerprint">{{ artifact.fingerprint }}</td>
+          <td>{{ artifact.span[0] }}:{{ artifact.span[1] }}</td>
+          <td>{{ "%.2f"|format(artifact.confidence) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
 
   {% set seen_categories = [] %}
   {% set mapping_rows = [] %}

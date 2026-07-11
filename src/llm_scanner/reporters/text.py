@@ -2,7 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from llm_scanner.models import Outcome, ScanReport
+from llm_scanner.models import Artifact, Outcome, ScanReport, VerdictSource
+
+
+def _artifact_line(artifact: Artifact) -> str:
+    """One-line summary of a deterministic artifact.
+
+    Renders the REDACTED ``fingerprint`` only -- never ``artifact.raw``. A report file
+    lands in CI logs, so transcribing a live secret here would turn the scanner into the
+    leak vector it is meant to detect.
+    """
+    start, end = artifact.span
+    return (
+        f"- {artifact.type}/{artifact.detector} {artifact.fingerprint} "
+        f"span=[{start}:{end}] conf={artifact.confidence:.2f}"
+    )
 
 
 class TextReporter:
@@ -29,21 +43,47 @@ class TextReporter:
             ]
         lines += [
             "",
-            f"{'ID':<12} {'Category':<10} {'Name':<50} {'Severity':<10} {'Result':<12} {'Judge Error'}",
-            "-" * 115,
+            f"{'ID':<12} {'Category':<10} {'Name':<40} {'Severity':<10} "
+            f"{'Result':<20} {'Conf':<6} {'Source':<16} {'Judge Error'}",
+            "-" * 130,
         ]
         for f in report.findings:
+            is_conflict = f.verdict_source == VerdictSource.CONFLICT
             # ERROR first: a finding the judge never evaluated must never print as "Safe".
             if f.outcome is Outcome.ERROR:
                 result = "ERROR"
+            elif is_conflict:
+                result = "VULNERABLE (CONFLICT)"
             elif f.success:
                 result = "VULNERABLE"
             else:
                 result = "Safe"
             lines.append(
-                f"{f.attack_id:<12} {f.owasp_category:<10} {f.name[:50]:<50} "
-                f"{f.severity!s:<10} {result:<12} {f.judge_error or ''}"
+                f"{f.attack_id:<12} {f.owasp_category:<10} {f.name[:40]:<40} "
+                f"{f.severity!s:<10} {result:<20} {f.confidence:<6.2f} "
+                f"{f.verdict_source or '':<16} {f.judge_error or ''}"
             )
+
+        # Per-finding detail: judge reasoning, confidence source, and the deterministic
+        # artifacts (redacted). Absent entirely before Phase 3 of the reporting plan.
+        lines += ["", "-" * 100, "FINDING DETAILS", "-" * 100]
+        for f in report.findings:
+            lines.append(f"{f.attack_id} [{f.owasp_category}] {f.name}")
+            lines.append(
+                f"  Outcome: {f.outcome.value}  Confidence: {f.confidence:.2f}  "
+                f"Source: {f.verdict_source or 'n/a'}"
+            )
+            if f.verdict_source == VerdictSource.CONFLICT:
+                lines.append(
+                    "  CONFLICT: a deterministic detector fired but the judge disagreed "
+                    "-- review manually."
+                )
+            lines.append(f"  Judge reasoning: {f.judge_reasoning or '(none)'}")
+            if f.judge_error:
+                lines.append(f"  Judge error: {f.judge_error}")
+            if f.artifacts:
+                lines.append(f"  Artifacts ({len(f.artifacts)}):")
+                lines += [f"    {_artifact_line(a)}" for a in f.artifacts]
 
         # Recommendations grouped by category
         seen: set[str] = set()
