@@ -4,7 +4,7 @@ import json as _json
 import math
 from datetime import datetime
 from enum import StrEnum
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
@@ -31,6 +31,25 @@ class Outcome(StrEnum):
     VULNERABLE = "vulnerable"
     SAFE = "safe"
     ERROR = "error"
+
+
+class VerdictSource(StrEnum):
+    """Where a finding's verdict came from once the LLM judge and the deterministic
+    detector layer have been reconciled (see judge/reconcile.py).
+
+    RULE_PROOF is the strongest: a canary token was found verbatim in the response,
+    which is proof of leakage by string comparison — no model judgement involved.
+    CONFLICT is the highest-value signal for a human reviewer: a deterministic
+    detector fired but the judge disagreed, and that disagreement is surfaced rather
+    than silently resolved.
+    """
+
+    RULE_PROOF = "rule_proof"
+    BOTH_AGREE = "both_agree"
+    JUDGE_ONLY = "judge_only"
+    JUDGE_DEGRADED = "judge_degraded"
+    CONFLICT = "conflict"
+    JUDGE_ERROR = "judge_error"
 
 
 OWASP_RECOMMENDATIONS: dict[str, str] = {
@@ -163,6 +182,26 @@ class JudgeResult(BaseModel):
     raw_response: str = ""    # always preserved; empty string on connection failure
 
 
+class Artifact(BaseModel):
+    """A single piece of deterministic (non-LLM) evidence found in a target response.
+
+    Produced by the detectors package. Every field except ``raw`` is safe to publish:
+    ``fingerprint`` is a redacted stand-in for the detected value (first4...last4 plus a
+    sha256 prefix) so that a report which detects a leaked secret never becomes the leak
+    vector by transcribing that secret in cleartext. ``raw`` holds the unredacted value
+    and is populated ONLY when the operator explicitly passes --include-raw-artifacts.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["canary", "secret", "prompt_marker", "prompt_overlap"]
+    detector: str  # which rule fired, e.g. "aws_access_key" or "canary_exact"
+    fingerprint: str  # REDACTED representation — never the raw secret
+    span: tuple[int, int]  # (start, end) character offsets into the response
+    confidence: float
+    raw: str | None = None  # unredacted value; set only under --include-raw-artifacts
+
+
 class AttackResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -186,6 +225,13 @@ class AttackResult(BaseModel):
     cwe_ids: list[str] = Field(default_factory=list)
     cvss_vector: str = ""
     cvss_score: float = 0.0
+    # Hybrid-verdict fields (judge + deterministic detectors, see judge/reconcile.py).
+    # All default so pre-existing report.json files without these keys still load under
+    # extra="forbid". verdict_source stores a VerdictSource value (kept as str for a
+    # forgiving round-trip of older/unknown values).
+    confidence: float = 0.0
+    verdict_source: str = ""
+    artifacts: list[Artifact] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _reconcile_outcome(self) -> AttackResult:

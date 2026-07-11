@@ -15,7 +15,9 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from llm_scanner.models import AttackResult, JudgeResult, Outcome, Payload, ScanReport, Severity
+from llm_scanner.detectors import run_detectors
+from llm_scanner.judge.reconcile import derive_outcome, reconcile
+from llm_scanner.models import AttackResult, Outcome, Payload, ScanReport, Severity
 from llm_scanner.observability import get_logger
 
 if TYPE_CHECKING:
@@ -24,26 +26,11 @@ if TYPE_CHECKING:
 
 _logger = get_logger()
 
-# JudgeResult.error values that mean "no verdict was reached".  Everything else the
-# judge sets on `error` ("parse_tier2", "parse_heuristic") is a DEGRADED parse that
-# still produced a real verdict, so it keeps that verdict.
-_JUDGE_ERROR_CODES: frozenset[str] = frozenset(
-    {"judge_timeout", "judge_unavailable", "parse_failed"}
-)
-_JUDGE_ERROR_PREFIX = "judge_error:"
-
-
-def derive_outcome(judge_result: JudgeResult) -> Outcome:
-    """Map a JudgeResult onto a tri-state Outcome.
-
-    A judge that timed out, was unreachable, crashed, or emitted output no tier of
-    the parser could read has NOT decided the attack failed — it has decided nothing.
-    Reporting that as SAFE is what makes a scan with a dead judge look all-green.
-    """
-    error = judge_result.error
-    if error and (error in _JUDGE_ERROR_CODES or error.startswith(_JUDGE_ERROR_PREFIX)):
-        return Outcome.ERROR
-    return Outcome.VULNERABLE if judge_result.success else Outcome.SAFE
+# derive_outcome and reconcile now live in judge/reconcile.py (the reconciliation layer
+# owns the JudgeResult.error -> Outcome mapping and the judge/detector combination).
+# They are re-exported here so existing callers and tests that import derive_outcome from
+# llm_scanner.scanner keep working.
+__all__ = ["LLMScanner", "derive_outcome", "reconcile"]
 
 
 # CVSS-inspired risk weights per OWASP LLM severity level (ENGINE-04)
@@ -75,6 +62,9 @@ class LLMScanner:
         target_label: str = "unknown",
         concurrency: int = 3,
         scan_id: str = "",
+        canary: str | None = None,
+        system_prompt: str | None = None,
+        include_raw_artifacts: bool = False,
     ) -> None:
         self._target = target
         self._judge = judge
@@ -82,6 +72,12 @@ class LLMScanner:
         self._target_label = target_label
         self._concurrency = concurrency
         self._scan_id = scan_id
+        # Deterministic-detector inputs (Phase 1/2). canary: unique token expected in
+        # responses if the system prompt leaked. system_prompt: the operator-supplied real
+        # prompt, used only for shingle-overlap detection (never injected here).
+        self._canary = canary
+        self._system_prompt = system_prompt
+        self._include_raw_artifacts = include_raw_artifacts
         # Populated at the end of scan() -- last scan's metrics summary, read by
         # cli.py to write metrics.json without adding fields to ScanReport itself.
         self.last_metrics: dict[str, float | int] = {}
@@ -119,7 +115,16 @@ class LLMScanner:
                 judge_latencies.append(judge_latency_s)
                 progress.advance(task_id)
 
-                outcome = derive_outcome(judge_result)
+                # Deterministic evidence layer (pure, no I/O), then reconcile it with the
+                # judge verdict into a single outcome + confidence + verdict source.
+                artifacts = run_detectors(
+                    response,
+                    payload=payload.payload,
+                    canary=self._canary,
+                    system_prompt=self._system_prompt,
+                    include_raw=self._include_raw_artifacts,
+                )
+                reconciliation = reconcile(judge_result, artifacts)
 
                 _logger.debug(
                     "attack completed",
@@ -130,7 +135,10 @@ class LLMScanner:
                         "target_latency_s": round(target_latency_s, 4),
                         "judge_latency_s": round(judge_latency_s, 4),
                         "success": judge_result.success,
-                        "outcome": str(outcome),
+                        "outcome": str(reconciliation.outcome),
+                        "confidence": reconciliation.confidence,
+                        "verdict_source": str(reconciliation.verdict_source),
+                        "artifacts": len(artifacts),
                         "judge_error": judge_result.error,
                     },
                 )
@@ -140,10 +148,13 @@ class LLMScanner:
                     name=payload.name,
                     payload=payload.payload,
                     response=response,
-                    outcome=outcome,
+                    outcome=reconciliation.outcome,
                     judge_reasoning=judge_result.reasoning,
                     judge_error=judge_result.error,
                     severity=payload.severity,
+                    confidence=reconciliation.confidence,
+                    verdict_source=str(reconciliation.verdict_source),
+                    artifacts=artifacts,
                 )
 
         with Progress(
