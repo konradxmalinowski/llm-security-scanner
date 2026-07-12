@@ -425,9 +425,16 @@ def test_sarif_artifacts_become_related_locations_with_spans() -> None:
     canary = _result_for(sarif, "LLM07")
     related = canary["relatedLocations"]
     assert len(related) == 1
+    # The span is carried as informational properties, measured against the unredacted
+    # response -- NOT as a region.charOffset, which would falsely claim a resolvable
+    # location into the "." placeholder URI (and would not match the redacted response).
+    props = related[0]["properties"]
+    assert props["responseSpanStart"] == 12
+    assert props["responseSpanEnd"] == 25
+    assert props["spanBasis"] == "unredacted_response"
     region = related[0]["physicalLocation"]["region"]
-    assert region["charOffset"] == 12
-    assert region["charLength"] == 13  # 25 - 12
+    assert "charOffset" not in region
+    assert region == {"startLine": 1, "startColumn": 1}
     assert "canary_exact" in related[0]["message"]["text"]
 
 

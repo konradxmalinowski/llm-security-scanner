@@ -65,7 +65,18 @@ class SarifReporter:
 
     @staticmethod
     def _related_locations(finding: AttackResult) -> list[dict]:
-        """relatedLocations built from each artifact's span into the response.
+        """relatedLocations carrying each artifact's redacted evidence.
+
+        The artifact ``span`` is an offset into the *original* target response. Two facts
+        make it wrong to emit that span as a SARIF ``region.charOffset``: (1) ``charOffset``
+        is defined to index into the artifact named by ``artifactLocation``, and this run has
+        no source artifact -- the URI is the ``.`` repo-root placeholder; (2) the stored
+        ``response`` is redacted by default (detected spans replaced by their fingerprint), so
+        its length no longer matches the span's basis. A ``charOffset`` region here would be a
+        false claim of a resolvable location. Instead the span is recorded as informational
+        ``properties`` -- explicitly flagged as offsets into the unredacted response, which is
+        not embedded in the SARIF -- and the physical location matches the honest ``.``/line-1
+        placeholder used by the result itself.
 
         Only the REDACTED ``fingerprint`` reaches the message text -- never ``artifact.raw``.
         A SARIF file is uploaded to the GitHub Security tab, so a live secret transcribed
@@ -78,16 +89,20 @@ class SarifReporter:
                 {
                     "physicalLocation": {
                         "artifactLocation": {"uri": "."},
-                        "region": {
-                            "charOffset": start,
-                            "charLength": max(end - start, 0),
-                        },
+                        "region": {"startLine": 1, "startColumn": 1},
                     },
                     "message": {
                         "text": (
                             f"{artifact.type}/{artifact.detector}: {artifact.fingerprint} "
                             f"(confidence {artifact.confidence:.2f})"
                         )
+                    },
+                    "properties": {
+                        "artifactType": artifact.type,
+                        "detector": artifact.detector,
+                        "responseSpanStart": start,
+                        "responseSpanEnd": end,
+                        "spanBasis": "unredacted_response",
                     },
                 }
             )
