@@ -11,3 +11,8 @@ plans/
 reports/
 .pytest_cache/
 .ruff_cache/
+awesome-llm-security
+docs/APPLICATION.MD
+docs/PRODUCT_ANALYSIS.md
+docs/PROJECT_QA.md
+docs/PROJECT_RULES.md
