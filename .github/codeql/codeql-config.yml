@@ -1,0 +1,12 @@
+name: CodeQL config
+
+queries:
+  - uses: security-and-quality
+
+# demo/ contains an intentionally vulnerable Flask app used as a scan target
+# for llm-scanner (see demo/vulnerable_app.py docstring) — its findings are
+# by design. tests/ triggers false positives on assertion patterns
+# (e.g. py/incomplete-url-substring-sanitization on `"http://..." in stderr`).
+paths-ignore:
+  - demo
+  - tests
