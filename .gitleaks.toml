@@ -1,0 +1,23 @@
+title = "gitleaks config for llm-security-scanner"
+
+# This project is a security scanner. Its test suite and evaluation corpus
+# deliberately contain fake, secret-shaped fixtures -- AWS keys, JWTs,
+# OpenAI-style tokens, PEM headers -- because that is exactly the input the
+# tool's own secret detectors and response-redaction path must be exercised
+# against. These are not real credentials.
+#
+# We keep the full default gitleaks ruleset (via [extend] useDefault) so that
+# real source, configs, and docs are still scanned; we only allowlist the paths
+# whose whole purpose is to hold synthetic secrets. src/ is intentionally NOT
+# allowlisted -- the detector patterns there are regexes, not values, and a real
+# secret accidentally committed to source must still fail the build.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Deliberately fake secret-shaped fixtures in tests and the eval corpus"
+paths = [
+  '''tests/.*''',
+  '''evals/ground_truth\.yaml''',
+]
