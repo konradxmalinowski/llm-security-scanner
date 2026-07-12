@@ -15,6 +15,10 @@ A Python CLI tool that tests LLM-based applications against the full OWASP Top 1
 - **Payload format**: YAML files per OWASP category; each payload must have `id`, `name`, `payload`, `judge_criteria`
 - **Judge contract**: Must return parseable JSON `{"success": bool, "reasoning": str}` — parser must handle malformed output gracefully
 - **OWASP coverage**: All 10 categories (LLM01–LLM10) must have at least 4 payloads each to reach ≥40 total
+- **Hybrid verdict**: deterministic detectors (`src/llm_scanner/detectors/` — canary match, secret regex+entropy, prompt-marker/n-gram overlap) run alongside the judge; `judge/reconcile.py` merges both into `outcome`/`confidence` (0.0–1.0)/`verdict_source`. A canary hit is proof and overrides the judge (even a judge error); only strong evidence (`secret`, `prompt_overlap`) can flip a verdict — a bare `prompt_marker` never does.
+- **Conflict is surfaced, not resolved**: strong rule + judge disagreement renders `VULNERABLE` at `verdict_source=conflict` for human review. A judge timeout/unavailable/parse failure maps to `Outcome.ERROR` (excluded from risk score, never a pass); `--fail-on-judge-error` exits 2.
+- **Redacted by default**: detected secret/canary spans are stripped from the stored `response` and `judge_reasoning`, replaced by a per-run HMAC fingerprint; raw values are kept only under `--include-raw-artifacts`.
+- **Judge validation**: `llm-scanner judge-eval` scores the judge, the detector layer, and the reconciled hybrid against `evals/ground_truth.yaml` (32 hand-labeled entries) — precision/recall/F1/Cohen's kappa; `--min-kappa` gates CI.
 
 <!-- GSD:project-end -->
 

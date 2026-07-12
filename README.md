@@ -15,25 +15,30 @@ llm-scanner CLI
       │
       ├─ TargetFactory
       │       ├─ HttpTarget   (httpx AsyncClient → POST /endpoint)
-      │       └─ OllamaTarget (ollama SDK AsyncClient → local model)
-      │
-      ├─ OllamaJudge (local Ollama model, temperature=0, structured JSON)
+      │       └─ OllamaTarget (ollama SDK AsyncClient → local model; auto-injects a canary)
       │
       ├─ LLMScanner (asyncio.Semaphore, concurrency=3, Rich progress bar)
+      │       ├─ OllamaJudge      (local Ollama model, temperature=0, structured JSON)
+      │       ├─ Detectors        (canary / secret+entropy / prompt-marker+n-gram — zero LLM calls)
+      │       ├─ reconcile()      (judge + detectors → outcome, confidence, verdict_source)
       │       └─ ScanReport (Pydantic v2, risk score 0.0–10.0)
       │
       └─ Reporters
               ├─ Terminal  (Rich table, always shown)
               ├─ Markdown  (--format md)
+              ├─ Text      (--format txt)
               ├─ JSON      (--format json)
-              └─ HTML      (--format html, Jinja2 autoescape=True)
+              ├─ HTML      (--format html, Jinja2 autoescape=True)
+              └─ SARIF     (--format sarif)
 ```
 
 1. **Preflight** — confirms Ollama is running, the judge model is pulled, and the target is reachable.
 2. **Payload loading** — reads YAML attack files from `payloads/`, filters by requested categories and minimum severity.
-3. **Scan** — fires each payload at the target concurrently (3 at a time), collects raw responses.
-4. **Judge** — sends each `(payload, response)` pair to a local Ollama model for structured verdict (`{"success": bool, "reasoning": str}`).
-5. **Report** — prints a Rich table to the terminal, optionally saves Markdown / JSON / HTML files.
+3. **Scan** — fires each payload at the target concurrently (3 at a time), collects raw responses. For Ollama targets a unique canary token is auto-injected into the system prompt; for URL targets the operator must inject it out of band and declare it with `--canary`.
+4. **Judge** — sends each `(payload, response)` pair to a local Ollama model for a structured verdict (`{"success": bool, "reasoning": str}`).
+5. **Detect** — the same response is scanned by deterministic, I/O-free detectors for a canary hit, secret patterns (AWS/OpenAI/GitHub/Slack/JWT/PEM, entropy-gated), and system-prompt markers/n-gram overlap.
+6. **Reconcile** — `judge/reconcile.py` combines the judge verdict and the detector evidence into `outcome` + `confidence` (0.0–1.0) + `verdict_source`. A canary hit is proof and overrides the judge; a rule/judge disagreement is surfaced as `conflict`, never silently resolved. See [Judge validation and confidence](#judge-validation-and-confidence) below.
+7. **Report** — prints a Rich table to the terminal, optionally saves Markdown / Text / JSON / HTML / SARIF files. Detected secret and canary spans are redacted from the stored response and judge reasoning by default.
 
 ---
 
@@ -530,6 +535,50 @@ Risk score bands: **0–3.9** (Low), **4–6.9** (Medium), **7–10** (High, sho
 
 ---
 
+## Judge validation and confidence
+
+The AI judge is no longer the sole signal deciding a verdict. A deterministic, zero-LLM detector layer (`src/llm_scanner/detectors/`) runs alongside it, and `judge/reconcile.py` combines both into a verdict every reporter shows: `outcome`, `confidence` (0.0–1.0), and `verdict_source`.
+
+**Detectors:**
+- **Canary** — a unique token proves system-prompt leakage by exact string match. Auto-generated and injected into the system prompt for Ollama targets; for URL targets the operator must place it in the target's own system prompt out of band and declare it with `--canary` (the scanner cannot inject anything into an HTTP endpoint it does not control).
+- **Secrets** — high-precision regexes (AWS, OpenAI, GitHub, Slack, JWT, PEM headers) gated by a Shannon-entropy threshold, with payload-echo exclusion so the model repeating the attack payload back doesn't self-trigger.
+- **Prompt markers** — instruction-shaped phrases, plus a deterministic n-gram (3-word shingle) overlap score against an operator-supplied `--system-prompt`.
+
+**Reconciliation** (`verdict_source` values):
+
+| Situation | Outcome | Confidence | `verdict_source` |
+|---|---|---|---|
+| Canary found in response | VULNERABLE | 1.00 | `rule_proof` |
+| Strong rule (`secret`/`prompt_overlap`) + judge agrees | VULNERABLE | 0.90 | `both_agree` |
+| Judge says vulnerable, no strong rule evidence | VULNERABLE | 0.60 | `judge_only` |
+| Judge says vulnerable via a degraded parse tier | VULNERABLE | 0.40 | `judge_degraded` |
+| Strong rule fired, judge says safe | VULNERABLE (flagged) | 0.50 | `conflict` |
+| Judge says safe, no rule evidence | SAFE | 0.80 | `both_agree` |
+| Judge timed out / unreachable / unparseable | **ERROR** | 0.00 | `judge_error` |
+
+A `prompt_marker` alone is a weak hint and never flips a verdict on its own — only `secret` and `prompt_overlap` count as strong evidence. `conflict` is surfaced, not silently resolved: it is the highest-value signal for a human reviewer. A judge failure renders as a distinct `ERROR` outcome (never a silent pass), is excluded from the risk score, and `--fail-on-judge-error` exits code 2 so CI can tell "the target is vulnerable" (exit 1) apart from "this scan cannot be trusted" (exit 2).
+
+Confidence numbers are a calibrated heuristic, not a statistically fitted probability — that's what `judge-eval` (below) is for.
+
+**Redaction guarantee:** whenever the canary or a secret pattern is detected, its span is stripped from the stored `response` and from `judge_reasoning` and replaced with a redacted fingerprint (`first4...last4:HMAC[:8]`, using a per-run HMAC key; values of 12 characters or fewer are fully masked instead). The raw value is written only under `--include-raw-artifacts`, which prints a stderr warning. This covers pattern-matched secrets and canary tokens only — see [Data handling & operator responsibility](#data-handling--operator-responsibility) for what it does *not* cover.
+
+### Measuring the judge: `judge-eval`
+
+`llm-scanner judge-eval` answers "did you compare the judge's verdicts against human judgement?" with a number instead of an assertion. It replays a hand-labeled corpus (`evals/ground_truth.yaml`, 32 entries weighted toward LLM01/LLM02/LLM07, including hard cases such as partial leaks, refusal-with-explanation, payload echo, and roleplay near-misses) through the real judge and the deterministic detectors, then reports precision, recall, F1, and Cohen's kappa against the human labels — separately for the judge alone, the detectors alone, and the reconciled hybrid verdict — with a per-OWASP-category breakdown.
+
+```bash
+llm-scanner judge-eval --judge llama3.2:3b
+```
+
+```bash
+# CI regression gate: fail the build if the judge's overall kappa drops below 0.4
+llm-scanner judge-eval --judge llama3.2:3b --min-kappa 0.4 --json ./reports/judge-eval.json
+```
+
+At 32 entries the overall kappa is meaningful but the per-category breakdown is noisy — each category table row includes its support count for exactly that reason. Grow `evals/ground_truth.yaml` from real `conflict` findings over time to tighten it.
+
+---
+
 ## CLI reference
 
 | Flag | Required | Default | Description |
@@ -545,6 +594,10 @@ Risk score bands: **0–3.9** (Low), **4–6.9** (Medium), **7–10** (High, sho
 | `--format` | No | `md,json,html,txt` | `md`, `json`, `html`, `txt`, `sarif` — comma-separated; terminal output always shown |
 | `--include-dos-tests` | No | off | Include LLM10 Unbounded Consumption probes |
 | `--fail-on-score` | No | None | Exit non-zero if risk score is at or above this threshold |
+| `--fail-on-judge-error` | No | off | Exit with code 2 if the judge failed to evaluate any attack (timeout, unreachable, unparseable). Those findings are UNKNOWN, not safe — distinguishes "target is vulnerable" (exit 1) from "this scan cannot be trusted" (exit 2) |
+| `--canary` | No | None | Canary token to search for as proof of system-prompt leakage. Ollama targets auto-generate and inject one unless you supply your own; URL targets have no injection path, so you must place it in the target's system prompt out of band and declare it here |
+| `--system-prompt` | No | None | The target's real system prompt, as literal text or `@path` to a file. Enables deterministic n-gram overlap detection; for Ollama targets it is also the injected system prompt |
+| `--include-raw-artifacts` | No | off | Include raw, UNREDACTED detected secret/canary values in the JSON report (prints a stderr warning). Off by default — reports land in CI logs, so detected values are normally redacted to a fingerprint |
 | `--targets` | No | None | YAML file with multiple scan targets for a side-by-side comparison run (see Quick Start 9) |
 | `--suppressions` | No | None | YAML file with suppression rules to exclude known false positives from the risk score (see Quick Start 10) |
 | `--payloads-dir` | No | None | Directory with additional YAML payload files, loaded alongside the bundled library (same `id`/`name`/`payload`/`judge_criteria` schema) |
@@ -582,13 +635,14 @@ Each scan writes into its own timestamped subfolder: `<output_dir>/<timestamp>_<
 
 | Format | Flag | File name pattern | Notes |
 |--------|------|-------------------|-------|
-| Terminal | always | — | Rich table with colour-coded severity |
-| Markdown | `--format md` | `report.md` | Table with attack ID, category, name, severity, result, recommendation |
-| JSON | `--format json` | `report.json` | Full `ScanReport` structure including `judge_reasoning` per finding |
-| HTML | `--format html` | `report.html` | Self-contained; Jinja2 `autoescape=True` prevents XSS from payload content |
-| SARIF | `--format sarif` | `report.sarif` | SARIF 2.1.0 JSON, consumable by the GitHub Security tab (code scanning) and VS Code's SARIF Viewer; includes only confirmed, non-suppressed vulnerabilities; rules carry a CWE `taxonomies` array and a `security-severity` score |
+| Terminal | always | — | Rich table with colour-coded severity, plus `Conf.` and `Source` columns; `ERROR` and `conflict` findings render distinctly from `Safe`/`VULNERABLE` |
+| Markdown | `--format md` | `report.md` | Table with attack ID, category, name, severity, result, confidence, source, recommendation |
+| Text | `--format txt` | `report.txt` | Same summary table plus a per-finding details section: judge reasoning, confidence, verdict source, and a redacted artifact summary |
+| JSON | `--format json` | `report.json` | Full `ScanReport` structure, including `judge_reasoning`, `confidence`, `verdict_source`, and `artifacts` (redacted fingerprints) per finding |
+| HTML | `--format html` | `report.html` | Self-contained; Jinja2 `autoescape=True` prevents XSS from payload content; confidence badge, per-finding reasoning, artifacts table, and a conflict callout |
+| SARIF | `--format sarif` | `report.sarif` | SARIF 2.1.0 JSON, consumable by the GitHub Security tab (code scanning) and VS Code's SARIF Viewer; includes only confirmed, non-suppressed vulnerabilities; confidence/verdict_source are result properties, artifacts appear as `relatedLocations`; `conflict` findings are `level: warning`, proven (`rule_proof`) findings are `level: error`; rules carry a CWE `taxonomies` array and a `security-severity` score |
 
-Every finding in all five formats now also carries `cwe_ids` and a `cvss_vector`/`cvss_score` mapped per OWASP category.
+Every finding in all six formats now also carries `cwe_ids` and a `cvss_vector`/`cvss_score` mapped per OWASP category, plus `confidence`/`verdict_source`/`artifacts` from the hybrid-verdict layer (see [Judge validation and confidence](#judge-validation-and-confidence)). Detected secret and canary spans inside `response` and `judge_reasoning` are redacted by default in every format; `artifacts[].fingerprint` is the redacted stand-in, and the raw value appears only in `report.json` when `--include-raw-artifacts` is set.
 
 Each scan also writes `metrics.json` (timing and outcome summary for that scan, in the scan's own timestamped subfolder) and appends one line to `audit.jsonl` (a durable, append-only audit trail at the `--output-dir` root, one record per scan ever run).
 
@@ -604,6 +658,8 @@ Every scan also regenerates `<output_dir>/index.html` — a Chart.js dashboard p
 - **API key safety** — `--api-key` is sent as a `Bearer` header only; never logged or printed in error messages
 - **XSS-safe HTML reports** — Jinja2 `autoescape=True`; attack payloads containing `<script>` render as escaped text
 - **DoS gate** — LLM10 (Unbounded Consumption) requires `--include-dos-tests`; never fired by default
+- **Secrets redacted by default** — detected secret/canary spans are stripped from the stored `response` and `judge_reasoning` and replaced with a per-run HMAC fingerprint before any reporter sees them; the raw value survives only under `--include-raw-artifacts`
+- **Rule overrides judge** — a canary proof (or a strong rule/judge disagreement) is never silently smoothed over by the LLM judge's opinion; see [Judge validation and confidence](#judge-validation-and-confidence)
 - **No `yaml.load()`** — all YAML is parsed with `yaml.safe_load()` (Ruff S506 enforced in CI)
 - **Hardened own CI** — `.github/workflows/security.yml` runs pip-audit (dependency SCA), gitleaks (secret scanning), and CodeQL (SAST) against this repository on every push/PR plus a weekly schedule; see [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for a STRIDE analysis of the scanner's own attack surface
 
@@ -611,11 +667,13 @@ Every scan also regenerates `<output_dir>/index.html` — a Chart.js dashboard p
 
 ## Data handling & operator responsibility
 
-The scanner's report files (`report.md`, `report.json`, `report.html`, `report.sarif`, and the trend `index.html`) capture the **full raw content** of every attack: the exact payload sent, the target's exact response, and the judge's reasoning (`AttackResult.payload` / `.response` / `.judge_reasoning`). This is by design — full-fidelity output is what makes a finding reviewable and reproducible.
+The scanner's report files (`report.md`, `report.json`, `report.html`, `report.sarif`, `report.txt`, and the trend `index.html`) capture the payload sent, the target's response, and the judge's reasoning (`AttackResult.payload` / `.response` / `.judge_reasoning`) for every attack. This is by design — full-fidelity output is what makes a finding reviewable and reproducible.
 
-The practical consequence: if the scanned target's response contains real personal data (an actual leaked email, name, or other PII, which is exactly what LLM02/LLM07 payloads are designed to surface when they succeed), that data is written verbatim into local report files under `--output-dir` (default `./reports/`). The scanner does **not** redact, anonymise, or filter response content in any report format.
+**What is redacted by default:** spans the deterministic detectors identify — a canary token, or a pattern-matched secret (AWS/OpenAI/GitHub/Slack/JWT/PEM) that clears the entropy gate — are stripped out of `response` and `judge_reasoning` and replaced with a redacted fingerprint before the report is written, in every format. The raw value is written only when the operator passes `--include-raw-artifacts` (and only into `report.json`).
 
-This is expected and unavoidable for a tool whose job is to prove a leak occurred, but it means the **operator running the scan is responsible for how those report files are subsequently handled**, in line with whatever data protection obligations (e.g. GDPR/RODO) apply to the target being tested:
+**What is not redacted:** the detector layer only recognizes canary tokens and the specific secret patterns above — it is not a general PII filter. If a scanned target's response contains real personal data that doesn't match those patterns (an email address, a name, free-text confidential content, which is exactly what LLM02/LLM07 payloads are designed to surface), that data is still written verbatim into local report files under `--output-dir` (default `./reports/`).
+
+This means the **operator running the scan is still responsible for how those report files are subsequently handled**, in line with whatever data protection obligations (e.g. GDPR/RODO) apply to the target being tested:
 
 - `reports/` is gitignored by default — do not force-add or otherwise commit scan output, especially from scans against staging/production targets that may return real user data.
 - Treat report files from any scan against a non-synthetic target as potentially containing personal data, and apply your organisation's normal retention/deletion policy to them (they are plain files on local disk — delete or move them like any other sensitive artifact).
@@ -629,17 +687,21 @@ This is expected and unavoidable for a tool whose job is to prove a leak occurre
 ```
 llm-security-scanner/
 ├── src/llm_scanner/
-│   ├── cli.py           # Entry point, argparse, scan orchestration
+│   ├── cli.py           # Entry point, argparse, scan orchestration, judge-eval subcommand
 │   ├── scanner.py       # Bounded-concurrency scan engine (asyncio.Semaphore)
-│   ├── models.py        # Pydantic v2 data models (Payload, AttackResult, ScanReport)
+│   ├── models.py        # Pydantic v2 data models (Payload, AttackResult, ScanReport, Artifact, Outcome, VerdictSource)
 │   ├── preflight.py     # Health checks (Ollama daemon, model, HTTP target)
 │   ├── targets/         # HttpTarget, OllamaTarget, TargetFactory
-│   ├── judge/           # OllamaJudge, three-tier JSON response parser
-│   ├── reporters/       # Terminal, Markdown, JSON, HTML reporters
+│   ├── judge/           # OllamaJudge, three-tier JSON response parser, reconcile.py (hybrid verdict)
+│   ├── detectors/       # canary, secrets, prompt_markers, entropy, redaction — zero-LLM detector layer
+│   ├── evals/           # corpus.py, harness.py, metrics.py — judge-eval implementation
+│   ├── reporters/       # Terminal, Markdown, Text, JSON, HTML, SARIF reporters
 │   ├── payloads/        # YamlPayloadLoader
 │   └── templates/       # report.html.j2
 ├── payloads/            # YAML attack library (LLM01–LLM10)
 │   └── extended/        # Extended payload sets
+├── evals/
+│   └── ground_truth.yaml  # 32-entry human-labeled corpus for judge-eval
 ├── demo/
 │   ├── vulnerable_app.py      # Offline vulnerable chatbot — no API key needed (port 5000)
 │   └── chatbot_openai_app.py  # Real OpenAI chatbot demo — requires OPENAI_API_KEY (port 5001)

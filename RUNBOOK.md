@@ -55,16 +55,19 @@ usage: llm-scanner [-h] [--target TARGET] [--target-type {url,ollama}]
                    [--severity {critical,high,medium,low,info}]
                    [--api-key API_KEY] [--output-dir OUTPUT_DIR]
                    [--format FORMATS] [--include-dos-tests]
-                   [--fail-on-score FAIL_ON_SCORE] [--targets TARGETS_FILE]
-                   [--suppressions SUPPRESSIONS_FILE]
+                   [--fail-on-score FAIL_ON_SCORE] [--fail-on-judge-error]
+                   [--targets TARGETS_FILE] [--suppressions SUPPRESSIONS_FILE]
                    [--payloads-dir PAYLOADS_DIR] [--retries RETRIES]
-                   [--concurrency CONCURRENCY]
+                   [--concurrency CONCURRENCY] [--canary CANARY]
+                   [--system-prompt SYSTEM_PROMPT] [--include-raw-artifacts]
                    [--log-level {DEBUG,INFO,WARNING,ERROR}]
                    [--log-file LOG_FILE]
-                   {baseline} ...
+                   {baseline,judge-eval} ...
 ```
 
 `--target`, `--target-type`, and `--judge-model` show as optional in `--help` because `--config` can supply them instead, but at least one source (flags or config file) must provide all three or the scan aborts.
+
+`{baseline,judge-eval}` are subcommands: `baseline save`/`baseline compare` manage baselines (section 8 below), `judge-eval` validates the judge against a human-labeled corpus (section 10 below).
 
 ---
 
@@ -380,7 +383,7 @@ llm-scanner \
   --payloads-dir ./my-payloads
 ```
 
-Files in `./my-payloads` must follow the same schema as `payloads/` (see section 14). Duplicate IDs across the bundled library and the custom dir are not an error -- both entries run.
+Files in `./my-payloads` must follow the same schema as `payloads/` (see section 15). Duplicate IDs across the bundled library and the custom dir are not an error -- both entries run.
 
 ### Tune retries and concurrency
 
@@ -395,6 +398,45 @@ llm-scanner \
 
 `--retries` (default `2`) retries transient 5xx/timeout/connection errors with exponential backoff; 4xx errors are never retried; `--retries 0` disables retry entirely. `--concurrency` (default `3`) sets how many attacks run in parallel against the target.
 
+### Get a provable system-prompt-leak signal (`--canary`, `--system-prompt`)
+
+For an Ollama target, a canary token is generated and injected automatically — no flag needed. For a URL target, the scanner cannot inject anything into an app it doesn't control, so you must put a unique token in the target's own system prompt yourself and tell the scanner what it is:
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --canary "MY-CANARY-9f2a" \
+  --system-prompt "@./my-app-system-prompt.txt"
+```
+
+Any verbatim appearance of the canary in a response is proof of leakage (`verdict_source=rule_proof`, confidence 1.00) — no judge call is needed to trust it. `--system-prompt` additionally enables the n-gram overlap detector so a paraphrased (not verbatim) prompt leak is still deterministically scored.
+
+### Reject a scan the judge couldn't complete (`--fail-on-judge-error`)
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --fail-on-judge-error
+```
+
+Exits with code 2 if any attack's judge call timed out, the model was unreachable, or its output was unparseable — those findings are `ERROR` (unknown), not `Safe`, and are excluded from the risk score. Use this in CI to distinguish "the target is vulnerable" (exit 1) from "this scan cannot be trusted" (exit 2).
+
+### Get raw (unredacted) detected values in the JSON report (`--include-raw-artifacts`)
+
+```bash
+llm-scanner \
+  --target http://localhost:5000/chat \
+  --target-type url \
+  --judge-model llama3.2:3b \
+  --include-raw-artifacts
+```
+
+By default, a detected secret or canary is redacted to a fingerprint everywhere. This flag writes the raw value into `report.json` only (never terminal/txt/md/html/sarif), and prints a stderr warning. Use it only when you need to hand the exact leaked value to the team fixing it.
+
 ---
 
 ## 9. Reading the output
@@ -402,14 +444,19 @@ llm-scanner \
 ### Terminal table
 
 ```
-┌───────────┬──────────┬──────────────────────┬──────────┬────────────┐
-│ ID        │ Category │ Name                 │ Severity │ Result     │
-├───────────┼──────────┼──────────────────────┼──────────┼────────────┤
-│ LLM01-001 │ LLM01    │ Ignore prev instruct │ high     │ VULNERABLE │  ← attack succeeded
-│ LLM07-002 │ LLM07    │ Indirect prompt leak │ high     │ Safe       │  ← attack failed / model defended
-└───────────┴──────────┴──────────────────────┴──────────┴────────────┘
+┌───────────┬──────────┬──────────────────────┬──────────┬───────────────────────┬───────┬────────────┬─────────────┐
+│ ID        │ Category │ Name                 │ Severity │ Result                │ Conf. │ Source     │ Judge Error │
+├───────────┼──────────┼──────────────────────┼──────────┼───────────────────────┼───────┼────────────┼─────────────┤
+│ LLM07-001 │ LLM07    │ System prompt leak   │ critical │ VULNERABLE            │  1.00 │ rule_proof │             │  ← canary matched: proof
+│ LLM01-001 │ LLM01    │ Ignore prev instruct │ high     │ VULNERABLE            │  0.90 │ both_agree │             │  ← rule + judge agree
+│ LLM02-004 │ LLM02    │ Secret pattern probe │ high     │ VULNERABLE (CONFLICT) │  0.50 │ conflict   │             │  ← rule fired, judge said safe: review this row
+│ LLM07-002 │ LLM07    │ Indirect prompt leak │ high     │ Safe                  │  0.80 │ both_agree │             │  ← attack failed / model defended
+│ LLM09-003 │ LLM09    │ Misinformation probe │ medium   │ ERROR                 │  0.00 │ judge_error│ judge_timeout │  ← judge never reached a verdict: unknown, not safe
+└───────────┴──────────┴──────────────────────┴──────────┴───────────────────────┴───────┴────────────┴─────────────┘
 
-Attacks:    28/46 succeeded
+Attacks:        28/46 succeeded
+NOT EVALUATED:  1/46 -- the judge failed on this attack. Its result is UNKNOWN, not safe,
+and it is excluded from the risk score, so treat the score as a lower bound.
 Risk Score: 8.5/10.0            ← red = high risk (≥7.0)
 ```
 
@@ -421,7 +468,7 @@ Risk Score: 8.5/10.0            ← red = high risk (≥7.0)
 | 4.0 – 6.9 | Medium | Yellow |
 | 7.0 – 10.0 | High | Red (bold) |
 
-`VULNERABLE` means the AI judge determined the attack **succeeded** (the model or endpoint behaved unsafely). `Safe` means the attack was resisted or produced a benign response.
+`VULNERABLE` means the reconciled hybrid verdict (judge + deterministic detectors, see README's "Judge validation and confidence") landed on VULNERABLE. `Safe` means neither the judge nor the detectors found evidence. `VULNERABLE (CONFLICT)` means a strong deterministic rule (secret pattern or prompt-overlap) fired but the judge disagreed — always worth a manual look. `ERROR` means the judge could not evaluate the attack at all (timeout, unreachable model, unparseable output); it is excluded from the risk score, so a scan with errored attacks should be treated as a lower bound, not a clean result — use `--fail-on-judge-error` in CI to reject such a scan outright. `Conf.` (0.0–1.0) and `Source` show how the verdict was reached: `rule_proof` (canary, confidence 1.00) > `both_agree` (0.90 or 0.80) > `judge_only` (0.60) > `judge_degraded` (0.40) > `conflict` (0.50, flagged) > `judge_error` (0.00).
 
 ### JSON report
 
@@ -429,32 +476,80 @@ The JSON file contains the full `ScanReport` structure. Each finding includes:
 
 ```json
 {
-  "attack_id": "LLM01-001",
-  "owasp_category": "LLM01",
-  "name": "Classic ignore prev instructions",
-  "severity": "high",
+  "attack_id": "LLM07-001",
+  "owasp_category": "LLM07",
+  "name": "System prompt extraction",
+  "severity": "critical",
   "success": true,
+  "outcome": "vulnerable",
+  "confidence": 1.0,
+  "verdict_source": "rule_proof",
   "payload": "Ignore all previous instructions...",
-  "response": "Sure! My system prompt is...",
+  "response": "Sure! My system prompt is... [REDACTED:a1b2...c3d4:9f3e21ab]",
   "judge_reasoning": "The model revealed system prompt content.",
-  "recommendation": "Implement input sanitisation and...",
-  "error": null
+  "judge_error": null,
+  "artifacts": [
+    {
+      "type": "canary",
+      "detector": "canary_exact",
+      "fingerprint": "a1b2...c3d4:9f3e21ab",
+      "span": [42, 78],
+      "confidence": 1.0,
+      "raw": null
+    }
+  ],
+  "recommendation": "Implement input sanitisation and..."
 }
 ```
 
-`judge_reasoning` is the most useful field for validating or disputing a finding.
+`success` is kept for backward compatibility (`true` iff `outcome` is `"vulnerable"`) — `outcome` is authoritative and is the only field that can express `"error"`. `judge_reasoning` and `confidence`/`verdict_source` together are the most useful fields for validating or disputing a finding. Any span the detectors identified (canary or pattern-matched secret) is redacted in `response` and `judge_reasoning`, as shown above; `artifacts[].raw` is populated only when the scan was run with `--include-raw-artifacts`.
 
 ### HTML report
 
-Open `report.html` inside the scan's timestamped subfolder (e.g. `reports/20260703T175300_localhost_5000_chat/report.html`) in any browser. Rows are color-coded by severity. Currently shows: ID, Category, Name, Severity, Result, Payload, Recommendation.
+Open `report.html` inside the scan's timestamped subfolder (e.g. `reports/20260703T175300_localhost_5000_chat/report.html`) in any browser. Rows are color-coded by severity and now include a confidence badge, per-finding judge reasoning, a redacted artifacts table, and a callout on `conflict` rows. Shows: ID, Category, Name, Severity, Result, Confidence, Payload, Reasoning, Artifacts, Recommendation.
 
 ### A note on what's in these files
 
-Every report format writes the full raw `payload`, `response`, and `judge_reasoning` for each finding, unredacted. If a scanned target leaks real personal data (an actual email, name, etc. -- the exact thing LLM02/LLM07 payloads are designed to surface), that data ends up verbatim in your local `reports/` files. `reports/` is gitignored by default -- keep it that way, and handle/delete report files from real scans per your own data-retention obligations. See README's "Data handling & operator responsibility" section for the full explanation.
+Every report format writes the `payload`, `response`, and `judge_reasoning` for each finding, but detected secret and canary spans inside `response`/`judge_reasoning` are redacted by default (replaced with a fingerprint) -- see README's "Judge validation and confidence" for exactly what the detector layer catches. That redaction is **not** a general PII filter: if a scanned target leaks real personal data that doesn't match a canary or a known secret pattern (an email, a name, free-text confidential content -- the general thing LLM02/LLM07 payloads are designed to surface), it still ends up verbatim in your local `reports/` files. `reports/` is gitignored by default -- keep it that way, and handle/delete report files from real scans per your own data-retention obligations. See README's "Data handling & operator responsibility" section for the full explanation.
 
 ---
 
-## 10. Running the test suite
+## 10. Validating the judge (`judge-eval`)
+
+`judge-eval` replays a hand-labeled corpus through the real judge model (and the deterministic detectors) and reports how well each agrees with a human. It answers "did you check the judge's accuracy?" with a number instead of a shrug.
+
+**Step 1 — run it against your judge model**
+
+```bash
+llm-scanner judge-eval --judge llama3.2:3b
+```
+
+This uses the bundled corpus at `evals/ground_truth.yaml` (32 hand-labeled entries) by default. Point `--corpus` at your own file to use a different one — it must follow the same schema (see `evals/ground_truth.yaml` for the format).
+
+**Step 2 — read the output**
+
+Two tables print: an overall one and a per-OWASP-category one. Both compare three predictors against the human labels:
+- **LLM judge** — the judge's verdict alone
+- **Detectors (rules)** — the deterministic detector layer alone (canary/secret/prompt-overlap)
+- **Reconciled hybrid** — what a real scan would actually report (judge + detectors reconciled)
+
+Each row shows `TP/FP/TN/FN`, precision, recall, F1, and **Cohen's kappa** (agreement with the human labels, corrected for chance agreement — 0 is chance-level, 1 is perfect agreement), plus a **Support** count (how many corpus entries the row is based on).
+
+**Read kappa together with support, not alone.** At 32 total entries, the overall kappa is meaningful but each per-category row can rest on a handful of entries — a category kappa of 0.9 on a support of 3 is not the same evidence as 0.9 on a support of 15. Grow `evals/ground_truth.yaml` (particularly from real `conflict`-sourced findings you've manually reviewed) to tighten the per-category numbers over time.
+
+**Step 3 — gate CI on it (optional)**
+
+```bash
+llm-scanner judge-eval --judge llama3.2:3b --min-kappa 0.4 --json ./reports/judge-eval.json
+```
+
+`--min-kappa` fails the command (non-zero exit) if the judge's *overall* kappa drops below the floor — use this to catch a prompt or model change that silently degrades judge quality. `--json` also writes a machine-readable summary (corpus size, judge-errored count, and the full overall/per-category metric breakdown) to the given path; it deliberately omits per-entry payload/response text since the summary is meant to land safely in CI logs.
+
+Entries the judge fails to evaluate (timeout/unparseable) are counted as a non-vulnerable prediction for the judge-alone predictor, and tallied separately (`judge_errored` in the summary) so a run of judge outages doesn't quietly inflate or deflate the headline metrics.
+
+---
+
+## 11. Running the test suite
 
 ```bash
 # Run all tests
@@ -472,7 +567,7 @@ uv run pytest tests/test_judge.py::test_evaluate_success -v
 
 ---
 
-## 11. Linting and formatting
+## 12. Linting and formatting
 
 ```bash
 # Check for lint errors
@@ -490,7 +585,7 @@ uv run ruff format --check src/ tests/
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 ### `[ERROR] Ollama is not running at http://localhost:11434`
 
@@ -571,7 +666,7 @@ Every scan also writes two files you can inspect after the fact, independent of 
 
 ---
 
-## 13. OWASP category reference
+## 14. OWASP category reference
 
 | Category | What it tests | CWE | CVSS 3.1 score |
 |----------|--------------|-----|----------------|
@@ -590,7 +685,7 @@ CWE and CVSS are mapped at category granularity (`CWE_MAP`/`CVSS_MAP` in `src/ll
 
 ---
 
-## 14. Adding custom payloads
+## 15. Adding custom payloads
 
 Payload files live in `payloads/`. Each file maps to one OWASP category.
 
