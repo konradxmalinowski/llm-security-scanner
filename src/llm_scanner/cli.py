@@ -16,6 +16,10 @@ from rich.console import Console
 from rich.table import Table
 
 from llm_scanner.baselines import BaselineManager
+from llm_scanner.detectors import generate_fingerprint_key
+from llm_scanner.evals import evaluate_corpus, load_corpus, summary_dict
+from llm_scanner.evals.harness import EvalReport
+from llm_scanner.evals.metrics import MetricSet
 from llm_scanner.judge import OllamaJudge
 from llm_scanner.models import Outcome, ScanReport, Severity, VerdictSource
 from llm_scanner.observability import configure_logging
@@ -306,6 +310,46 @@ def _build_parser() -> argparse.ArgumentParser:
         "compare", help="Compare a new scan against a saved baseline"
     )
     compare_p.add_argument("--name", required=True, help="Baseline name to compare against")
+
+    # judge-eval subcommand: validate the judge against a human-labeled corpus (Phase 4).
+    judge_eval_p = subparsers.add_parser(
+        "judge-eval",
+        help="Replay a human-labeled corpus through the judge and report agreement metrics",
+    )
+    judge_eval_p.add_argument(
+        "--judge",
+        required=True,
+        dest="judge_eval_model",
+        help="Ollama model name to use as the judge for the replay",
+    )
+    judge_eval_p.add_argument(
+        "--host",
+        default=_OLLAMA_HOST,
+        help="Ollama host (default: $OLLAMA_HOST or http://localhost:11434)",
+    )
+    judge_eval_p.add_argument(
+        "--corpus",
+        type=Path,
+        default=Path("evals/ground_truth.yaml"),
+        help="Path to the ground-truth corpus YAML (default: evals/ground_truth.yaml)",
+    )
+    judge_eval_p.add_argument(
+        "--min-kappa",
+        type=float,
+        default=None,
+        dest="min_kappa",
+        help=(
+            "Regression gate: exit non-zero if the JUDGE's overall Cohen's kappa against "
+            "the human labels falls below this floor (e.g. 0.4). Use in CI."
+        ),
+    )
+    judge_eval_p.add_argument(
+        "--json",
+        dest="json_out",
+        type=Path,
+        default=None,
+        help="Also write the machine-readable metrics summary to this path.",
+    )
 
     # MUST be the last statement -- called after add_subparsers to avoid being overridden
     parser.set_defaults(command="scan")
@@ -859,6 +903,114 @@ async def _run_multi_target(args: argparse.Namespace) -> None:
     console.print()
 
 
+def _render_judge_eval(report: EvalReport) -> None:
+    """Render the judge-eval agreement metrics as Rich tables."""
+
+    def _fmt(ms: MetricSet) -> tuple[str, str, str, str, str, str]:
+        cm = ms.confusion
+        return (
+            f"{cm.tp}/{cm.fp}/{cm.tn}/{cm.fn}",
+            f"{ms.precision:.2f}",
+            f"{ms.recall:.2f}",
+            f"{ms.f1:.2f}",
+            f"{ms.kappa:.2f}",
+            str(ms.support),
+        )
+
+    overall = Table(title="Judge validation vs human labels (overall)", show_lines=False)
+    overall.add_column("Predictor", no_wrap=True)
+    overall.add_column("TP/FP/TN/FN", no_wrap=True)
+    overall.add_column("Precision", justify="right")
+    overall.add_column("Recall", justify="right")
+    overall.add_column("F1", justify="right")
+    overall.add_column("Kappa", justify="right")
+    overall.add_column("Support", justify="right")
+
+    _labels = {
+        "judge": "LLM judge",
+        "detectors": "Detectors (rules)",
+        "hybrid": "Reconciled hybrid",
+    }
+    for name, ms in report.overall.items():
+        cm_str, prec, rec, f1s, kappa, support = _fmt(ms)
+        overall.add_row(_labels.get(name, name), cm_str, prec, rec, f1s, kappa, support)
+
+    console.print()
+    console.print(overall)
+    if report.errored_count:
+        console.print(
+            f"[magenta]{report.errored_count} entr(ies) the judge could not evaluate "
+            "(counted as a non-vulnerable prediction; see judge_errored in the summary).[/magenta]"
+        )
+
+    # Per-category breakdown. Kappa is noisy at small support -- the Support column is shown
+    # for exactly that reason, so a category kappa is never read without its sample size.
+    per_cat = Table(
+        title="Per-OWASP-category (judge only -- kappa is noisy at low support)",
+        show_lines=False,
+    )
+    per_cat.add_column("Category", no_wrap=True)
+    per_cat.add_column("TP/FP/TN/FN", no_wrap=True)
+    per_cat.add_column("Precision", justify="right")
+    per_cat.add_column("Recall", justify="right")
+    per_cat.add_column("F1", justify="right")
+    per_cat.add_column("Kappa", justify="right")
+    per_cat.add_column("Support", justify="right")
+    for category, per in report.by_category.items():
+        cm_str, prec, rec, f1s, kappa, support = _fmt(per["judge"])
+        per_cat.add_row(category, cm_str, prec, rec, f1s, kappa, support)
+
+    console.print()
+    console.print(per_cat)
+    console.print()
+
+
+async def _run_judge_eval(args: argparse.Namespace) -> None:
+    """Handle the judge-eval subcommand: replay the corpus through the REAL judge and the
+    deterministic detectors, then report agreement with the human labels (Phase 4).
+
+    This is the literal answer to 'did you compare the judge's verdicts against human
+    judgement?' -- it turns 'I didn't validate it' into a measured number CI can gate on.
+    """
+    try:
+        entries = load_corpus(args.corpus)
+    except FileNotFoundError as exc:
+        console.print(f"[red]Error: corpus not found: {args.corpus}[/red]")
+        raise _ScanAbort() from exc
+    except ValueError as exc:
+        console.print(f"[red]Error: invalid corpus: {exc}[/red]")
+        raise _ScanAbort() from exc
+
+    console.print(
+        f"\n[bold]Judge:[/bold]  {args.judge_eval_model}\n"
+        f"[bold]Corpus:[/bold] {args.corpus} ({len(entries)} labeled entries)\n"
+    )
+
+    judge = OllamaJudge(model=args.judge_eval_model, host=args.host)
+    key = generate_fingerprint_key()
+    report = await evaluate_corpus(entries, judge, key=key)
+
+    _render_judge_eval(report)
+
+    summary = summary_dict(report)
+    if getattr(args, "json_out", None) is not None:
+        try:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+            console.print(f"[dim]Metrics summary written to:[/dim] {args.json_out}")
+        except OSError as exc:
+            print(f"Warning: could not write --json summary: {exc}", file=sys.stderr)
+
+    # Regression gate: the JUDGE's overall kappa is the number CI enforces.
+    judge_kappa = report.overall["judge"].kappa
+    if getattr(args, "min_kappa", None) is not None and judge_kappa < args.min_kappa:
+        console.print(
+            f"[red bold]FAIL:[/red bold] judge kappa {judge_kappa:.3f} "
+            f"< floor {args.min_kappa:.3f}"
+        )
+        raise _ScanAbort()
+
+
 def main() -> None:
     """CLI entry point -- declared in pyproject.toml [project.scripts]."""
     parser = _build_parser()
@@ -872,6 +1024,8 @@ def main() -> None:
             asyncio.run(_run(args))
         elif args.command == "baseline":
             asyncio.run(_run_baseline(args))
+        elif args.command == "judge-eval":
+            asyncio.run(_run_judge_eval(args))
     except _ScanAbort as exc:
         sys.exit(exc.exit_code)
     except KeyboardInterrupt:
