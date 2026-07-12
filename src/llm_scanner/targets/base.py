@@ -17,7 +17,6 @@ class AbstractTarget(ABC):
         Raises:
             TargetError: on connection failure, timeout, or HTTP error.
         """
-        ...
 
     async def __aenter__(self) -> AbstractTarget:
         return self

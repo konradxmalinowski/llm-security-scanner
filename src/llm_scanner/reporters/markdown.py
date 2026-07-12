@@ -4,6 +4,18 @@ from pathlib import Path
 
 from llm_scanner.models import Outcome, ScanReport, VerdictSource
 
+_FINDINGS_COLUMNS = (
+    "ID",
+    "Category",
+    "Name",
+    "Severity",
+    "Result",
+    "Conf.",
+    "Source",
+    "Judge Error",
+    "Recommendation",
+)
+
 
 def _sanitize_cell(value: str) -> str:
     """Escape Markdown table metacharacters in a cell value."""
@@ -39,10 +51,8 @@ class MarkdownReporter:
             "",
             "## Findings",
             "",
-            "| ID | Category | Name | Severity | Result | Conf. | Source | Judge Error "
-            "| Recommendation |",
-            "|----|----------|------|----------|--------|-------|--------|-------------"
-            "|----------------|",
+            "| " + " | ".join(_FINDINGS_COLUMNS) + " |",
+            "|" + "|".join("-" * (len(c) + 2) for c in _FINDINGS_COLUMNS) + "|",
         ]
         for f in report.findings:
             is_conflict = f.verdict_source == VerdictSource.CONFLICT

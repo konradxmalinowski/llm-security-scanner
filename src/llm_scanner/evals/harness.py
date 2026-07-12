@@ -39,7 +39,8 @@ class JudgeLike(Protocol):
     what lets every metric/comparison path run fully offline — no Ollama, no network.
     """
 
-    async def evaluate(self, payload: object, response: str) -> JudgeResult: ...
+    async def evaluate(self, payload: object, response: str) -> JudgeResult:
+        """Evaluate one payload/response pair and return the judge's verdict."""
 
 
 def judge_says_vulnerable(judge_result: JudgeResult) -> bool:
