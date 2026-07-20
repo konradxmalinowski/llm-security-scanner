@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Output Formats — LLM Security Scanner</title>
-  <meta name="description" content="LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.">
+  <title>Output Formats - LLM Security Scanner</title>
+  <meta name="description" content="LLM Security Scanner report formats - terminal, Markdown, JSON, and self-contained HTML - and how to read the risk score.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/output-formats/">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="LLM Security Scanner">
-  <meta property="og:title" content="Output Formats — LLM Security Scanner">
-  <meta property="og:description" content="LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.">
+  <meta property="og:title" content="Output Formats - LLM Security Scanner">
+  <meta property="og:description" content="LLM Security Scanner report formats - terminal, Markdown, JSON, and self-contained HTML - and how to read the risk score.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/output-formats/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="LLM Security Scanner — OWASP Top 10 for LLMs">
+  <meta property="og:image:alt" content="LLM Security Scanner - OWASP Top 10 for LLMs">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Output Formats — LLM Security Scanner">
-  <meta name="twitter:description" content="LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.">
+  <meta name="twitter:title" content="Output Formats - LLM Security Scanner">
+  <meta name="twitter:description" content="LLM Security Scanner report formats - terminal, Markdown, JSON, and self-contained HTML - and how to read the risk score.">
   <meta name="twitter:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
 
   <meta name="theme-color" content="#0c0c0c">
@@ -29,8 +29,8 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Output Formats — LLM Security Scanner",
-    "description": "LLM Security Scanner report formats — terminal, Markdown, JSON, and self-contained HTML — and how to read the risk score.",
+    "headline": "Output Formats - LLM Security Scanner",
+    "description": "LLM Security Scanner report formats - terminal, Markdown, JSON, and self-contained HTML - and how to read the risk score.",
     "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/output-formats/",
     "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
   }
@@ -95,15 +95,15 @@
       <div class="risk-bands">
         <div class="risk-band">
           <div class="risk-dot" style="background:#34d399;"></div>
-          <span style="font-size:0.82rem;"><strong>0 &ndash; 3.9</strong> <span style="color:var(--muted)">Low</span></span>
+          <span style="font-size:0.82rem;"><strong>0 - 3.9</strong> <span style="color:var(--muted)">Low</span></span>
         </div>
         <div class="risk-band">
           <div class="risk-dot" style="background:#fbbf24;"></div>
-          <span style="font-size:0.82rem;"><strong>4 &ndash; 6.9</strong> <span style="color:var(--muted)">Medium</span></span>
+          <span style="font-size:0.82rem;"><strong>4 - 6.9</strong> <span style="color:var(--muted)">Medium</span></span>
         </div>
         <div class="risk-band">
           <div class="risk-dot" style="background:#f87171;"></div>
-          <span style="font-size:0.82rem;"><strong>7 &ndash; 10</strong> <span style="color:var(--muted)">High</span></span>
+          <span style="font-size:0.82rem;"><strong>7 - 10</strong> <span style="color:var(--muted)">High</span></span>
         </div>
       </div>
     </div>
@@ -131,7 +131,7 @@
         <div class="format-label">.html</div>
         <h2 class="format-name">HTML</h2>
         <div class="format-flag">--format html</div>
-        <div class="format-desc">Self-contained file. Rows colour-coded by severity. Jinja2 <code>autoescape=True</code> ensures attack payloads containing <code>&lt;script&gt;</code> render as escaped text &mdash; XSS-safe by design. Each finding displays its mapped CWE ID and CVSS score.</div>
+        <div class="format-desc">Self-contained file. Rows colour-coded by severity. Jinja2 <code>autoescape=True</code> ensures attack payloads containing <code>&lt;script&gt;</code> render as escaped text - XSS-safe by design. Each finding displays its mapped CWE ID and CVSS score.</div>
       </div>
       <div class="format-card">
         <div class="format-label">.sarif</div>

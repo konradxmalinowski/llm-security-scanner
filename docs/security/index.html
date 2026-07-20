@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Properties — LLM Security Scanner</title>
+  <title>Security Properties - LLM Security Scanner</title>
   <meta name="description" content="How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/security/">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="LLM Security Scanner">
-  <meta property="og:title" content="Security Properties — LLM Security Scanner">
+  <meta property="og:title" content="Security Properties - LLM Security Scanner">
   <meta property="og:description" content="How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/security/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="LLM Security Scanner — OWASP Top 10 for LLMs">
+  <meta property="og:image:alt" content="LLM Security Scanner - OWASP Top 10 for LLMs">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Security Properties — LLM Security Scanner">
+  <meta name="twitter:title" content="Security Properties - LLM Security Scanner">
   <meta name="twitter:description" content="How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.">
   <meta name="twitter:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Security Properties — LLM Security Scanner",
+    "headline": "Security Properties - LLM Security Scanner",
     "description": "How LLM Security Scanner protects itself: offline judge model, API key handling, XSS-safe HTML reports, and safe YAML parsing.",
     "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/security/",
     "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
@@ -110,7 +110,7 @@
           <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <h2 class="sec-title">XSS-safe HTML reports</h2>
-        <div class="sec-desc">Jinja2 <code>autoescape=True</code> is mandatory. Attack payloads containing <code>&lt;script&gt;</code> render as escaped text in the HTML report &mdash; never executed.</div>
+        <div class="sec-desc">Jinja2 <code>autoescape=True</code> is mandatory. Attack payloads containing <code>&lt;script&gt;</code> render as escaped text in the HTML report - never executed.</div>
       </div>
       <div class="sec-card">
         <div class="sec-icon-box">
@@ -131,7 +131,7 @@
           <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         </div>
         <h2 class="sec-title">Judge independence</h2>
-        <div class="sec-desc">The judge model must be different from the target model. Using the same model as both target and judge creates a conflict of interest &mdash; blocked at startup.</div>
+        <div class="sec-desc">The judge model must be different from the target model. Using the same model as both target and judge creates a conflict of interest - blocked at startup.</div>
       </div>
       <div class="sec-card">
         <div class="sec-icon-box">

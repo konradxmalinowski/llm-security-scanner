@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CLI Reference — LLM Security Scanner</title>
-  <meta name="description" content="Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.">
+  <title>CLI Reference - LLM Security Scanner</title>
+  <meta name="description" content="Every flag the llm-scanner CLI understands - target, target-type, judge-model, categories, severity, format, and more.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/cli-reference/">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="LLM Security Scanner">
-  <meta property="og:title" content="CLI Reference — LLM Security Scanner">
-  <meta property="og:description" content="Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.">
+  <meta property="og:title" content="CLI Reference - LLM Security Scanner">
+  <meta property="og:description" content="Every flag the llm-scanner CLI understands - target, target-type, judge-model, categories, severity, format, and more.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/cli-reference/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="LLM Security Scanner — OWASP Top 10 for LLMs">
+  <meta property="og:image:alt" content="LLM Security Scanner - OWASP Top 10 for LLMs">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CLI Reference — LLM Security Scanner">
-  <meta name="twitter:description" content="Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.">
+  <meta name="twitter:title" content="CLI Reference - LLM Security Scanner">
+  <meta name="twitter:description" content="Every flag the llm-scanner CLI understands - target, target-type, judge-model, categories, severity, format, and more.">
   <meta name="twitter:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
 
   <meta name="theme-color" content="#0c0c0c">
@@ -29,8 +29,8 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "CLI Reference — LLM Security Scanner",
-    "description": "Every flag the llm-scanner CLI understands — target, target-type, judge-model, categories, severity, format, and more.",
+    "headline": "CLI Reference - LLM Security Scanner",
+    "description": "Every flag the llm-scanner CLI understands - target, target-type, judge-model, categories, severity, format, and more.",
     "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/cli-reference/",
     "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
   }
@@ -104,25 +104,25 @@
           <tr>
             <td class="flag-cell">--target</td>
             <td class="req-yes">Yes</td>
-            <td class="default-cell">&mdash;</td>
+            <td class="default-cell">-</td>
             <td>URL or Ollama model name to test</td>
           </tr>
           <tr>
             <td class="flag-cell">--target-type</td>
             <td class="req-yes">Yes</td>
-            <td class="default-cell">&mdash;</td>
+            <td class="default-cell">-</td>
             <td><code>url</code> or <code>ollama</code></td>
           </tr>
           <tr>
             <td class="flag-cell">--judge-model</td>
             <td class="req-yes">Yes</td>
-            <td class="default-cell">&mdash;</td>
+            <td class="default-cell">-</td>
             <td>Local Ollama model used as the AI evaluator</td>
           </tr>
           <tr>
             <td class="flag-cell">--categories</td>
             <td class="req-no">No</td>
-            <td class="default-cell">LLM01&ndash;LLM09</td>
+            <td class="default-cell">LLM01-LLM09</td>
             <td>Comma-separated OWASP categories to test. Example: <code>LLM01,LLM07</code></td>
           </tr>
           <tr>

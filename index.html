@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LLM Security Scanner — OWASP LLM Top 10 Testing</title>
+  <title>LLM Security Scanner - OWASP LLM Top 10 Testing</title>
   <meta name="description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 72+ attack payloads, a local AI judge, and a risk score in minutes.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="LLM Security Scanner">
-  <meta property="og:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
+  <meta property="og:title" content="LLM Security Scanner - OWASP LLM Top 10 Testing">
   <meta property="og:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 72+ attack payloads, a local AI judge, and a risk score in minutes.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="LLM Security Scanner — OWASP Top 10 for LLMs">
+  <meta property="og:image:alt" content="LLM Security Scanner - OWASP Top 10 for LLMs">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
+  <meta name="twitter:title" content="LLM Security Scanner - OWASP LLM Top 10 Testing">
   <meta name="twitter:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025 with a local AI judge.">
   <meta name="twitter:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
 
@@ -176,7 +176,7 @@
       </div>
       <div class="docs-callout" style="margin:0 0 20px;">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <div>This hosted, no-install public-URL scan is <strong>not available yet</strong> &mdash; it's on the roadmap and coming soon. The form below is a preview of how it will look. In the meantime, run the exact same scanner engine locally: see <a href="/llm-security-scanner/docs/getting-started/" style="color:var(--accent);">Getting Started</a>.</div>
+        <div>This hosted, no-install public-URL scan is <strong>not available yet</strong> - it's on the roadmap and coming soon. The form below is a preview of how it will look. In the meantime, run the exact same scanner engine locally: see <a href="/llm-security-scanner/docs/getting-started/" style="color:var(--accent);">Getting Started</a>.</div>
       </div>
       <div class="scan-form-grid">
         <div class="scan-field">
@@ -215,7 +215,7 @@
 
         <div class="scan-primary-row">
           <button id="scan-submit" class="btn btn-primary" type="button" disabled title="Coming soon -- run the CLI locally today">Run free scan</button>
-          <div class="scan-footnote">Rejects <code>localhost</code>, Docker, and VPN targets by design &mdash; use the <a href="/llm-security-scanner/docs/getting-started/" style="color:var(--accent);">CLI</a> for those.</div>
+          <div class="scan-footnote">Rejects <code>localhost</code>, Docker, and VPN targets by design - use the <a href="/llm-security-scanner/docs/getting-started/" style="color:var(--accent);">CLI</a> for those.</div>
         </div>
       </div>
     </div>
@@ -255,7 +255,7 @@
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
       <h3 class="teaser-title">Local endpoint</h3>
-      <div class="teaser-desc">Point the CLI at a chatbot on <code>localhost</code> or another loopback address &mdash; no waiting on the hosted scan for that.</div>
+      <div class="teaser-desc">Point the CLI at a chatbot on <code>localhost</code> or another loopback address - no waiting on the hosted scan for that.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/getting-started/">View getting started guide &rarr;</a>
     </div>
     <div class="teaser-card">
@@ -274,7 +274,7 @@
 <section id="how-it-works">
   <div class="section-label">How it works</div>
   <h2 class="section-title">From one command to a full security report</h2>
-  <p class="section-sub">The scanner handles everything — preflight, payload dispatch, AI judging, and report generation.</p>
+  <p class="section-sub">The scanner handles everything - preflight, payload dispatch, AI judging, and report generation.</p>
 
   <div class="steps">
     <div class="step">
@@ -295,7 +295,7 @@
     <div class="step">
       <div class="step-num">04</div>
       <h3 class="step-title">AI Judge</h3>
-      <div class="step-desc">Sends each <em>(payload, response)</em> pair to a local Ollama model for a structured verdict — no cloud required.</div>
+      <div class="step-desc">Sends each <em>(payload, response)</em> pair to a local Ollama model for a structured verdict - no cloud required.</div>
     </div>
     <div class="step">
       <div class="step-num">05</div>
@@ -316,70 +316,70 @@
       <div class="owasp-badge">LLM01</div>
       <h3 class="owasp-title">Prompt Injection</h3>
       <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
-      <div class="owasp-payloads">11 payloads &mdash; default on</div>
+      <div class="owasp-payloads">11 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-77, CWE-94</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM02</div>
       <h3 class="owasp-title">Sensitive Information Disclosure</h3>
       <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
-      <div class="owasp-payloads">9 payloads &mdash; default on</div>
+      <div class="owasp-payloads">9 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-200</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM03</div>
       <h3 class="owasp-title">Supply Chain</h3>
       <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
-      <div class="owasp-payloads">6 payloads &mdash; default on</div>
+      <div class="owasp-payloads">6 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-1104, CWE-829</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM04</div>
       <h3 class="owasp-title">Data &amp; Model Poisoning</h3>
       <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
-      <div class="owasp-payloads">6 payloads &mdash; default on</div>
+      <div class="owasp-payloads">6 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-20, CWE-1039</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM05</div>
       <h3 class="owasp-title">Improper Output Handling</h3>
       <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
-      <div class="owasp-payloads">6 payloads &mdash; default on</div>
+      <div class="owasp-payloads">6 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-79, CWE-116</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM06</div>
       <h3 class="owasp-title">Excessive Agency</h3>
       <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
-      <div class="owasp-payloads">8 payloads &mdash; default on</div>
+      <div class="owasp-payloads">8 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-269, CWE-863</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM07</div>
       <h3 class="owasp-title">System Prompt Leakage</h3>
       <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">5 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-200, CWE-522</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM08</div>
       <h3 class="owasp-title">Vector &amp; Embedding Weaknesses</h3>
       <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">5 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-668</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM09</div>
       <h3 class="owasp-title">Misinformation</h3>
       <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">5 payloads - default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-345</div>
     </div>
     <div class="owasp-card" style="border-color: #f8717133;">
       <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
       <h3 class="owasp-title">Unbounded Consumption</h3>
       <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
-      <div class="owasp-payloads" style="color: #f87171;">6 payloads &mdash; <code>--include-dos-tests</code></div>
+      <div class="owasp-payloads" style="color: #f87171;">6 payloads - <code>--include-dos-tests</code></div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-400, CWE-770</div>
     </div>
   </div>
@@ -421,7 +421,7 @@
         <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
       </div>
       <h3 class="teaser-title">CLI reference</h3>
-      <div class="teaser-desc">Every flag the scanner understands &mdash; <code>--target</code>, <code>--categories</code>, <code>--severity</code>, <code>--format</code>, and more.</div>
+      <div class="teaser-desc">Every flag the scanner understands - <code>--target</code>, <code>--categories</code>, <code>--severity</code>, <code>--format</code>, and more.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/cli-reference/">View CLI reference &rarr;</a>
     </div>
     <div class="teaser-card">
@@ -429,7 +429,7 @@
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       </div>
       <h3 class="teaser-title">Output formats</h3>
-      <div class="teaser-desc">Terminal, Markdown, JSON, and self-contained HTML reports &mdash; colour-coded by severity, safe by default.</div>
+      <div class="teaser-desc">Terminal, Markdown, JSON, and self-contained HTML reports - colour-coded by severity, safe by default.</div>
       <a class="teaser-link" href="/llm-security-scanner/docs/output-formats/">View report formats &rarr;</a>
     </div>
     <div class="teaser-card">

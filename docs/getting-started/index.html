@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Getting Started — LLM Security Scanner</title>
+  <title>Getting Started - LLM Security Scanner</title>
   <meta name="description" content="Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/getting-started/">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="LLM Security Scanner">
-  <meta property="og:title" content="Getting Started — LLM Security Scanner">
+  <meta property="og:title" content="Getting Started - LLM Security Scanner">
   <meta property="og:description" content="Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/getting-started/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="LLM Security Scanner — OWASP Top 10 for LLMs">
+  <meta property="og:image:alt" content="LLM Security Scanner - OWASP Top 10 for LLMs">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Getting Started — LLM Security Scanner">
+  <meta name="twitter:title" content="Getting Started - LLM Security Scanner">
   <meta name="twitter:description" content="Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.">
   <meta name="twitter:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Getting Started — LLM Security Scanner",
+    "headline": "Getting Started - LLM Security Scanner",
     "description": "Install the LLM Security Scanner CLI, pull a local Ollama judge model, and run your first OWASP LLM Top 10 scan in three commands.",
     "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/getting-started/",
     "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
@@ -93,7 +93,7 @@
     <h2 id="prerequisites">Prerequisites</h2>
     <p>Python 3.11+, <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener noreferrer">uv</a>, and <a href="https://ollama.com/" target="_blank" rel="noopener noreferrer">Ollama</a> running locally.</p>
 
-    <h2 id="install">1 — Install the scanner</h2>
+    <h2 id="install">1 - Install the scanner</h2>
     <div class="code-block">
       <button class="copy-btn" onclick="copyCode(this)">Copy</button>
       <pre><span class="cmt"># Install package (creates .venv automatically)</span>
@@ -106,7 +106,7 @@
 <span class="cmd">llm-scanner</span> <span class="kw">--help</span></pre>
     </div>
 
-    <h2 id="judge-model">2 — Pull a judge model</h2>
+    <h2 id="judge-model">2 - Pull a judge model</h2>
     <div class="code-block">
       <button class="copy-btn" onclick="copyCode(this)">Copy</button>
       <pre><span class="cmt"># Good balance of speed and quality</span>
@@ -116,7 +116,7 @@
 <span class="cmd">ollama pull</span> <span class="str">llama3.1:8b</span></pre>
     </div>
 
-    <h2 id="first-scan">3 — Run your first scan</h2>
+    <h2 id="first-scan">3 - Run your first scan</h2>
     <div class="code-block">
       <button class="copy-btn" onclick="copyCode(this)">Copy</button>
       <pre><span class="cmd">llm-scanner</span> \
@@ -129,14 +129,14 @@
 
     <div class="docs-callout">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <div>Only have a public URL and don't want to install anything? A hosted, no-install public-URL scan (<a href="/llm-security-scanner/#hosted-scan">preview here</a>) is on the roadmap — for now, run the CLI above against any public or private endpoint.</div>
+      <div>Only have a public URL and don't want to install anything? A hosted, no-install public-URL scan (<a href="/llm-security-scanner/#hosted-scan">preview here</a>) is on the roadmap - for now, run the CLI above against any public or private endpoint.</div>
     </div>
 
     <h2 id="next">Next steps</h2>
     <ul>
-      <li>Wire the scanner into your pipeline — see <a href="/llm-security-scanner/docs/cicd/" data-kw="ci cd gate github actions gitlab docker pipeline fail on score merge">CI/CD Integration</a>.</li>
-      <li>Look up any flag — see <a href="/llm-security-scanner/docs/cli-reference/" data-kw="flags arguments options target categories severity concurrency retries log level file">CLI Reference</a>.</li>
-      <li>Understand what each OWASP category tests — see <a href="/llm-security-scanner/docs/owasp-coverage/" data-kw="owasp llm01 llm02 llm03 llm04 llm05 llm06 llm07 llm08 llm09 llm10 categories payloads coverage cwe cvss">OWASP LLM Top 10</a>.</li>
+      <li>Wire the scanner into your pipeline - see <a href="/llm-security-scanner/docs/cicd/" data-kw="ci cd gate github actions gitlab docker pipeline fail on score merge">CI/CD Integration</a>.</li>
+      <li>Look up any flag - see <a href="/llm-security-scanner/docs/cli-reference/" data-kw="flags arguments options target categories severity concurrency retries log level file">CLI Reference</a>.</li>
+      <li>Understand what each OWASP category tests - see <a href="/llm-security-scanner/docs/owasp-coverage/" data-kw="owasp llm01 llm02 llm03 llm04 llm05 llm06 llm07 llm08 llm09 llm10 categories payloads coverage cwe cvss">OWASP LLM Top 10</a>.</li>
     </ul>
   </main>
 </div>

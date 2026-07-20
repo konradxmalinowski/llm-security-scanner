@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CI/CD Integration — LLM Security Scanner</title>
+  <title>CI/CD Integration - LLM Security Scanner</title>
   <meta name="description" content="Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/docs/cicd/">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="LLM Security Scanner">
-  <meta property="og:title" content="CI/CD Integration — LLM Security Scanner">
+  <meta property="og:title" content="CI/CD Integration - LLM Security Scanner">
   <meta property="og:description" content="Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/docs/cicd/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="LLM Security Scanner — OWASP Top 10 for LLMs">
+  <meta property="og:image:alt" content="LLM Security Scanner - OWASP Top 10 for LLMs">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CI/CD Integration — LLM Security Scanner">
+  <meta name="twitter:title" content="CI/CD Integration - LLM Security Scanner">
   <meta name="twitter:description" content="Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.">
   <meta name="twitter:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
 
@@ -29,7 +29,7 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "CI/CD Integration — LLM Security Scanner",
+    "headline": "CI/CD Integration - LLM Security Scanner",
     "description": "Run the LLM Security Scanner as a gate in GitHub Actions or GitLab CI, with or without Docker, and block merges on risk score.",
     "url": "https://konradxmalinowski.github.io/llm-security-scanner/docs/cicd/",
     "isPartOf": { "@type": "WebSite", "name": "LLM Security Scanner", "url": "https://konradxmalinowski.github.io/llm-security-scanner/" }
@@ -156,7 +156,7 @@
       <span class="kw">alias</span>: <span class="str">ollama</span>
   <span class="kw">variables</span>:
     <span class="kw">OLLAMA_HOST</span>: <span class="str">http://ollama:11434</span>
-    <span class="kw">LLM_ENDPOINT</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose — set as a CI/CD variable</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose - set as a CI/CD variable</span>
     <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">llama3.2:3b</span>
     <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">"7.0"</span>
     <span class="kw">LLM_SEVERITY</span>: <span class="str">""</span>
@@ -177,7 +177,7 @@
         [ -n "$LLM_CATEGORIES" ] &amp;&amp; set -- "$@" --categories "$LLM_CATEGORIES"
         [ "$LLM_INCLUDE_DOS_TESTS" = "true" ] &amp;&amp; set -- "$@" --include-dos-tests
         llm-scanner "$@"</span>
-      <span class="cmt"># Add LLM_API_KEY only if the target requires bearer auth — kept out of a single interpolated string on purpose</span>
+      <span class="cmt"># Add LLM_API_KEY only if the target requires bearer auth - kept out of a single interpolated string on purpose</span>
   <span class="kw">artifacts</span>:
     <span class="kw">when</span>: <span class="str">always</span>
     <span class="kw">paths</span>:
@@ -249,8 +249,8 @@
   <span class="kw">variables</span>:
     <span class="kw">DOCKER_HOST</span>: <span class="str">tcp://docker:2375</span>
     <span class="kw">DOCKER_TLS_CERTDIR</span>: <span class="str">""</span>
-    <span class="kw">LLM_ENDPOINT</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose — set as a CI/CD variable</span>
-    <span class="kw">OLLAMA_HOST</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose — set as a CI/CD variable</span>
+    <span class="kw">LLM_ENDPOINT</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose - set as a CI/CD variable</span>
+    <span class="kw">OLLAMA_HOST</span>: <span class="str">""</span>  <span class="cmt"># no default on purpose - set as a CI/CD variable</span>
     <span class="kw">LLM_JUDGE_MODEL</span>: <span class="str">llama3.2:3b</span>
     <span class="kw">LLM_FAIL_ON_SCORE</span>: <span class="str">"7.0"</span>
     <span class="kw">LLM_SCANNER_VERSION</span>: <span class="str">""</span>  <span class="cmt"># empty = latest release from PyPI</span>
