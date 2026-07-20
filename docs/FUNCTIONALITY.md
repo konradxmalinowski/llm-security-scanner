@@ -15,7 +15,7 @@ A CLI (`llm-scanner`) that fires a battery of OWASP Top 10 for LLMs (2025) attac
 ## Attack library
 
 - YAML files under `payloads/`, one per OWASP category (`llm01_prompt_injection.yaml` … `llm10_unbounded_consumption.yaml`), each entry with `id`, `name`, `payload`, `judge_criteria`.
-- 4–7 payloads per category, 47 total, plus `payloads/extended/llm10_extended.yaml` with 4 more Unbounded Consumption probes (not loaded by default; pass `--payloads-dir payloads/extended` to include them) — 51 grand total.
+- 5–11 payloads per category, 67 total, plus `payloads/extended/llm10_extended.yaml` with 5 more Unbounded Consumption probes (not loaded by default; pass `--payloads-dir payloads/extended` to include them) — 72 grand total.
 - Every finding carries `cwe_ids` and a `cvss_vector`/`cvss_score` mapped per OWASP category (`models.py`'s `CWE_MAP`/`CVSS_MAP`), surfaced in all report formats.
 - `--categories` filters which OWASP categories run; `--severity` filters by minimum severity.
 - LLM10 (Unbounded Consumption / DoS-style probes) is excluded by default — opt in with `--include-dos-tests`.
