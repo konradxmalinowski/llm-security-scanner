@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LLM Security Scanner — OWASP LLM Top 10 Testing</title>
-  <meta name="description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 51+ attack payloads, a local AI judge, and a risk score in minutes.">
+  <meta name="description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 72+ attack payloads, a local AI judge, and a risk score in minutes.">
   <link rel="canonical" href="https://konradxmalinowski.github.io/llm-security-scanner/">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="LLM Security Scanner">
   <meta property="og:title" content="LLM Security Scanner — OWASP LLM Top 10 Testing">
-  <meta property="og:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 51+ attack payloads, a local AI judge, and a risk score in minutes.">
+  <meta property="og:description" content="Scan chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs 2025. 72+ attack payloads, a local AI judge, and a risk score in minutes.">
   <meta property="og:url" content="https://konradxmalinowski.github.io/llm-security-scanner/">
   <meta property="og:image" content="https://konradxmalinowski.github.io/llm-security-scanner/static/og-image.png">
   <meta property="og:image:width" content="1200">
@@ -41,7 +41,7 @@
     "name": "LLM Security Scanner",
     "applicationCategory": "SecurityApplication",
     "operatingSystem": "Any",
-    "description": "Scans chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs with 51+ attack payloads and a local AI judge.",
+    "description": "Scans chatbots and LLM-backed APIs against the OWASP Top 10 for LLMs with 72+ attack payloads and a local AI judge.",
     "offers": { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" }
   }
   </script>
@@ -119,7 +119,7 @@
       <div class="hero-badge">OWASP Top 10 for LLMs 2025</div>
       <h2 class="hero-title">Security quickstart</h2>
       <p class="hero-sub">
-        Find OWASP LLM Top 10 vulnerabilities before attackers do. Run 51+ real attack payloads against a chatbot or LLM-backed API and get a risk score in minutes.
+        Find OWASP LLM Top 10 vulnerabilities before attackers do. Run 72+ real attack payloads against a chatbot or LLM-backed API and get a risk score in minutes.
       </p>
       <div class="hero-actions">
         <a href="#hosted-scan" class="btn btn-primary">Start scanning</a>
@@ -316,70 +316,70 @@
       <div class="owasp-badge">LLM01</div>
       <h3 class="owasp-title">Prompt Injection</h3>
       <div class="owasp-desc">Instructions embedded in user input that override or subvert the system prompt.</div>
-      <div class="owasp-payloads">5 payloads &mdash; default on</div>
+      <div class="owasp-payloads">11 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-77, CWE-94</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM02</div>
       <h3 class="owasp-title">Sensitive Information Disclosure</h3>
       <div class="owasp-desc">Leakage of PII, credentials, or confidential data through model responses.</div>
-      <div class="owasp-payloads">7 payloads &mdash; default on</div>
+      <div class="owasp-payloads">9 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-200</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM03</div>
       <h3 class="owasp-title">Supply Chain</h3>
       <div class="owasp-desc">Risks from third-party models, datasets, plugins, or fine-tuning sources.</div>
-      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      <div class="owasp-payloads">6 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-1104, CWE-829</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM04</div>
       <h3 class="owasp-title">Data &amp; Model Poisoning</h3>
       <div class="owasp-desc">Compromised training data affecting model behaviour and output integrity.</div>
-      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      <div class="owasp-payloads">6 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-20, CWE-1039</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM05</div>
       <h3 class="owasp-title">Improper Output Handling</h3>
       <div class="owasp-desc">Downstream injection attacks (XSS, SQLi) via unsanitised model output.</div>
-      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      <div class="owasp-payloads">6 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-79, CWE-116</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM06</div>
       <h3 class="owasp-title">Excessive Agency</h3>
       <div class="owasp-desc">Model taking high-impact autonomous actions without explicit authorisation.</div>
-      <div class="owasp-payloads">7 payloads &mdash; default on</div>
+      <div class="owasp-payloads">8 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-269, CWE-863</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM07</div>
       <h3 class="owasp-title">System Prompt Leakage</h3>
       <div class="owasp-desc">Extraction of confidential system-level instructions from the model context.</div>
-      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-200, CWE-522</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM08</div>
       <h3 class="owasp-title">Vector &amp; Embedding Weaknesses</h3>
       <div class="owasp-desc">Manipulation or poisoning of vector stores and RAG pipeline data.</div>
-      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-668</div>
     </div>
     <div class="owasp-card">
       <div class="owasp-badge">LLM09</div>
       <h3 class="owasp-title">Misinformation</h3>
       <div class="owasp-desc">Model generating false, misleading, or harmful content as factual output.</div>
-      <div class="owasp-payloads">4 payloads &mdash; default on</div>
+      <div class="owasp-payloads">5 payloads &mdash; default on</div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-345</div>
     </div>
     <div class="owasp-card" style="border-color: #f8717133;">
       <div class="owasp-badge" style="background:#f8717122; color:#f87171; border-color:#f8717133;">LLM10</div>
       <h3 class="owasp-title">Unbounded Consumption</h3>
       <div class="owasp-desc">Resource exhaustion via oversized or recursive requests. Opt-in to protect targets.</div>
-      <div class="owasp-payloads" style="color: #f87171;">4 payloads &mdash; <code>--include-dos-tests</code></div>
+      <div class="owasp-payloads" style="color: #f87171;">6 payloads &mdash; <code>--include-dos-tests</code></div>
       <div class="owasp-desc" style="margin-top:0.35rem; font-family:monospace; font-size:0.7rem;">CWE-400, CWE-770</div>
     </div>
   </div>
