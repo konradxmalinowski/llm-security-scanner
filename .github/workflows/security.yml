@@ -26,6 +26,12 @@ jobs:
       - name: Install uv
         run: pip install uv
 
+      - name: Upgrade setuptools
+        # PYSEC-2026-3447: the setuptools version bundled with actions/setup-python's
+        # Python 3.11 image is vulnerable; the project itself does not pin setuptools,
+        # so upgrade it explicitly before pip-audit scans the environment.
+        run: pip install --upgrade "setuptools>=83.0.0"
+
       - name: Install project dependencies
         run: uv pip install -e . --system
 
